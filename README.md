@@ -8,37 +8,55 @@
 | 模块 | 路由 | 状态 | 说明 |
 |------|------|------|------|
 | 股票组合回测 | `/tools/stocks` | stable | 日线回测、CAGR/夏普等指标 |
-| Trend Radar | `/tools/trends` | beta | 新闻聚合 + AI 标签分析 |
+| Trend Radar | `/tools/trends` | ✅ 完成 | 新闻聚合 + AI 标签分析 |
 | 关注重点 | `/tools/rednote-agent` | beta | 小红书信息流分析 |
-| Telegram 信号 | `/tools/telegram` | beta | 占位 |
+| Telegram 信号 | `/tools/telegram` | todo | 待开发 |
 
 ---
 
-## 🔄 Trend Radar 改造计划（进行中）
-
-### 背景
-整合 [ourongxing/newsnow](https://github.com/ourongxing/newsnow) 项目，获取 40+ 中文新闻源数据。
+## 🔄 Trend Radar（已完成）
 
 ### 架构
 ```
 newsnow (newsbim.pages.dev)  →  my-tools (my-tools-bim.pages.dev)
-     40+ 新闻源抓取              →  AI 打标签 + 趋势分析
+     40+ 新闻源抓取              →  关键词提取 + 趋势分析
 ```
 
 ### 部署状态
-- **newsnow**: 已部署到 `https://newsbim.pages.dev` ✅
-- **D1 数据库**: `newsnow-db` 已创建并绑定 ✅
-- **API 端点**:
-  - `/api/trends/aggregate` - 获取聚合新闻数据 ✅
-  - `/api/trends/init` - 初始化数据库（抓取新闻）✅
-- **环境变量**: 已配置 `G_CLIENT_ID`, `G_CLIENT_SECRET`, `JWT_SECRET`, `INIT_TABLE`, `ENABLE_CACHE`
+- **newsnow**: https://newsbim.pages.dev ✅
+- **D1 数据库**: `newsnow-db` (id: 7df668b3-c34e-4073-a6d2-6873f8b7bdc9) ✅
+- **Trend Radar**: https://my-tools-bim.pages.dev/tools/trends ✅
 
-### 已解决问题
-- ✅ `_worker.js` 生成问题：添加 `nodeCompat: true` 解决
-- ✅ API 返回 HTML：修复了 `getEntire()` 调用方式
-- ✅ D1 绑定：已在 Cloudflare Pages 控制台配置
-- ✅ CORS 配置：已添加 `/api/trends/**` 跨域支持
-- ✅ 中间件认证：已添加 `/api/trends` 公开访问权限
+### API 端点
+
+| 端点 | 说明 |
+|------|------|
+| `/api/trends/scan` | 获取趋势分析数据（支持 `?force=true` 强制刷新）|
+| `/api/trends/refresh` | 定时刷新端点（需认证头 `X-Cron-Auth`）|
+| newsnow `/api/trends/aggregate` | 聚合新闻数据 |
+| newsnow `/api/trends/init` | 初始化数据库 |
+
+### 关键词系统
+- **词典规模**: ~200 个关键词
+- **分类**: 政治、军事、经济、科技、医疗、教育、房地产、文娱、企业、地方等
+- **过滤**: 单字符标签（"中"、"美"）已过滤，只显示有意义的标签
+- **黑名单**: 过滤通用词、动词、媒体类型等无意义词汇
+
+### 定时任务设置
+使用 https://cron-job.org 设置定时刷新：
+
+1. 注册免费账号
+2. 创建 Cron Job：
+   - URL: `https://my-tools-bim.pages.dev/api/trends/refresh`
+   - Method: `GET`
+   - Headers: `X-Cron-Auth: your-cron-secret`
+   - 频率: 每 2 小时 (推荐)
+
+### 技术要点
+- 关键词提取采用内联词典匹配（避免 chunk 导入问题）
+- 前端过滤单字符标签，限制显示前 20 个
+- 支持点击标签查看相关新闻
+- 数据缓存 1 小时，支持强制刷新
 
 ---
 
@@ -67,6 +85,9 @@ npm run dev
 - `FMP_API_KEY`（可选）
 - `POLYGON_API_KEY`（可选）
 
+**定时任务**
+- `CRON_SECRET`：Cron 刷新认证密钥
+
 ---
 
 ## 📝 部署
@@ -92,26 +113,26 @@ npx wrangler pages deploy dist/output/public --project-name=newsbim
 - **前端**：Astro + Tailwind CSS
 - **后端**：Cloudflare Pages Functions
 - **存储**：Cloudflare KV + D1（newsnow）
-- **AI**：Cloudflare Workers AI（打标签）
+- **部署**：Cloudflare Pages
 
 ---
 
 ## 📋 开发笔记
 
-### 2025-12-27 趋势雷达改造
-- Fork newsnow 项目到 `/Users/wellington/newsnow`
-- 创建 D1 数据库 `newsnow-db` (id: 7df668b3-c34e-4073-a6d2-6873f8b7bdc9)
-- 添加 API 端点 `/api/trends/aggregate` 和 `/api/trends/init`
-- 修改中间件允许 `/api/trends` 路径绕过登录
-- 创建标签系统 `src/modules/trends/tag-system.ts`
-- 改造趋势雷达前端 `/src/pages/tools/trends.astro`
-- ✅ **已解决**: `_worker.js` 生成、API 返回数据、D1 绑定等问题
+### 2025-12-27 Trend Radar 完成上线
+- ✅ Fork newsnow 项目到 `/Users/wellington/newsnow`
+- ✅ 创建 D1 数据库并配置绑定
+- ✅ 添加 API 端点实现跨域数据获取
+- ✅ 实现关键词提取系统（~200 词汇）
+- ✅ 完成前端柱状图和交互
+- ✅ 添加定时刷新端点
+- ✅ 部署上线
 
-### 技术要点
-- newsnow 使用 `nitro-go` + `better-sqlite3` 本地开发
-- Cloudflare Pages 环境切换到 `cloudflare-d1` 连接器
-- 需要添加 `h3` 版本 resolution 解决兼容性问题
-- `getCacheTable().getEntire(keys)` 方法用于批量获取缓存
+### 关键问题解决
+1. **API 返回 HTML**: 修复 `getEntire()` 调用方式
+2. **D1 绑定**: 在 Cloudflare 控制台手动配置
+3. **单字符标签**: 前端过滤，只显示有意义的标签
+4. **定时刷新**: 使用 cron-job.org 外部服务
 
 ---
 
@@ -120,3 +141,4 @@ npx wrangler pages deploy dist/output/public --project-name=newsbim
 - **生产地址**: https://my-tools-bim.pages.dev
 - **newsnow 地址**: https://newsbim.pages.dev
 - **GitHub**: https://github.com/Wellington-AI-lab/my-tools
+- **newsnow 源项目**: https://github.com/ourongxing/newsnow
