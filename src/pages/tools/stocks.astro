@@ -145,10 +145,13 @@ import AppLayout from '@/layouts/AppLayout.astro';
       errorBox.textContent = '';
     }
 
-    // 自动调整指标数字字体大小，使其完整显示
+    // 自动调整指标数字字体大小，使其完整显示，并统一所有指标的字体大小
     function fitMetricValues() {
       requestAnimationFrame(() => {
         const metricValues = document.querySelectorAll('.metric-value');
+        const minFontSizes: number[] = [];
+
+        // 第一步：计算每个指标需要的字体大小
         metricValues.forEach((el) => {
           const element = el as HTMLElement;
           const parent = element.parentElement;
@@ -172,7 +175,17 @@ import AppLayout from '@/layouts/AppLayout.astro';
             fontSize -= 1;
             element.style.fontSize = `${fontSize}px`;
           }
+
+          minFontSizes.push(fontSize);
         });
+
+        // 第二步：找出最小的字体大小，应用到所有指标
+        if (minFontSizes.length > 0) {
+          const uniformSize = Math.min(...minFontSizes);
+          metricValues.forEach((el) => {
+            (el as HTMLElement).style.fontSize = `${uniformSize}px`;
+          });
+        }
       });
     }
 
@@ -199,7 +212,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       const fmtPct = (n: number) => {
         const val = Number.isFinite(n) ? n : 0;
         const sign = val >= 0 ? '+' : '';
-        return `${sign}${fmt(val)}%`;
+        return `${sign}${fmt(val, 0)}%`;
       };
       
       const cagr = data.cagr || 0;
@@ -251,20 +264,20 @@ import AppLayout from '@/layouts/AppLayout.astro';
       
       return `
         <!-- 核心指标卡片 -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 items-end">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">年化收益 CAGR</div>
             <div class="metric-value text-2xl font-bold font-mono ${cagrColor}">${fmtPct(cagr)}</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">总收益</div>
-            <div class="metric-value text-2xl font-bold font-mono ${returnColor}">${fmtPct(totalReturn)}</div>
+            <div class="metric-value text-4xl font-bold font-mono ${returnColor}">${fmtPct(totalReturn)}</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">最大回撤</div>
-            <div class="metric-value text-2xl font-bold font-mono text-red-500">-${fmt(maxDrawdown)}%</div>
+            <div class="metric-value text-2xl font-bold font-mono text-red-500">-${fmt(maxDrawdown, 0)}%</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">夏普比率</div>
             <div class="metric-value text-2xl font-bold font-mono text-onekey-text-primary">${fmt(sharpe, 3)}</div>
           </div>

@@ -1,4 +1,4 @@
-export type ModuleId = 'stocks' | 'news' | 'telegram' | 'rednote' | 'trends';
+export type ModuleId = 'stocks' | 'telegram' | 'rednote' | 'trends';
 
 export type ModuleDef = {
   id: ModuleId;
@@ -19,22 +19,15 @@ export const MODULES: ModuleDef[] = [
   {
     id: 'trends',
     name: 'Trend Radar',
-    description: '多源趋势雷达（Google Trends RSS + 微博热搜）· 每日定时报告',
+    description: '互联网趋势扫描，为信息打上标签',
     href: '/tools/trends',
     status: 'beta',
   },
   {
     id: 'rednote',
-    name: '信息流',
-    description: '社交媒体信息流 → Funnel 过滤 → AI 洞察报告（SNR 优先）',
+    name: '关注重点',
+    description: '根据趋势雷达扫描出的信息标签进行多源检索',
     href: '/tools/rednote-agent',
-    status: 'beta',
-  },
-  {
-    id: 'news',
-    name: '新闻聚合',
-    description: '围绕“标的池/标签”聚合、过滤、重点监控（占位）',
-    href: '/tools/news',
     status: 'beta',
   },
   {

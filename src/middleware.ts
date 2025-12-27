@@ -29,6 +29,12 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   const { pathname } = context.url;
   if (isPublicPath(pathname)) return next();
 
+  // 开发环境跳过登录验证
+  if (process.env.NODE_ENV === 'development') {
+    context.locals.user = { role: 'user' };
+    return next();
+  }
+
   // 如果是允许 API Key 认证的路径，且带有 X-Admin-Key header，则放行（由 API 自行验证）
   if (allowsApiKeyAuth(pathname) && context.request.headers.has('X-Admin-Key')) {
     return next();
