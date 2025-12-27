@@ -3,7 +3,7 @@ import { MODULES } from '@/config/modules';
 import '@/styles/global.css';
 
 const pathname = Astro.url.pathname;
-const role = Astro.locals.user?.role ?? 'user';
+const role = (Astro.locals as any)?.user?.role ?? 'user';
 const title = Astro.props?.title ? `${Astro.props.title} · my tools` : 'my tools';
 ---
 
