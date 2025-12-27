@@ -1,20 +1,21 @@
 /**
  * 定时刷新端点
  * 供 Cloudflare Workers Cron 或外部 cron 服务调用
- *
- * Cron 示例: 每2小时执行一次
- * 外部服务: https://cron-job.org 可以免费调用
  */
 
 import type { APIRoute } from 'astro';
+import { getEnv } from '@/lib/env';
 
 const SCAN_API_URL = "https://my-tools-bim.pages.dev/api/trends/scan";
-const AUTH_HEADER = "X-Cron-Auth"; // 简单的认证头
+const AUTH_HEADER = "X-Cron-Auth";
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async (context) => {
+  const { request } = context;
+
   // 简单的认证检查
   const authHeader = request.headers.get(AUTH_HEADER);
-  const cronSecret = import.meta.env.CRON_SECRET || "your-cron-secret";
+  const env = getEnv(context.locals) as any;
+  const cronSecret = env.CRON_SECRET;
 
   if (authHeader !== cronSecret) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {

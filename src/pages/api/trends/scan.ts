@@ -3,7 +3,7 @@
  * 从 newsnow 获取新闻数据，使用 AI 打标签，统计标签趋势
  */
 
-import { requireKV } from '@/lib/env';
+import { requireKV, getEnv } from '@/lib/env';
 
 const NEWSNOW_API_URL = "https://newsbim.pages.dev/api/trends/aggregate";
 const CACHE_KEY_PREFIX = "trends:";
@@ -146,6 +146,129 @@ function extractKeywords(title: string): string[] {
   return keywords;
 }
 
+/**
+ * 使用 Cloudflare Workers AI REST API 批量提取标签
+ * 为了减少 API 调用，将多条新闻合并成一个请求
+ */
+async function extractTagsWithAI(
+  items: Array<{ id: string; title: string; url: string }>,
+  accountId: string,
+  apiToken: string
+): Promise<NewsItemWithTags[]> {
+  const BATCH_SIZE = 20; // 每批处理 20 条
+  const results: NewsItemWithTags[] = [];
+
+  // Cloudflare Workers AI REST API endpoint
+  const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3.1-8b-instruct`;
+
+  // 分批处理
+  for (let i = 0; i < items.length; i += BATCH_SIZE) {
+    const batch = items.slice(i, i + BATCH_SIZE);
+
+    // 构建提示词
+    const batchText = batch.map((item, idx) =>
+      `${idx + 1}. ${item.title}`
+    ).join('\n');
+
+    const prompt = `分析以下新闻标题，提取每个新闻的 3-5 个关键词标签。
+标签要求：实体名（人名、公司、国家）、事件类型、行业领域。
+只返回 JSON 格式，格式为：[{"index":1,"tags":["标签1","标签2"]},{"index":2,...}]
+
+新闻标题：
+${batchText}`;
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: '你是一个新闻标签提取助手。只返回 JSON 格式的标签，不要其他内容。' },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 1000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[trends/scan] AI API error: ${response.status} ${errorText}`);
+        throw new Error(`AI API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiText = data.result?.response || data.response || '';
+
+      if (!aiText) {
+        throw new Error('Empty AI response');
+      }
+
+      console.log(`[trends/scan] AI batch ${i / BATCH_SIZE + 1} response: ${aiText.substring(0, 200)}...`);
+
+      // 解析 AI 返回的 JSON
+      let aiTags: Array<{ index: number; tags: string[] }> = [];
+      try {
+        // 尝试提取 JSON 部分（AI 可能返回额外文本）
+        const jsonMatch = aiText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          aiTags = JSON.parse(jsonMatch[0]);
+        } else {
+          aiTags = JSON.parse(aiText);
+        }
+      } catch (e) {
+        console.warn('[trends/scan] Failed to parse AI response, using keyword fallback');
+        aiTags = [];
+      }
+
+      // 处理每条新闻的标签
+      for (let j = 0; j < batch.length; j++) {
+        const item = batch[j];
+        const aiTagData = aiTags.find(t => t.index === j + 1);
+
+        let tags: string[];
+        if (aiTagData?.tags && Array.isArray(aiTagData.tags)) {
+          tags = aiTagData.tags.filter(t => !TAG_BLACKLIST.has(t));
+        } else {
+          // AI 失败，回退到关键词匹配
+          tags = extractKeywords(item.title).filter(t => !TAG_BLACKLIST.has(t));
+        }
+
+        results.push({
+          id: item.id,
+          title: item.title,
+          url: item.url,
+          tags: tags.slice(0, 5), // 最多 5 个标签
+          tagScore: tags.length > 0 ? 80 : 0,
+        });
+      }
+
+      // 添加延迟避免速率限制
+      if (i + BATCH_SIZE < items.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+    } catch (error) {
+      console.error(`[trends/scan] AI batch ${i / BATCH_SIZE + 1} failed:`, error);
+      // 出错时回退到关键词匹配
+      for (const item of batch) {
+        const rawTags = extractKeywords(item.title);
+        results.push({
+          id: item.id,
+          title: item.title,
+          url: item.url,
+          tags: rawTags.filter(t => !TAG_BLACKLIST.has(t)),
+          tagScore: rawTags.length > 0 ? 60 : 0,
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
 interface NewsItemWithTags {
   id: string;
   title: string;
@@ -187,7 +310,9 @@ interface TrendReport {
 
 export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
   const kv = requireKV(locals);
+  const env = getEnv(locals) as any;
   const forceRefresh = url.searchParams.get('force') === 'true';
+  const useAI = url.searchParams.get('ai') === 'true'; // AI 模式开关
 
   try {
     // 检查缓存
@@ -214,25 +339,36 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
       throw new Error("Invalid newsnow response");
     }
 
-    console.log(`[trends/scan] Processing ${data.items.length} news items`);
+    console.log(`[trends/scan] Processing ${data.items.length} news items, AI mode: ${useAI}`);
 
     // 处理新闻：提取关键词
-    const newsWithTags: NewsItemWithTags[] = data.items.map(item => {
-      const rawTags = extractKeywords(item.title);
-      // 过滤黑名单
-      const tags = rawTags.filter(tag => !TAG_BLACKLIST.has(tag));
-      const tagScore = tags.length > 0
-        ? tags.reduce((sum, tag) => sum + (tag.length >= 2 && tag.length <= 6 ? 70 : 50), 0) / tags.length
-        : 0;
+    let newsWithTags: NewsItemWithTags[];
 
-      return {
-        id: item.id,
-        title: item.title,
-        url: item.url,
-        tags,
-        tagScore,
-      };
-    });
+    const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+    const apiToken = env.CLOUDFLARE_API_TOKEN;
+
+    if (useAI && accountId && apiToken) {
+      // AI 模式：使用 REST API 批量处理
+      console.log(`[trends/scan] Using AI mode with ${data.items.length} items`);
+      newsWithTags = await extractTagsWithAI(data.items, accountId, apiToken);
+    } else {
+      // 关键词匹配模式
+      newsWithTags = data.items.map(item => {
+        const rawTags = extractKeywords(item.title);
+        const tags = rawTags.filter(tag => !TAG_BLACKLIST.has(tag));
+        const tagScore = tags.length > 0
+          ? tags.reduce((sum, tag) => sum + (tag.length >= 2 && tag.length <= 6 ? 70 : 50), 0) / tags.length
+          : 0;
+
+        return {
+          id: item.id,
+          title: item.title,
+          url: item.url,
+          tags,
+          tagScore,
+        };
+      });
+    }
 
     console.log(`[trends/scan] Processed ${newsWithTags.length} items, first 5:`,
       newsWithTags.slice(0, 5).map(i => ({ t: i.title.substring(0, 15), tags: i.tags })));

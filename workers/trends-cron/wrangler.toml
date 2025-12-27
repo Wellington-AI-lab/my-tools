@@ -1,0 +1,11 @@
+name = "trends-cron-worker"
+main = "worker.ts"
+compatibility_date = "2024-01-01"
+
+# Cron 触发器配置
+# "0 */4 * * *" = 每 4 小时执行一次 (UTC 时间)
+[triggers]
+crons = ["0 */4 * * *"]
+
+# 环境变量（在 Cloudflare 控制台设置或使用 wrangler secret）
+# CRON_SECRET: 认证密钥

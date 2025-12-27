@@ -33,27 +33,40 @@ newsnow (newsbim.pages.dev)  →  my-tools (my-tools-bim.pages.dev)
 |------|------|
 | `/api/trends/scan` | 获取趋势分析数据（支持 `?force=true` 强制刷新）|
 | `/api/trends/refresh` | 定时刷新端点（需认证头 `X-Cron-Auth`）|
+| `/api/trends/scan?ai=true` | 获取趋势数据（AI 模式）|
 | newsnow `/api/trends/aggregate` | 聚合新闻数据 |
 | newsnow `/api/trends/init` | 初始化数据库 |
 
-### 关键词系统
-- **词典规模**: ~200 个关键词
-- **分类**: 政治、军事、经济、科技、医疗、教育、房地产、文娱、企业、地方等
-- **过滤**: 单字符标签（"中"、"美"）已过滤，只显示有意义的标签
-- **黑名单**: 过滤通用词、动词、媒体类型等无意义词汇
+### AI 智能打标签
+- **模型**: Cloudflare Workers AI (@cf/meta/llama-3.1-8b-instruct)
+- **调用方式**: REST API 批量处理（20条/批）
+- **标签质量**: 提取实体名、事件类型、行业领域
+- **成本**: 免费额度内（150次调用/天，远低于10000 Neurons限制）
+- **回退机制**: AI 失败时自动回退到关键词词典匹配（~200词汇）
 
 ### 定时任务设置
-使用 https://cron-job.org 设置定时刷新：
+使用 Cloudflare Worker 实现定时刷新：
 
-1. 注册免费账号
-2. 创建 Cron Job：
-   - URL: `https://my-tools-bim.pages.dev/api/trends/refresh`
-   - Method: `GET`
-   - Headers: `X-Cron-Auth: your-cron-secret`
-   - 频率: 每 2 小时 (推荐)
+- **Worker 地址**: https://trends-cron-worker.zhusen-wang.workers.dev
+- **Cron 表达式**: `0 */4 * * *` (每 4 小时执行一次，UTC 时间)
+- **Worker 位置**: `/workers/trends-cron/`
+- **Secret**: `CRON_SECRET`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`
+
+**更新 Worker**:
+```bash
+cd /Users/wellington/my-tools/workers/trends-cron
+npm run deploy
+```
+
+**手动触发刷新**:
+```bash
+curl -X POST https://trends-cron-worker.zhusen-wang.workers.dev/trigger
+```
 
 ### 技术要点
-- 关键词提取采用内联词典匹配（避免 chunk 导入问题）
+- **AI 打标签**: 使用 Cloudflare Workers AI REST API
+- **批量处理**: 每批 20 条新闻，减少 API 调用
+- **关键词回退**: AI 失败时自动使用关键词词典匹配
 - 前端过滤单字符标签，限制显示前 20 个
 - 支持点击标签查看相关新闻
 - 数据缓存 1 小时，支持强制刷新
@@ -87,6 +100,8 @@ npm run dev
 
 **定时任务**
 - `CRON_SECRET`：Cron 刷新认证密钥
+- `CLOUDFLARE_ACCOUNT_ID`：Cloudflare 账户 ID
+- `CLOUDFLARE_API_TOKEN`：Workers AI API Token
 
 ---
 
@@ -98,6 +113,12 @@ npm run build
 npx wrangler pages deploy dist --project-name=my-tools
 ```
 
+### trends-cron-worker 部署
+```bash
+cd /Users/wellington/my-tools/workers/trends-cron
+npm run deploy
+```
+
 ### newsnow 部署
 ```bash
 cd /Users/wellington/newsnow
@@ -106,14 +127,18 @@ pnpm run deploy
 npx wrangler pages deploy dist/output/public --project-name=newsbim
 ```
 
+**⚠️ 重要**: newsnow 是 fork 的项目，上游更新不会自动同步。
+- 推荐每月同步一次上游代码
+- 同步步骤见 `/Users/wellington/newsnow/MODIFICATIONS.md`
+
 ---
 
 ## 🛠️ 技术栈
 
 - **前端**：Astro + Tailwind CSS
-- **后端**：Cloudflare Pages Functions
+- **后端**：Cloudflare Pages Functions + Workers (Cron)
 - **存储**：Cloudflare KV + D1（newsnow）
-- **部署**：Cloudflare Pages
+- **部署**：Cloudflare Pages + Workers
 
 ---
 
@@ -132,13 +157,28 @@ npx wrangler pages deploy dist/output/public --project-name=newsbim
 1. **API 返回 HTML**: 修复 `getEntire()` 调用方式
 2. **D1 绑定**: 在 Cloudflare 控制台手动配置
 3. **单字符标签**: 前端过滤，只显示有意义的标签
-4. **定时刷新**: 使用 cron-job.org 外部服务
+4. **定时刷新**: 使用 Cloudflare Worker Cron Triggers（Pages Functions 不支持 cron）
+5. **AI 绑定**: Pages Functions 不支持 AI 绑定，改用 REST API 调用
+
+### 2025-12-27 Cron Worker 上线
+- ✅ 创建独立的 Cloudflare Worker (`trends-cron-worker`)
+- ✅ 配置 Cron Triggers 每 4 小时执行一次
+- ✅ 设置 CRON_SECRET、CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_API_TOKEN 环境变量
+- ✅ Worker 地址: https://trends-cron-worker.zhusen-wang.workers.dev
+
+### 2025-12-27 AI 智能打标签集成
+- ✅ 集成 Cloudflare Workers AI (@cf/meta/llama-3.1-8b-instruct)
+- ✅ 使用 REST API 方式调用（避免绑定限制）
+- ✅ 批量处理（20条/批）优化 API 调用
+- ✅ AI 失败自动回退到关键词匹配
+- ✅ 前端默认启用 AI 模式
 
 ---
 
 ## 🔗 相关链接
 
 - **生产地址**: https://my-tools-bim.pages.dev
+- **Cron Worker**: https://trends-cron-worker.zhusen-wang.workers.dev
 - **newsnow 地址**: https://newsbim.pages.dev
 - **GitHub**: https://github.com/Wellington-AI-lab/my-tools
 - **newsnow 源项目**: https://github.com/ourongxing/newsnow

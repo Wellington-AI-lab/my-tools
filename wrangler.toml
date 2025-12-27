@@ -8,12 +8,12 @@ pages_build_output_dir = "dist"
 binding = "KV"
 id = "52ccf57fcdf14a7e882adee054fd0a8b"
 
-# Cloudflare Workers AI binding
-# 用于信息流模块的语义匹配
-[ai]
-binding = "AI"
-
 # 注意：Secrets 通过命令行或 Dashboard 配置
 # 使用命令：npx wrangler pages secret put <NAME> --project-name=my-tools
 # 或在 Dashboard: Settings → Variables → Secrets
+#
+# 已配置的 Secrets：
+# - CLOUDFLARE_ACCOUNT_ID: Cloudflare 账户 ID
+# - CLOUDFLARE_API_TOKEN: Workers AI API Token
+# - CRON_SECRET: 定时任务认证密钥
 
