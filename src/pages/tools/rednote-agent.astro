@@ -13,9 +13,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <button id="news_refresh" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
-            刷新
-          </button>
           <button id="news_run" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
             手动运行
           </button>
@@ -83,7 +80,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
     const sourcesEl = document.getElementById('news_sources');
     const keywordsEl = document.getElementById('news_keywords');
     const themesEl = document.getElementById('news_themes');
-    const refreshBtn = document.getElementById('news_refresh');
     const runBtn = document.getElementById('news_run');
 
     const SOURCE_NAMES: Record<string, string> = {
@@ -297,7 +293,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
       }
     }
 
-    if (refreshBtn) refreshBtn.addEventListener('click', loadLatest);
     if (runBtn) runBtn.addEventListener('click', runNow);
     loadLatest();
   </script>

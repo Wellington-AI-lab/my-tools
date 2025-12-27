@@ -13,9 +13,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <button id="tr_refresh" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
-            刷新
-          </button>
           <button id="tr_run" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
             手动运行（写入 KV）
           </button>
@@ -127,7 +124,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
     const themesEl = document.getElementById('tr_themes');
     const historyEl = document.getElementById('tr_history');
     const compareEl = document.getElementById('tr_compare');
-    const refreshBtn = document.getElementById('tr_refresh');
     const runBtn = document.getElementById('tr_run');
 
     function escapeHtml(s: string) {
@@ -496,7 +492,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
       }
     }
 
-    if (refreshBtn) refreshBtn.addEventListener('click', loadLatest);
     if (runBtn) runBtn.addEventListener('click', runNow);
     if (aliasSaveBtn) aliasSaveBtn.addEventListener('click', saveAliases);
     loadLatest();
