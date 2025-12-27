@@ -4,129 +4,97 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
 <AppLayout title="Trend Radar">
   <div class="space-y-4">
+    <!-- 标题区域 -->
     <div class="glass-effect rounded-xl p-6">
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 class="text-2xl font-bold text-onekey-text-primary">Trend Radar（MVP）</h1>
+          <h1 class="text-2xl font-bold text-onekey-text-primary">Trend Radar</h1>
           <p class="mt-2 text-sm text-onekey-text-secondary">
-            每日定时聚合 Google Trends（RSS）+ 微博热搜，按主题过滤与去重后生成趋势报告。
+            聚合 40+ 中文新闻源，AI 智能打标签，每日趋势分析
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <button id="tr_run" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
-            手动运行（写入 KV）
+          <button id="scanBtn" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
+            立即扫描
           </button>
         </div>
       </div>
-      <div id="tr_meta" class="mt-3 text-xs text-onekey-text-muted font-mono"></div>
+      <div id="metaInfo" class="mt-3 text-xs text-onekey-text-muted font-mono"></div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="lg:col-span-1">
-        <div class="space-y-4">
-          <div class="glass-effect rounded-xl p-6">
-            <h2 class="text-lg font-bold text-onekey-text-primary">Source Health</h2>
-            <div id="tr_health" class="mt-3 text-sm text-onekey-text-secondary">Loading…</div>
-          </div>
+    <!-- 数据源状态 -->
+    <div class="glass-effect rounded-xl p-6">
+      <h2 class="text-lg font-bold text-onekey-text-primary mb-3">数据源状态</h2>
+      <div id="sourcesStatus" class="text-sm text-onekey-text-secondary">加载中...</div>
+    </div>
 
-          <div class="glass-effect rounded-xl p-6">
-            <div class="flex items-center justify-between gap-3">
-              <h2 class="text-lg font-bold text-onekey-text-primary">Alias Map</h2>
-              <button
-                id="tr_alias_save"
-                class="text-sm px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:border-onekey-accent-green/30"
-                type="button"
-              >
-                保存
-              </button>
-            </div>
-            <div class="mt-2 text-xs text-onekey-text-muted">
-              用于中英同义词归一化（影响 Compare 的 spike/共振）。格式示例：
-              <span class="font-mono">[{'"canonical"'}:{'"fed"'}, {'"variants"'}:[{'"美联储"'},{'"FOMC"'},{'"Federal Reserve"'}]]</span>
-            </div>
-            <textarea
-              id="tr_alias_text"
-              class="mt-3 w-full h-40 px-3 py-2 bg-white border border-black/10 rounded-lg font-mono text-xs"
-              placeholder='[{"canonical":"fed","variants":["美联储","FOMC","Federal Reserve"]}]'
-            ></textarea>
-            <div id="tr_alias_status" class="mt-2 text-xs text-onekey-text-muted"></div>
-          </div>
-
-          <div class="glass-effect rounded-xl p-6">
-            <h2 class="text-lg font-bold text-onekey-text-primary">Logs</h2>
-            <pre id="tr_logs" class="mt-3 text-xs leading-relaxed whitespace-pre-wrap font-mono text-onekey-text-primary">Loading…</pre>
-          </div>
-
-          <div class="glass-effect rounded-xl p-6">
-            <h2 class="text-lg font-bold text-onekey-text-primary">Last 7 Days</h2>
-            <div id="tr_history" class="mt-3 text-sm text-onekey-text-secondary">Loading…</div>
-          </div>
+    <!-- 标签统计柱状图 -->
+    <div class="glass-effect rounded-xl p-6">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="text-lg font-bold text-onekey-text-primary">热门标签</h2>
+        <div id="trendControls" class="flex items-center gap-2 text-sm">
+          <button class="px-3 py-1 rounded-full border border-black/10 bg-white/60 hover:border-onekey-accent-green/30" data-period="today">今日</button>
+          <button class="px-3 py-1 rounded-full border border-black/10 bg-white/60 hover:border-onekey-accent-green/30" data-period="week">本周</button>
         </div>
       </div>
-
-      <div class="lg:col-span-2 space-y-4">
-        <div class="glass-effect rounded-xl p-6">
-          <h2 class="text-lg font-bold text-onekey-text-primary">Insight</h2>
-          <div id="tr_insight" class="mt-3"></div>
-        </div>
-
-        <div class="glass-effect rounded-xl p-6">
-          <div class="flex items-center justify-between gap-3 flex-wrap">
-            <h2 class="text-lg font-bold text-onekey-text-primary">Compare（7d）</h2>
-            <div class="text-xs text-onekey-text-muted">今日 vs 过去 6 天均值 · spike≥2.2× · 共振=同词在≥2个来源出现</div>
-          </div>
-          <div id="tr_compare" class="mt-4 text-sm text-onekey-text-secondary">Loading…</div>
-        </div>
-
-        <div class="glass-effect rounded-xl p-6">
-          <h2 class="text-lg font-bold text-onekey-text-primary">Themes</h2>
-          <div id="tr_themes" class="mt-4 space-y-4"></div>
-        </div>
+      <div id="chartContainer" class="mt-4">
+        <div class="text-sm text-onekey-text-secondary">点击"立即扫描"获取数据...</div>
       </div>
+    </div>
+
+    <!-- 最近新闻 -->
+    <div class="glass-effect rounded-xl p-6">
+      <h2 class="text-lg font-bold text-onekey-text-primary mb-3">最近新闻</h2>
+      <div id="recentNews" class="space-y-3">加载中...</div>
+    </div>
+
+    <!-- 标签详情（点击柱状图展开） -->
+    <div id="tagDetail" class="glass-effect rounded-xl p-6 hidden">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="text-lg font-bold text-onekey-text-primary" id="tagDetailTitle">标签详情</h2>
+        <button id="closeTagDetail" class="text-sm px-3 py-1 rounded-full border border-black/10 bg-white/60 hover:border-onekey-accent-green/30">关闭</button>
+      </div>
+      <div id="tagDetailContent" class="space-y-2"></div>
     </div>
   </div>
 
   <script>
-    type Theme =
-      | 'finance'
-      | 'economy'
-      | 'ai'
-      | 'robotics'
-      | 'travel'
-      | 'music'
-      | 'movies'
-      | 'fashion'
-      | 'entertainment';
-
-    type Report = {
-      meta: {
-        generated_at: string;
-        day_key: string;
-        sources_used: string[];
-        source_status?: Record<string, { ok: boolean; items: number; error?: string }>;
-        items_scanned: number;
-        items_kept: number;
-        execution_time_ms: number;
-        llm_used: 'llm' | 'mock';
-      };
-      logs: Array<{ ts: string; stage: string; message: string }>;
-      insight_markdown: string;
-      trends_by_theme: Array<{ theme: Theme; keywords: string[]; cards: Array<{ title: string; url?: string; source: string; signals: { score: number } }> }>;
+    type TagStats = {
+      tag: string;
+      count: number;
+      trend: 'up' | 'down' | 'stable';
+      changePercent: number;
     };
 
-    const metaEl = document.getElementById('tr_meta');
-    const healthEl = document.getElementById('tr_health');
-    const aliasTextEl = document.getElementById('tr_alias_text') as HTMLTextAreaElement | null;
-    const aliasSaveBtn = document.getElementById('tr_alias_save') as HTMLButtonElement | null;
-    const aliasStatusEl = document.getElementById('tr_alias_status') as HTMLElement | null;
-    const logsEl = document.getElementById('tr_logs');
-    const insightEl = document.getElementById('tr_insight');
-    const themesEl = document.getElementById('tr_themes');
-    const historyEl = document.getElementById('tr_history');
-    const compareEl = document.getElementById('tr_compare');
-    const runBtn = document.getElementById('tr_run');
+    type NewsItemWithTags = {
+      id: string;
+      title: string;
+      url: string;
+      tags: string[];
+      tagScore: number;
+    };
 
-    function escapeHtml(s: string) {
+    type TrendReport = {
+      generatedAt: string;
+      newsCount: number;
+      sources: string[];
+      topTags: TagStats[];
+      recentNews: NewsItemWithTags[];
+    };
+
+    const metaInfoEl = document.getElementById('metaInfo');
+    const sourcesStatusEl = document.getElementById('sourcesStatus');
+    const chartContainerEl = document.getElementById('chartContainer');
+    const recentNewsEl = document.getElementById('recentNews');
+    const scanBtn = document.getElementById('scanBtn');
+    const tagDetailEl = document.getElementById('tagDetail');
+    const tagDetailTitleEl = document.getElementById('tagDetailTitle');
+    const tagDetailContentEl = document.getElementById('tagDetailContent');
+    const closeTagDetailBtn = document.getElementById('closeTagDetail');
+
+    let currentReport: TrendReport | null = null;
+
+    function escapeHtml(s: string): string {
       return String(s || '')
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
@@ -135,368 +103,164 @@ import AppLayout from '@/layouts/AppLayout.astro';
         .replaceAll("'", '&#039;');
     }
 
-    function renderMarkdown(md: string): string {
-      const lines = String(md || '').split('\n');
-      const out: string[] = [];
-      let inList = false;
-      const flush = () => {
-        if (inList) {
-          out.push('</ul>');
-          inList = false;
-        }
-      };
-      for (const raw of lines) {
-        const line = raw.trimEnd();
-        if (!line.trim()) { flush(); continue; }
-        if (line.startsWith('### ')) { flush(); out.push(`<h3 class="text-base font-bold mt-4">${escapeHtml(line.slice(4))}</h3>`); continue; }
-        if (line.startsWith('## ')) { flush(); out.push(`<h2 class="text-lg font-bold mt-4">${escapeHtml(line.slice(3))}</h2>`); continue; }
-        if (line.startsWith('- ')) {
-          if (!inList) { out.push('<ul class="list-disc pl-5 space-y-1">'); inList = true; }
-          out.push(`<li class="text-sm text-onekey-text-secondary">${escapeHtml(line.slice(2)).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')}</li>`);
-          continue;
-        }
-        flush();
-        out.push(`<p class="text-sm text-onekey-text-secondary leading-relaxed mt-2">${escapeHtml(line).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')}</p>`);
-      }
-      flush();
-      return out.join('\\n');
-    }
+    // 渲染柱状图
+    function renderChart(tags: TagStats[]) {
+      if (!chartContainerEl) return;
 
-    function themeName(t: Theme): string {
-      const map: Record<Theme, string> = {
-        finance: '金融',
-        economy: '经济',
-        ai: 'AI 行业',
-        robotics: '机器人行业',
-        travel: '旅游',
-        music: '歌曲/音乐',
-        movies: '电影',
-        fashion: '时尚',
-        entertainment: '娱乐',
-      };
-      return map[t] || t;
-    }
+      const maxCount = Math.max(...tags.map(t => t.count), 1);
 
-    function renderReport(r: Report) {
-      if (metaEl) {
-        metaEl.textContent = [
-          `day=${r.meta.day_key}`,
-          `time=${r.meta.execution_time_ms}ms`,
-          `scanned=${r.meta.items_scanned}`,
-          `kept=${r.meta.items_kept}`,
-          `sources=${(r.meta.sources_used || []).join(',')}`,
-          `llm=${r.meta.llm_used}`,
-        ].join(' · ');
-      }
-      if (logsEl) {
-        logsEl.textContent = (r.logs || []).map((l) => `[${String(l.ts || '').slice(11, 19)}][${l.stage}] ${l.message}`).join('\\n') || 'No logs';
-      }
-      if (healthEl) {
-        const st = r.meta.source_status || {};
-        const rows = Object.keys(st).length
-          ? Object.entries(st).map(([k, v]) => {
-              const badge = v.ok
-                ? '<span class="text-xs px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-300">OK</span>'
-                : '<span class="text-xs px-2 py-0.5 rounded-full border bg-red-100 text-red-700 border-red-300">FAIL</span>';
-              const err = v.error ? `<div class="text-xs text-onekey-text-muted mt-1 break-words">${escapeHtml(v.error)}</div>` : '';
-              return `
-                <div class="flex items-start justify-between gap-3 py-2 border-b border-black/5 last:border-0">
-                  <div class="min-w-0">
-                    <div class="font-mono text-sm text-onekey-text-primary">${escapeHtml(k)}</div>
-                    <div class="text-xs text-onekey-text-muted">items=${v.items}</div>
-                    ${err}
-                  </div>
-                  <div class="shrink-0">${badge}</div>
-                </div>
-              `;
-            }).join('')
-          : '<div class="text-sm text-onekey-text-secondary">暂无 source_status（请手动运行一次生成）。</div>';
-        healthEl.innerHTML = `<div class="bg-white/60 rounded-lg border border-black/10 px-3 py-2">${rows}</div>`;
-      }
-      if (insightEl) insightEl.innerHTML = renderMarkdown(r.insight_markdown || '');
-      if (themesEl) {
-        themesEl.innerHTML = '';
-        for (const g of r.trends_by_theme || []) {
-          const box = document.createElement('div');
-          box.className = 'bg-white rounded-xl p-4 border border-black/5 shadow-sm';
-          const tags = (g.keywords || []).slice(0, 3).map((k) => `<span class="text-xs px-2 py-0.5 rounded-full border border-black/10 bg-white/60 text-onekey-text-secondary">#${escapeHtml(k)}</span>`).join(' ');
-          const cards = (g.cards || []).slice(0, 8).map((c) => {
-            const title = escapeHtml(c.title);
-            const link = c.url ? `<a class="hover:underline" href="${escapeHtml(c.url)}" target="_blank" rel="noreferrer">${title}</a>` : title;
-            return `<li class="text-sm text-onekey-text-secondary flex items-center justify-between gap-3"><span class="min-w-0 truncate">${link}</span><span class="font-mono text-xs text-onekey-text-muted shrink-0">${Math.round(c.signals.score)} · ${escapeHtml(c.source)}</span></li>`;
-          }).join('');
-          box.innerHTML = `
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-              <div class="font-semibold text-onekey-text-primary">${themeName(g.theme)}</div>
-              <div class="flex items-center gap-2 flex-wrap">${tags}</div>
-            </div>
-            <ul class="mt-3 space-y-2">${cards}</ul>
-          `;
-          themesEl.appendChild(box);
-        }
-      }
-    }
+      const chartHtml = tags.map(tag => {
+        const widthPercent = (tag.count / maxCount) * 100;
+        const trendIcon = tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : '—';
+        const trendColor = tag.trend === 'up' ? 'text-green-600' : tag.trend === 'down' ? 'text-red-500' : 'text-gray-400';
 
-    function renderHistory(items: Report[]) {
-      if (!historyEl) return;
-      if (!Array.isArray(items) || items.length === 0) {
-        historyEl.textContent = '暂无历史（请先手动运行一次，或等待 cron）。';
-        return;
-      }
-
-      const rows = items.slice(0, 7).map((r) => {
-        const sources = (r.meta.sources_used || []).join(',');
-        const themes = (r.trends_by_theme || []).slice(0, 3).map((g) => {
-          const kws = (g.keywords || []).slice(0, 2).join('、');
-          return `${themeName(g.theme)}:${escapeHtml(kws || '-')}`;
-        }).join(' · ');
         return `
-          <div class="py-2 border-b border-black/5 last:border-0">
-            <div class="flex items-center justify-between gap-3">
-              <div class="font-mono text-sm text-onekey-text-primary">${escapeHtml(r.meta.day_key)}</div>
-              <div class="text-xs text-onekey-text-muted">${escapeHtml(sources)}</div>
+          <div class="chart-row cursor-pointer hover:bg-white/40 rounded-lg p-2 transition-colors" data-tag="${escapeHtml(tag.tag)}">
+            <div class="flex items-center justify-between gap-3 mb-1">
+              <span class="font-medium text-onekey-text-primary text-sm">${escapeHtml(tag.tag)}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs ${trendColor}">${trendIcon} ${tag.changePercent > 0 ? tag.changePercent.toFixed(1) : 0}%</span>
+                <span class="font-mono text-sm text-onekey-text-primary">${tag.count}</span>
+              </div>
             </div>
-            <div class="mt-1 text-xs text-onekey-text-secondary">${themes || '（无主题命中）'}</div>
+            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-neon rounded-full transition-all duration-500" style="width: ${widthPercent}%"></div>
+            </div>
           </div>
         `;
       }).join('');
 
-      historyEl.innerHTML = `<div class="bg-white/60 rounded-lg border border-black/10 px-3 py-2">${rows}</div>`;
+      chartContainerEl.innerHTML = `
+        <div class="space-y-3">
+          ${chartHtml}
+        </div>
+      `;
+
+      // 绑定点击事件显示标签详情
+      document.querySelectorAll('.chart-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const tag = row.getAttribute('data-tag');
+          if (tag) showTagDetail(tag);
+        });
+      });
     }
 
-    function renderCompare(cmp: any) {
-      if (!compareEl) return;
-      if (!cmp || !cmp.meta) {
-        compareEl.textContent = '暂无对比数据（需要至少 2 天历史）。';
-        return;
-      }
-      const spikes = Array.isArray(cmp.spikes) ? cmp.spikes : [];
-      const resonance = Array.isArray(cmp.resonance) ? cmp.resonance : [];
-      const clusters = Array.isArray(cmp.clusters) ? cmp.clusters : [];
-      const perTheme = Array.isArray(cmp.per_theme) ? cmp.per_theme : [];
+    // 显示标签详情（包含该标签的所有新闻）
+    function showTagDetail(tagName: string) {
+      if (!currentReport || !tagDetailEl || !tagDetailTitleEl || !tagDetailContentEl) return;
 
-      const spikeHtml = spikes.length
-        ? spikes.slice(0, 10).map((s: any) => {
-            const t = themeName(s.theme as Theme);
-            return `<div class="flex items-center justify-between gap-3 py-1.5 border-b border-black/5 last:border-0">
-              <div class="min-w-0 truncate"><span class="text-xs text-onekey-text-muted">${escapeHtml(t)}</span> · <span class="font-semibold text-onekey-text-primary">#${escapeHtml(s.keyword)}</span></div>
-              <div class="shrink-0 font-mono text-xs text-onekey-text-muted">${s.ratio}× (today ${s.today_count} / avg ${s.prev_avg})</div>
-            </div>`;
-          }).join('')
-        : '<div class="text-sm text-onekey-text-secondary">暂无明显 spike（可能是历史太少或话题较稳定）。</div>';
+      const relatedNews = currentReport.recentNews.filter(item => item.tags.includes(tagName));
 
-      const resHtml = resonance.length
-        ? resonance.slice(0, 10).map((r: any) => {
-            const t = themeName(r.theme as Theme);
-            const src = Array.isArray(r.sources) ? r.sources.join(',') : '';
-            const canon = r.canonical ? `<span class="text-xs text-onekey-text-muted font-mono ml-2">(${escapeHtml(r.canonical)})</span>` : '';
-            return `<div class="flex items-center justify-between gap-3 py-1.5 border-b border-black/5 last:border-0">
-              <div class="min-w-0 truncate"><span class="text-xs text-onekey-text-muted">${escapeHtml(t)}</span> · <span class="font-semibold text-onekey-text-primary">#${escapeHtml(r.keyword)}</span>${canon}</div>
-              <div class="shrink-0 font-mono text-xs text-onekey-text-muted">${escapeHtml(src)}</div>
-            </div>`;
-          }).join('')
-        : '<div class="text-sm text-onekey-text-secondary">暂无跨平台共振（取决于关键词与抓取成功率）。</div>';
+      tagDetailTitleEl.textContent = `"${escapeHtml(tagName)}" 相关新闻 (${relatedNews.length})`;
 
-      const clusterHtml = clusters.length
-        ? clusters.slice(0, 8).map((c: any) => {
-            const t = themeName(c.theme as Theme);
-            const src = Array.isArray(c.sources) ? c.sources.join(',') : '';
-            const impact = c.impact || null;
-            const impactBadge = impact
-              ? (() => {
-                  const dir = String(impact.direction || 'unknown');
-                  const conf = Math.round((Number(impact.confidence || 0) * 100));
-                  const map: Record<string, string> = {
-                    bullish: 'bg-green-100 text-green-700 border-green-300',
-                    bearish: 'bg-red-100 text-red-700 border-red-300',
-                    neutral: 'bg-onekey-dark-tertiary text-onekey-text-secondary border-black/10',
-                    unknown: 'bg-white/60 text-onekey-text-muted border-black/10',
-                  };
-                  const labelMap: Record<string, string> = {
-                    bullish: '利多',
-                    bearish: '利空',
-                    neutral: '中性',
-                    unknown: '不确定',
-                  };
-                  const cls = map[dir] || map.unknown;
-                  const text = labelMap[dir] || labelMap.unknown;
-                  return `<span class="text-xs px-2 py-0.5 rounded-full border ${cls}">${text} · ${conf}%</span>`;
-                })()
-              : '';
-            const impactLine = impact?.rationale
-              ? `<div class="mt-1 text-xs text-onekey-text-muted">影响判断：${escapeHtml(impact.rationale)}</div>`
-              : '';
-            const items = Array.isArray(c.top_items) ? c.top_items.slice(0, 3).map((it: any) => {
-              const title = escapeHtml(it.title);
-              const link = it.url ? `<a class="hover:underline" href="${escapeHtml(it.url)}" target="_blank" rel="noreferrer">${title}</a>` : title;
-              return `<li class="text-xs text-onekey-text-secondary flex items-center justify-between gap-3">
-                <span class="min-w-0 truncate">${link}</span>
-                <span class="shrink-0 font-mono text-onekey-text-muted">${Math.round(it.score || 0)} · ${escapeHtml(it.source || '')}</span>
-              </li>`;
-            }).join('') : '';
-            return `
-              <div class="py-2 border-b border-black/5 last:border-0">
-                <div class="flex items-center justify-between gap-3">
-                  <div class="min-w-0 truncate">
-                    <span class="text-xs text-onekey-text-muted">${escapeHtml(t)}</span>
-                    · <span class="font-semibold text-onekey-text-primary">${escapeHtml(c.label || '')}</span>
-                  </div>
-                  <div class="shrink-0 flex items-center gap-2">
-                    ${impactBadge}
-                    <span class="font-mono text-xs text-onekey-text-muted">size=${c.size || 0} · ${escapeHtml(src)}</span>
+      tagDetailContentEl.innerHTML = relatedNews.length > 0
+        ? relatedNews.map(item => `
+            <div class="py-2 border-b border-black/5 last:border-0">
+              <div class="flex items-start gap-3">
+                <div class="flex-1 min-w-0">
+                  <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" class="text-sm text-onekey-text-primary hover:underline font-medium line-clamp-2">
+                    ${escapeHtml(item.title)}
+                  </a>
+                  <div class="mt-1 flex items-center gap-2 flex-wrap">
+                    ${item.tags.map(t => `<span class="text-xs px-2 py-0.5 rounded-full border ${t === tagName ? 'bg-onekey-accent-green/20 text-green-700 border-onekey-accent-green/40' : 'bg-white/60 text-onekey-text-secondary border-black/10'}">${escapeHtml(t)}</span>`).join('')}
                   </div>
                 </div>
-                ${impactLine}
-                ${items ? `<ul class="mt-2 space-y-1">${items}</ul>` : ''}
               </div>
-            `;
-          }).join('')
-        : '<div class="text-sm text-onekey-text-secondary">暂无事件聚类（样本不足或相似度不够）。</div>';
+            </div>
+          `).join('')
+        : '<div class="text-sm text-onekey-text-secondary">暂无相关新闻</div>';
 
-      const themeHtml = perTheme.length
-        ? perTheme.filter((x: any) => Array.isArray(x.today_keywords) && x.today_keywords.length).slice(0, 9).map((g: any) => {
-            const t = themeName(g.theme as Theme);
-            const today = (g.today_keywords || []).slice(0, 4).map((k: string) => `#${escapeHtml(k)}`).join(' ');
-            const spk = (g.spiking_keywords || []).slice(0, 3).map((k: string) => `<span class="text-xs px-2 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-200">↑ ${escapeHtml(k)}</span>`).join(' ');
-            return `<div class="py-2 border-b border-black/5 last:border-0">
-              <div class="font-semibold text-onekey-text-primary">${escapeHtml(t)}</div>
-              <div class="mt-1 text-xs text-onekey-text-secondary">${today || '—'}</div>
-              <div class="mt-2 flex items-center gap-2 flex-wrap">${spk || '<span class="text-xs text-onekey-text-muted">无明显上升词</span>'}</div>
-            </div>`;
-          }).join('')
-        : '';
+      tagDetailEl.classList.remove('hidden');
+    }
 
-      compareEl.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-white/60 rounded-lg border border-black/10 px-3 py-2">
-            <div class="text-sm font-semibold text-onekey-text-primary mb-2">Spikes</div>
-            ${spikeHtml}
-          </div>
-          <div class="bg-white/60 rounded-lg border border-black/10 px-3 py-2">
-            <div class="text-sm font-semibold text-onekey-text-primary mb-2">Resonance</div>
-            ${resHtml}
+    // 渲染最近新闻
+    function renderRecentNews(items: NewsItemWithTags[]) {
+      if (!recentNewsEl) return;
+
+      recentNewsEl.innerHTML = items.map(item => `
+        <div class="py-3 border-b border-black/5 last:border-0">
+          <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" class="text-sm text-onekey-text-primary hover:underline font-medium line-clamp-2">
+            ${escapeHtml(item.title)}
+          </a>
+          <div class="mt-2 flex items-center gap-2 flex-wrap">
+            ${item.tags.map(t => `<span class="text-xs px-2 py-0.5 rounded-full border bg-white/60 text-onekey-text-secondary border-black/10">${escapeHtml(t)}</span>`).join('')}
           </div>
         </div>
-        <div class="mt-4 bg-white/60 rounded-lg border border-black/10 px-3 py-2">
-          <div class="text-sm font-semibold text-onekey-text-primary mb-2">Events（聚类）</div>
-          ${clusterHtml}
+      `).join('');
+    }
+
+    // 渲染数据源状态
+    function renderSources(sources: string[]) {
+      if (!sourcesStatusEl) return;
+
+      sourcesStatusEl.innerHTML = `
+        <div class="flex flex-wrap gap-2">
+          ${sources.map(s => `<span class="text-xs px-2 py-1 rounded-full border bg-green-100 text-green-700 border-green-300">${escapeHtml(s)}</span>`).join('')}
         </div>
-        ${themeHtml ? `<div class="mt-4 bg-white/60 rounded-lg border border-black/10 px-3 py-2">${themeHtml}</div>` : ''}
+        <div class="mt-2 text-xs text-onekey-text-muted">
+          共 ${sources.length} 个数据源 · 数据来自 newsbim.pages.dev
+        </div>
       `;
     }
 
-    async function loadLatest() {
-      if (logsEl) logsEl.textContent = 'Loading…';
-      const resp = await fetch('/api/trends/latest', { credentials: 'include' });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        if (logsEl) logsEl.textContent = data?.error || `HTTP ${resp.status}`;
-        return;
+    // 扫描并加载趋势数据
+    async function scanTrends() {
+      if (scanBtn) {
+        scanBtn.disabled = true;
+        scanBtn.textContent = '扫描中...';
       }
-      renderReport(data as Report);
-      if (compareEl) compareEl.textContent = 'Loading…';
-      // best-effort history
-      try {
-        const h = await fetch('/api/trends/history?limit=7', { credentials: 'include' });
-        const hd = await h.json().catch(() => ({}));
-        if (h.ok) renderHistory((hd?.items || []) as Report[]);
-      } catch {}
-      // best-effort compare
-      try {
-        const c = await fetch('/api/trends/compare?days=7', { credentials: 'include' });
-        const cd = await c.json().catch(() => ({}));
-        if (c.ok) renderCompare(cd);
-        else renderCompare(null);
-      } catch {
-        renderCompare(null);
+      if (chartContainerEl) {
+        chartContainerEl.innerHTML = '<div class="text-sm text-onekey-text-secondary">正在从 newsnow 获取新闻并使用 AI 打标签...</div>';
       }
-    }
 
-    async function loadAliases() {
-      if (!aliasTextEl) return;
-      if (aliasStatusEl) aliasStatusEl.textContent = 'Loading…';
-      const resp = await fetch('/api/trends/aliases', { credentials: 'include' });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        if (aliasStatusEl) aliasStatusEl.textContent = data?.error || `HTTP ${resp.status}`;
-        return;
-      }
-      const rules = Array.isArray(data?.rules) ? data.rules : [];
-      aliasTextEl.value = JSON.stringify(rules, null, 2);
-      if (aliasStatusEl) aliasStatusEl.textContent = `已加载 ${rules.length} 条规则`;
-    }
-
-    async function saveAliases() {
-      if (!aliasTextEl) return;
-      if (aliasSaveBtn) { aliasSaveBtn.disabled = true; aliasSaveBtn.textContent = '保存中…'; }
       try {
-        const text = aliasTextEl.value || '[]';
-        const rules = JSON.parse(text);
-        const resp = await fetch('/api/trends/aliases', {
-          method: 'PUT',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ rules }),
-          credentials: 'include',
-        });
+        const resp = await fetch('/api/trends/scan', { credentials: 'include' });
         const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) {
-          if (aliasStatusEl) aliasStatusEl.textContent = data?.error || `HTTP ${resp.status}`;
-          return;
-        }
-        if (aliasStatusEl) aliasStatusEl.textContent = `已保存（${data?.count ?? 0} 条）`;
-        // refresh compare since aliases affect it
-        try {
-          const c = await fetch('/api/trends/compare?days=7', { credentials: 'include' });
-          const cd = await c.json().catch(() => ({}));
-          if (c.ok) renderCompare(cd);
-        } catch {}
-      } catch (e) {
-        if (aliasStatusEl) aliasStatusEl.textContent = `JSON 解析失败：${e instanceof Error ? e.message : String(e)}`;
-      } finally {
-        if (aliasSaveBtn) { aliasSaveBtn.disabled = false; aliasSaveBtn.textContent = '保存'; }
-      }
-    }
 
-    async function runNow() {
-      if (runBtn) { runBtn.setAttribute('disabled', 'true'); runBtn.textContent = '运行中…'; }
-      try {
-        const resp = await fetch('/api/trends/run', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({}),
-          credentials: 'include',
-        });
-        const data = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-          if (logsEl) logsEl.textContent = data?.error || `HTTP ${resp.status}`;
-          return;
+          throw new Error(data?.error || `HTTP ${resp.status}`);
         }
-        renderReport(data as Report);
-        // refresh history after successful run
-        try {
-          const h = await fetch('/api/trends/history?limit=7', { credentials: 'include' });
-          const hd = await h.json().catch(() => ({}));
-          if (h.ok) renderHistory((hd?.items || []) as Report[]);
-        } catch {}
-        // refresh compare
-        try {
-          const c = await fetch('/api/trends/compare?days=7', { credentials: 'include' });
-          const cd = await c.json().catch(() => ({}));
-          if (c.ok) renderCompare(cd);
-          else renderCompare(null);
-        } catch {
-          renderCompare(null);
+
+        currentReport = data as TrendReport;
+
+        // 更新元信息
+        if (metaInfoEl) {
+          const date = new Date(currentReport.generatedAt);
+          metaInfoEl.textContent = `更新时间: ${date.toLocaleString('zh-CN')} · 新闻数量: ${currentReport.newsCount}`;
+        }
+
+        // 渲染数据源
+        renderSources(currentReport.sources);
+
+        // 渲染柱状图
+        renderChart(currentReport.topTags);
+
+        // 渲染最近新闻
+        renderRecentNews(currentReport.recentNews);
+
+      } catch (error: any) {
+        console.error('Scan error:', error);
+        if (chartContainerEl) {
+          chartContainerEl.innerHTML = `<div class="text-sm text-red-500">扫描失败: ${escapeHtml(error.message || '未知错误')}</div>`;
         }
       } finally {
-        if (runBtn) { runBtn.removeAttribute('disabled'); runBtn.textContent = '手动运行（写入 KV）'; }
+        if (scanBtn) {
+          scanBtn.disabled = false;
+          scanBtn.textContent = '立即扫描';
+        }
       }
     }
 
-    if (runBtn) runBtn.addEventListener('click', runNow);
-    if (aliasSaveBtn) aliasSaveBtn.addEventListener('click', saveAliases);
-    loadLatest();
-    loadAliases();
+    // 绑定事件
+    if (scanBtn) scanBtn.addEventListener('click', scanTrends);
+
+    if (closeTagDetailBtn) {
+      closeTagDetailBtn.addEventListener('click', () => {
+        if (tagDetailEl) tagDetailEl.classList.add('hidden');
+      });
+    }
+
+    // 页面加载时自动扫描
+    scanTrends();
   </script>
 </AppLayout>
-
-
