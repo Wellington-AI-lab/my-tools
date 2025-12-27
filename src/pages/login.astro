@@ -1,0 +1,91 @@
+---
+import '@/styles/global.css';
+import { safeRedirectPath } from '@/lib/redirect';
+
+const redirect = safeRedirectPath(Astro.url.searchParams.get('redirect'));
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>登录 · My Tools</title>
+  </head>
+  <body>
+    <div class="max-w-md mx-auto px-4 py-16">
+      <div class="glass-effect rounded-xl p-6">
+        <h1 class="text-xl font-bold text-onekey-text-primary">登录</h1>
+        <p class="mt-2 text-sm text-onekey-text-secondary">
+          请输入站点密码。
+        </p>
+
+        <form id="loginForm" class="mt-5 space-y-3">
+          <input type="hidden" name="redirect" value={redirect} />
+
+          <div>
+            <label class="block text-sm text-onekey-text-secondary mb-1" for="password">密码</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              class="w-full px-4 py-2 bg-white border border-black/10 rounded-lg focus:outline-none focus:border-onekey-accent-green"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+
+          <div id="errorBox" class="hidden text-sm text-red-600"></div>
+
+          <button
+            type="submit"
+            class="w-full py-2 px-4 bg-gradient-neon text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+          >
+            登录
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('loginForm') as HTMLFormElement | null;
+      const errorBox = document.getElementById('errorBox') as HTMLElement | null;
+      const password = document.getElementById('password') as HTMLInputElement | null;
+
+      function showError(msg: string) {
+        if (!errorBox) return;
+        errorBox.textContent = msg || '登录失败';
+        errorBox.classList.remove('hidden');
+      }
+
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (errorBox) errorBox.classList.add('hidden');
+          const redirectInput = form.querySelector('input[name="redirect"]') as HTMLInputElement | null;
+          const redirect = redirectInput?.value || '/';
+          const pwd = password?.value || '';
+
+          try {
+            const resp = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ password: pwd }),
+              credentials: 'include',
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              showError(data?.error || `HTTP ${resp.status}`);
+              return;
+            }
+            window.location.href = redirect;
+          } catch (err) {
+            showError('网络错误');
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
+
+

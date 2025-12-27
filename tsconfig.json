@@ -1,0 +1,36 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "types": ["astro/client"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/modules/*": ["./src/modules/*"]
+    }
+  },
+  "include": [
+    "src/pages/**/*",
+    "src/layouts/**/*",
+    "src/components/**/*",
+    "src/config/**/*",
+    "src/styles/**/*",
+    "src/lib/**/*",
+    "src/modules/**/*",
+    "astro.config.*",
+    "env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "cron-worker",
+    ".next",
+    ".open-next",
+    "src/app/**",
+    "src/modules/stock-backtest/**",
+    "src/modules/auth/**",
+    "src/lib/db.ts",
+    "src/lib/cache.ts",
+    "src/lib/chart-config.ts",
+    "src/lib/auth-check.ts",
+    "src/lib/brute-force-protection.ts",
+    "src/lib/errors.ts"
+  ]
+}

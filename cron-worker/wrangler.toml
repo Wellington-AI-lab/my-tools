@@ -1,0 +1,12 @@
+name = "my-tools-trends-cron"
+main = "src/index.ts"
+compatibility_date = "2024-12-25"
+
+# Run daily at 06:00 Asia/Shanghai == 22:00 UTC (previous day)
+triggers = { crons = ["0 22 * * *"] }
+
+[[kv_namespaces]]
+binding = "KV"
+id = "52ccf57fcdf14a7e882adee054fd0a8b"
+
+

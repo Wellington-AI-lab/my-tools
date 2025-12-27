@@ -1,0 +1,316 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import SearchControl from '@/components/rednote/SearchControl.astro';
+import AgentLog from '@/components/rednote/AgentLog.astro';
+import InsightDeck from '@/components/rednote/InsightDeck.astro';
+import FeedGrid from '@/components/rednote/FeedGrid.astro';
+---
+
+<AppLayout title="信息流">
+  <div class="space-y-4">
+    <SearchControl />
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-1">
+        <AgentLog />
+      </div>
+      <div class="lg:col-span-2 space-y-4">
+        <InsightDeck />
+        <FeedGrid />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    type TimeRange = '24h' | '7d' | '30d';
+    type AuthLabel = 'real_experience' | 'generic_marketing_copy' | 'unclear';
+    type FeedCard = {
+      id: string;
+      url?: string;
+      title: string;
+      content: string;
+      author?: string;
+      createdAt?: string;
+      metrics: { likes: number; collects: number; comments: number; shares: number; heatScore: number };
+      authenticity?: { label: AuthLabel; rationale: string };
+    };
+    type AgentResponse = {
+      meta: {
+        execution_time_ms: number;
+        items_scanned: number;
+        items_filtered: number;
+        used_datasource: 'mock' | 'apify';
+        used_reasoning: 'llm' | 'mock';
+      };
+      logs: Array<{ ts: string; stage: 'stage1' | 'stage2' | 'stage3'; message: string }>;
+      insight: string;
+      trends: string[];
+      feed: FeedCard[];
+    };
+
+    const keywordEl = document.getElementById('rn_keyword') as HTMLInputElement | null;
+    const timeRangeEl = document.getElementById('rn_timeRange') as HTMLInputElement | null;
+    const runBtn = document.getElementById('rn_run') as HTMLButtonElement | null;
+    const rangeBtns = Array.from(document.querySelectorAll('.rn-range-btn')) as HTMLButtonElement[];
+
+    const heatThresholdEl = document.getElementById('rn_heatThreshold') as HTMLInputElement | null;
+    const topKEl = document.getElementById('rn_topK') as HTMLInputElement | null;
+
+    const logsEl = document.getElementById('rn_logs') as HTMLElement | null;
+    const metaEl = document.getElementById('rn_meta') as HTMLElement | null;
+    const insightEl = document.getElementById('rn_insight') as HTMLElement | null;
+    const trendsEl = document.getElementById('rn_trends') as HTMLElement | null;
+    const feedEl = document.getElementById('rn_feed') as HTMLElement | null;
+
+    function setSelectedRange(v: TimeRange) {
+      if (timeRangeEl) timeRangeEl.value = v;
+      for (const b of rangeBtns) {
+        const isSel = (b.getAttribute('data-range') as TimeRange | null) === v;
+        b.className = [
+          'rn-range-btn text-sm px-3 py-2 rounded-lg border',
+          isSel
+            ? 'bg-onekey-dark-secondary border-onekey-accent-green/40 text-onekey-text-primary'
+            : 'border-black/10 bg-white hover:border-onekey-accent-green/30',
+        ].join(' ');
+      }
+    }
+
+    function ts() {
+      return new Date().toISOString().slice(11, 19);
+    }
+
+    function setLogs(lines: string[]) {
+      if (!logsEl) return;
+      logsEl.textContent = lines.join('\n');
+    }
+
+    const clientLog: string[] = [];
+    function pushClientLog(msg: string) {
+      clientLog.push(`[${ts()}] ${msg}`);
+      setLogs(clientLog.slice(-80));
+    }
+
+    function escapeHtml(s: string) {
+      return s
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    // Minimal markdown renderer (good enough for our generated insight).
+    function renderMarkdown(md: string): string {
+      const lines = String(md || '').split('\n');
+      const out: string[] = [];
+      let inList = false;
+
+      const flushList = () => {
+        if (inList) {
+          out.push('</ul>');
+          inList = false;
+        }
+      };
+
+      for (const raw of lines) {
+        const line = raw.trimEnd();
+        if (!line.trim()) {
+          flushList();
+          continue;
+        }
+        if (line.startsWith('### ')) {
+          flushList();
+          out.push(`<h3 class="text-base font-bold mt-4">${escapeHtml(line.slice(4))}</h3>`);
+          continue;
+        }
+        if (line.startsWith('## ')) {
+          flushList();
+          out.push(`<h2 class="text-lg font-bold mt-4">${escapeHtml(line.slice(3))}</h2>`);
+          continue;
+        }
+        if (line.startsWith('- ')) {
+          if (!inList) {
+            out.push('<ul class="list-disc pl-5 space-y-1">');
+            inList = true;
+          }
+          const item = escapeHtml(line.slice(2)).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+          out.push(`<li>${item}</li>`);
+          continue;
+        }
+        flushList();
+        const p = escapeHtml(line).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        out.push(`<p class="text-sm text-onekey-text-secondary leading-relaxed mt-2">${p}</p>`);
+      }
+      flushList();
+      return out.join('\n');
+    }
+
+    function renderTrends(trends: string[]) {
+      if (!trendsEl) return;
+      trendsEl.innerHTML = '';
+      for (const t of (trends || []).slice(0, 3)) {
+        const tag = document.createElement('span');
+        tag.className = 'text-xs px-2 py-1 rounded-full border border-black/10 bg-white/60 text-onekey-text-secondary';
+        tag.textContent = `#${t}`;
+        trendsEl.appendChild(tag);
+      }
+    }
+
+    function labelBadge(label: AuthLabel | undefined) {
+      if (!label) return '';
+      const map: Record<AuthLabel, { text: string; cls: string }> = {
+        real_experience: { text: '真实体验', cls: 'bg-green-100 text-green-700 border-green-300' },
+        generic_marketing_copy: { text: '营销话术', cls: 'bg-red-100 text-red-700 border-red-300' },
+        unclear: { text: '不明确', cls: 'bg-onekey-dark-tertiary text-onekey-text-secondary border-black/10' },
+      };
+      const v = map[label];
+      return `<span class="text-xs px-2 py-0.5 rounded-full border ${v.cls}">${v.text}</span>`;
+    }
+
+    function renderFeed(feed: FeedCard[]) {
+      if (!feedEl) return;
+      const items = Array.isArray(feed) ? feed : [];
+      if (items.length === 0) {
+        feedEl.innerHTML = '<div class="text-sm text-onekey-text-secondary">没有符合阈值/去重后的高信号内容（尝试降低 HeatScore 阈值）。</div>';
+        return;
+      }
+
+      const maxScore = Math.max(...items.map((x) => x.metrics?.heatScore ?? 0), 1);
+      feedEl.innerHTML = '';
+
+      for (const it of items) {
+        const score = it.metrics?.heatScore ?? 0;
+        const pct = Math.max(2, Math.min(100, Math.round((score / maxScore) * 100)));
+        const auth = it.authenticity?.label;
+        const rationale = it.authenticity?.rationale ? escapeHtml(it.authenticity.rationale) : '';
+
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl p-4 border border-black/5 shadow-sm hover:border-onekey-accent-green/30 transition-colors';
+
+        const titleHtml = it.url
+          ? `<a class="font-semibold text-onekey-text-primary hover:underline" href="${escapeHtml(it.url)}" target="_blank" rel="noreferrer">${escapeHtml(it.title)}</a>`
+          : `<div class="font-semibold text-onekey-text-primary">${escapeHtml(it.title)}</div>`;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              ${titleHtml}
+              <div class="mt-1 text-xs text-onekey-text-muted">
+                ${escapeHtml(it.author || 'unknown')}${it.createdAt ? ` · <span class="font-mono">${escapeHtml(it.createdAt)}</span>` : ''}
+              </div>
+            </div>
+            <div class="shrink-0 flex flex-col items-end gap-2">
+              <div class="text-xs px-2 py-1 rounded-full border border-black/10 bg-white/60 font-mono">
+                Heat <span class="font-bold">${score}</span>
+              </div>
+              ${labelBadge(auth)}
+            </div>
+          </div>
+
+          <div class="mt-3 h-2 rounded-full bg-black/5 overflow-hidden">
+            <div class="h-2 bg-onekey-accent-green/80" style="width:${pct}%"></div>
+          </div>
+
+          <div class="mt-3 text-sm text-onekey-text-secondary leading-relaxed">
+            ${escapeHtml(String(it.content || '')).slice(0, 220)}${String(it.content || '').length > 220 ? '…' : ''}
+          </div>
+
+          <div class="mt-3 grid grid-cols-4 gap-2 text-xs text-onekey-text-muted font-mono">
+            <div>❤ ${it.metrics?.likes ?? 0}</div>
+            <div>★ ${it.metrics?.collects ?? 0}</div>
+            <div>💬 ${it.metrics?.comments ?? 0}</div>
+            <div>↗ ${it.metrics?.shares ?? 0}</div>
+          </div>
+
+          ${
+            rationale
+              ? `<div class="mt-3 text-xs text-onekey-text-muted border-t border-black/5 pt-3">判定：${rationale}</div>`
+              : ''
+          }
+        `;
+        feedEl.appendChild(card);
+      }
+    }
+
+    function renderMeta(meta: AgentResponse['meta']) {
+      if (!metaEl) return;
+      metaEl.textContent = [
+        `time=${meta.execution_time_ms}ms`,
+        `scanned=${meta.items_scanned}`,
+        `filtered=${meta.items_filtered}`,
+        `ds=${meta.used_datasource}`,
+        `reason=${meta.used_reasoning}`,
+      ].join(' · ');
+    }
+
+    async function runAgent() {
+      const keyword = String(keywordEl?.value || '').trim();
+      const timeRange = (timeRangeEl?.value as TimeRange | undefined) || '7d';
+      const heatThreshold = Number(heatThresholdEl?.value || 50);
+      const topK = Number(topKEl?.value || 24);
+
+      if (!keyword) {
+        pushClientLog('请输入关键词。');
+        return;
+      }
+
+      if (runBtn) {
+        runBtn.disabled = true;
+        runBtn.textContent = '运行中...';
+      }
+
+      clientLog.length = 0;
+      renderMeta({ execution_time_ms: 0, items_scanned: 0, items_filtered: 0, used_datasource: 'mock', used_reasoning: 'mock' });
+      pushClientLog('Task created.');
+      pushClientLog('Stage1: Fetching raw feed…');
+      pushClientLog('Stage1: Filtering spam + HeatScore + dedup…');
+      pushClientLog('Stage2: Analyzing authenticity + trends + sentiment…');
+      pushClientLog('Stage3: Building report…');
+
+      try {
+        const resp = await fetch('/api/rednote/run', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ keyword, timeRange, heatThreshold, topK }),
+          credentials: 'include',
+        });
+        const data = (await resp.json().catch(() => ({}))) as any;
+        if (!resp.ok) {
+          const msg = data?.error || `HTTP ${resp.status}`;
+          pushClientLog(`ERROR: ${msg}`);
+          return;
+        }
+
+        const res = data as AgentResponse;
+        renderMeta(res.meta);
+
+        // Replace logs with backend logs (higher fidelity).
+        const backendLines = (res.logs || []).map((l) => `[${String(l.ts || '').slice(11, 19)}][${l.stage}] ${l.message}`);
+        setLogs(backendLines.length ? backendLines : clientLog);
+
+        if (insightEl) insightEl.innerHTML = renderMarkdown(res.insight || '');
+        renderTrends(res.trends || []);
+        renderFeed(res.feed || []);
+      } catch (e) {
+        pushClientLog(`ERROR: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        if (runBtn) {
+          runBtn.disabled = false;
+          runBtn.textContent = '运行 Agent';
+        }
+      }
+    }
+
+    // init
+    setSelectedRange('7d');
+    for (const b of rangeBtns) {
+      b.addEventListener('click', () => setSelectedRange((b.getAttribute('data-range') as TimeRange) || '7d'));
+    }
+    if (runBtn) runBtn.addEventListener('click', runAgent);
+    if (keywordEl) keywordEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runAgent();
+    });
+  </script>
+</AppLayout>
+
+

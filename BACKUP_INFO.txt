@@ -1,0 +1,33 @@
+项目备份信息
+========================================
+备份时间: Thu Dec 25 18:14:10 CST 2025
+备份版本: 1a1d971aef878f45229b020ea7a7de4a6c0605b4
+Node 版本: v25.2.1
+npm 版本: 11.6.2
+
+备份内容:
+- 源代码 (src/)
+- 配置文件 (package.json, tsconfig.json, etc.)
+- 脚本文件 (scripts/)
+- 文档文件 (*.md)
+- Git 配置 (.gitignore)
+
+排除内容:
+- node_modules/ (可通过 npm install 恢复)
+- dist/ (构建产物，可通过 npm run build 生成)
+- coverage/ (测试覆盖率报告)
+- .astro/ (Astro 缓存)
+- .wrangler/ (Wrangler 缓存)
+- .git/ (Git 历史，如需完整历史请单独备份)
+
+恢复步骤:
+1. 解压备份文件
+2. 进入项目目录
+3. 运行: npm install
+4. 运行: npm run build (如需要)
+5. 配置环境变量（参考 DEPLOYMENT.md）
+
+重要提示:
+- 备份不包含敏感信息（如 .env 文件）
+- 备份不包含 Cloudflare KV 数据（需单独备份）
+- 备份不包含用户数据（存储在 Cloudflare KV 中）

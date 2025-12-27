@@ -1,0 +1,95 @@
+---
+const defaultKeyword = '通勤';
+---
+
+<div class="glass-effect rounded-xl p-6">
+  <div class="flex items-start justify-between gap-4 flex-wrap">
+    <div>
+      <h1 class="text-2xl font-bold text-onekey-text-primary">RedNote DeepAgent</h1>
+      <p class="mt-2 text-sm text-onekey-text-secondary">
+        输入关键词 → Funnel 过滤 → DeepAgent 推理（无 LLM 时降级为模拟推理）→ 输出高信噪洞察。
+      </p>
+    </div>
+    <div class="text-xs text-onekey-text-muted">
+      <div class="px-3 py-1.5 rounded-full border border-black/10 bg-white/60">
+        Route: <span class="font-mono">/tools/rednote-agent</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-5 grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+    <div class="lg:col-span-6">
+      <label class="block text-sm text-onekey-text-secondary mb-1" for="rn_keyword">关键词</label>
+      <input
+        id="rn_keyword"
+        class="w-full px-4 py-2 bg-white border border-black/10 rounded-lg focus:outline-none focus:border-onekey-accent-green"
+        placeholder="例如：通勤香水 / 加湿器 / 预算本"
+        value={defaultKeyword}
+      />
+    </div>
+
+    <div class="lg:col-span-4">
+      <div class="text-sm text-onekey-text-secondary mb-1">时间范围</div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button data-range="24h" class="rn-range-btn text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
+          24h
+        </button>
+        <button data-range="7d" class="rn-range-btn text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
+          7d
+        </button>
+        <button data-range="30d" class="rn-range-btn text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
+          30d
+        </button>
+        <input id="rn_timeRange" type="hidden" value="7d" />
+      </div>
+    </div>
+
+    <div class="lg:col-span-2">
+      <button
+        id="rn_run"
+        class="w-full py-2.5 px-4 bg-gradient-neon text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+        type="button"
+      >
+        运行 Agent
+      </button>
+    </div>
+  </div>
+
+  <details class="mt-4">
+    <summary class="cursor-pointer text-sm text-onekey-text-secondary select-none">
+      高级参数（开发用）
+    </summary>
+    <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div>
+        <label class="block text-sm text-onekey-text-secondary mb-1" for="rn_heatThreshold">HeatScore 阈值</label>
+        <input
+          id="rn_heatThreshold"
+          type="number"
+          class="w-full px-4 py-2 bg-white border border-black/10 rounded-lg"
+          min="0"
+          step="1"
+          value="50"
+        />
+      </div>
+      <div>
+        <label class="block text-sm text-onekey-text-secondary mb-1" for="rn_topK">返回卡片数（TopK）</label>
+        <input
+          id="rn_topK"
+          type="number"
+          class="w-full px-4 py-2 bg-white border border-black/10 rounded-lg"
+          min="1"
+          max="60"
+          step="1"
+          value="24"
+        />
+      </div>
+      <div class="text-sm text-onekey-text-muted flex items-end">
+        <div class="px-3 py-2 rounded-lg border border-black/10 bg-white/60 w-full">
+          去重相似度阈值：<span class="font-mono">0.66</span>（中文 2-gram Jaccard）
+        </div>
+      </div>
+    </div>
+  </details>
+</div>
+
+

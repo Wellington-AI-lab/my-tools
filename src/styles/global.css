@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Platform theme tokens (OneKey-inspired, platformized) */
+:root {
+  --onekey-dark-primary: #F5F5F5;
+  --onekey-dark-secondary: #FFFFFF;
+  --onekey-dark-tertiary: #E5E5E5;
+
+  --onekey-accent-green: #00FF88;
+  --onekey-accent-green-light: #00FFAA;
+  --onekey-accent-green-dark: #00CC6A;
+  --onekey-accent-blue: #3B82F6;
+  --onekey-accent-purple: #8B5CF6;
+  --onekey-accent-neon: #00FF88;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Georgia, 'FangSong', 'STFangSong', 'FangSong_GB2312', 'STFangsong', 'SimSun', serif;
+  background: var(--onekey-dark-primary);
+  color: #1A1A1A;
+  min-height: 100vh;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  font-feature-settings: 'kern' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* 数字和英文专用样式：Georgia 衬线字体（强制） */
+.number,
+.english,
+.font-mono {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-variant-numeric: lining-nums;
+}
+
+/* 确保所有数字输入框也使用 Georgia */
+input[type="number"],
+input.number {
+  font-family: Georgia, 'Times New Roman', serif !important;
+}
+
+.chinese {
+  font-family: 'FangSong', 'STFangSong', 'FangSong_GB2312', 'STFangsong', 'SimSun', serif;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.neon-text {
+  background: linear-gradient(135deg, #00FF88 0%, #00CC6A 50%, #00FFAA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-hover {
+  transition: all 0.25s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px rgba(0, 255, 136, 0.25);
+  border-color: rgba(0, 255, 136, 0.25);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+
