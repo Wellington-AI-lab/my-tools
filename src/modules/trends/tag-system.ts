@@ -184,11 +184,16 @@ export function processTags(tags: string[]): string[] {
     }
   }
 
+  // Debug: log first few processTags calls
+  if (tags.length > 0 && (tags[0] === '俄' || tags[0] === '特朗普' || tags[0] === 'IPO')) {
+    console.log(`[processTags] Input: [${tags.join(', ')}] => Output: [${result.join(', ')}]`);
+  }
+
   return result;
 }
 
 /**
- * 批量处理新闻标签
+ * 新闻项标签
  */
 export interface NewsItemWithTags {
   id: string;
@@ -198,10 +203,14 @@ export interface NewsItemWithTags {
   tagScore: number; // 整体标签质量分数
 }
 
+/**
+ * 批量处理新闻标签
+ */
 export async function processNewsItemsWithAI(
   items: Array<{ id: string; title: string; url: string }>,
   aiBinding?: any
 ): Promise<NewsItemWithTags[]> {
+  console.log(`[tag-system] Processing ${items.length} news items, AI: ${!!aiBinding}`);
   const results: NewsItemWithTags[] = [];
 
   for (const item of items) {
@@ -276,28 +285,86 @@ async function generateTagsWithAI(title: string, aiBinding: any): Promise<string
 
 /**
  * 从标题中提取关键词（备用方案）
+ * 使用中文关键词词典 + 简单模式匹配
  */
-function extractKeywordsFromTitle(title: string): string[] {
-  // 简单的关键词提取逻辑
+export function extractKeywordsFromTitle(title: string): string[] {
   const keywords: string[] = [];
+  const originalTitle = title;
 
-  // 常见科技关键词列表
-  const commonKeywords = [
-    "AI", "人工智能", "ChatGPT", "GPT", "OpenAI", "谷歌", "微软", "苹果",
-    "华为", "小米", "字节跳动", "阿里巴巴", "腾讯", "百度", "特斯拉",
+  // 扩展关键词词典 - 涵盖更多领域
+  const keywordDict = [
+    // 科技/AI
+    "AI", "人工智能", "ChatGPT", "GPT", "OpenAI", "大模型", "LLM",
+    "谷歌", "微软", "苹果", "华为", "小米", "字节跳动", "阿里巴巴", "腾讯", "百度", "特斯拉",
+    "英伟达", "AMD", "Intel", "三星", "索尼", "Meta", "亚马逊",
     "新能源汽车", "电动车", "芯片", "半导体", "区块链", "加密货币",
     "元宇宙", "VR", "AR", "游戏", "电竞", "直播", "短视频",
     "电商", "零售", "医疗", "教育", "金融", "股市", "基金",
     "碳中和", "新能源", "光伏", "风电", "储能",
+
+    // 时政/国际（包含简称）
+    "特朗普", "特朗普", "拜登", "普京", "俄", "乌", "乌克兰", "俄罗斯", "美", "美国", "中", "中国", "日本", "日", "韩", "韩国",
+    "欧盟", "北约", "联合国", "中东", "巴以", "以色列", "以", "加沙",
+    "东南亚", "东盟", "柬", "柬泰", "泰", "柬埔寨", "泰国", "越南", "菲律宾",
+
+    // 军事/安全
+    "导弹", "袭击", "军事", "军队", "武器", "防空", "制裁", "战争",
+
+    // 经济/商业
+    "IPO", "上市", "融资", "投资", "收购", "并购", "财报", "营收",
+    "央行", "利率", "通胀", "GDP", "经济", "股市", "A股", "港股", "美股",
+    "比特币", "以太坊", "数字货币", "银行", "保险", "证券", "科创板",
+
+    // 社会/民生
+    "房地产", "楼市", "房价", "就业", "失业", "工资", "社保", "养老",
+    "医疗", "疫苗", "疫情", "教育", "高考", "大学", "双减", "渔业法",
+
+    // 法律/政策
+    "法律", "法规", "政策", "监管", "罚款", "违法", "犯罪",
+
+    // 科技/互联网
+    "5G", "6G", "Wi-Fi", "蓝牙", "算法", "数据", "云计算", "网络安全",
+    "APP", "应用", "软件", "硬件", "智能", "自动驾驶", "机器人", "HBM",
+
+    // 能源/环境
+    "石油", "天然气", "煤炭", "电力", "核能", "气候", "环保", "减排",
+
+    // 交通
+    "高铁", "地铁", "航空", "机场", "汽车", "车企",
+
+    // 文体娱乐
+    "电影", "电视剧", "综艺", "明星", "艺人", "网红", "主播",
+
+    // 企业/公司（新增）
+    "网易", "格力博", "迈为股份", "中银", "同心医疗",
   ];
 
-  const lowerTitle = title.toLowerCase();
-
-  for (const keyword of commonKeywords) {
-    if (lowerTitle.includes(keyword.toLowerCase()) && !keywords.includes(keyword)) {
+  // 先精确匹配
+  for (const keyword of keywordDict) {
+    if (title.includes(keyword) && !keywords.includes(keyword)) {
       keywords.push(keyword);
       if (keywords.length >= 5) break;
     }
+  }
+
+  // 如果关键词不足，尝试提取可能的有意义词组
+  if (keywords.length < 3) {
+    // 提取引号内的内容（通常是专有名词）
+    const quotedMatches = title.match(/["「『](.*?)["」』]/g);
+    if (quotedMatches) {
+      for (const match of quotedMatches) {
+        const word = match.replace(/["「『」』]/g, "");
+        if (word.length >= 2 && word.length <= 6 && !keywords.includes(word)) {
+          keywords.push(word);
+          if (keywords.length >= 5) break;
+        }
+      }
+    }
+  }
+
+  // Debug log for first few items
+  if (originalTitle.includes('俄军') || originalTitle.includes('特朗普') || originalTitle.includes('IPO')) {
+    console.log(`[extractKeywords] "${originalTitle.substring(0, 30)}" => [${keywords.join(', ')}]`);
   }
 
   return keywords;

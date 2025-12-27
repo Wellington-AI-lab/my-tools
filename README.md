@@ -26,19 +26,19 @@ newsnow (newsbim.pages.dev)  →  my-tools (my-tools-bim.pages.dev)
 ```
 
 ### 部署状态
-- **newsnow**: 已部署到 `https://newsbim.pages.dev`
-- **D1 数据库**: `newsnow-db` 已创建
-- **环境变量**: 需配置 `G_CLIENT_ID`, `G_CLIENT_SECRET`, `JWT_SECRET`, `INIT_TABLE`, `ENABLE_CACHE`
+- **newsnow**: 已部署到 `https://newsbim.pages.dev` ✅
+- **D1 数据库**: `newsnow-db` 已创建并绑定 ✅
+- **API 端点**:
+  - `/api/trends/aggregate` - 获取聚合新闻数据 ✅
+  - `/api/trends/init` - 初始化数据库（抓取新闻）✅
+- **环境变量**: 已配置 `G_CLIENT_ID`, `G_CLIENT_SECRET`, `JWT_SECRET`, `INIT_TABLE`, `ENABLE_CACHE`
 
-### 待解决问题
-- Cloudflare Pages 的 `_worker.js` 文件未正确生成
-- API 端点返回 HTML 而非 JSON
-- 需要确认 D1 绑定是否生效
-
-### 临时方案
-如 newsnow 后端暂时不可用，可：
-1. 直接访问 newsnow 前端查看新闻
-2. 趋势雷达暂时使用模拟数据演示
+### 已解决问题
+- ✅ `_worker.js` 生成问题：添加 `nodeCompat: true` 解决
+- ✅ API 返回 HTML：修复了 `getEntire()` 调用方式
+- ✅ D1 绑定：已在 Cloudflare Pages 控制台配置
+- ✅ CORS 配置：已添加 `/api/trends/**` 跨域支持
+- ✅ 中间件认证：已添加 `/api/trends` 公开访问权限
 
 ---
 
@@ -105,13 +105,13 @@ npx wrangler pages deploy dist/output/public --project-name=newsbim
 - 修改中间件允许 `/api/trends` 路径绕过登录
 - 创建标签系统 `src/modules/trends/tag-system.ts`
 - 改造趋势雷达前端 `/src/pages/tools/trends.astro`
-- **问题**: Cloudflare Pages 的 `_worker.js` 未正确生成，API 返回 HTML
+- ✅ **已解决**: `_worker.js` 生成、API 返回数据、D1 绑定等问题
 
-### 解决方案探索
-- 尝试配置 `h3` 版本 resolution
-- 修改 `nitro.config.ts` 添加 `unenv` 配置
-- 添加 `public/_routes.json`
-- **下一步**: 可能需要使用 Cloudflare Workers 单独部署后端
+### 技术要点
+- newsnow 使用 `nitro-go` + `better-sqlite3` 本地开发
+- Cloudflare Pages 环境切换到 `cloudflare-d1` 连接器
+- 需要添加 `h3` 版本 resolution 解决兼容性问题
+- `getCacheTable().getEntire(keys)` 方法用于批量获取缓存
 
 ---
 
