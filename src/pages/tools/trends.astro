@@ -94,59 +94,12 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     let currentReport: TrendReport | null = null;
 
-    function escapeHtml(s: string): string {
-      return String(s || '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
+    // 暴露到全局，供标签点击调用
+    (window as any).showTagDetail = (tagName: string) => {
+      if (currentReport) showTagDetailInternal(tagName);
+    };
 
-    // 渲染柱状图
-    function renderChart(tags: TagStats[]) {
-      if (!chartContainerEl) return;
-
-      const maxCount = Math.max(...tags.map(t => t.count), 1);
-
-      const chartHtml = tags.map(tag => {
-        const widthPercent = (tag.count / maxCount) * 100;
-        const trendIcon = tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : '—';
-        const trendColor = tag.trend === 'up' ? 'text-green-600' : tag.trend === 'down' ? 'text-red-500' : 'text-gray-400';
-
-        return `
-          <div class="chart-row cursor-pointer hover:bg-white/40 rounded-lg p-2 transition-colors" data-tag="${escapeHtml(tag.tag)}">
-            <div class="flex items-center justify-between gap-3 mb-1">
-              <span class="font-medium text-onekey-text-primary text-sm">${escapeHtml(tag.tag)}</span>
-              <div class="flex items-center gap-2">
-                <span class="text-xs ${trendColor}">${trendIcon} ${tag.changePercent > 0 ? tag.changePercent.toFixed(1) : 0}%</span>
-                <span class="font-mono text-sm text-onekey-text-primary">${tag.count}</span>
-              </div>
-            </div>
-            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-neon rounded-full transition-all duration-500" style="width: ${widthPercent}%"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      chartContainerEl.innerHTML = `
-        <div class="space-y-3">
-          ${chartHtml}
-        </div>
-      `;
-
-      // 绑定点击事件显示标签详情
-      document.querySelectorAll('.chart-row').forEach(row => {
-        row.addEventListener('click', () => {
-          const tag = row.getAttribute('data-tag');
-          if (tag) showTagDetail(tag);
-        });
-      });
-    }
-
-    // 显示标签详情（包含该标签的所有新闻）
-    function showTagDetail(tagName: string) {
+    function showTagDetailInternal(tagName: string) {
       if (!currentReport || !tagDetailEl || !tagDetailTitleEl || !tagDetailContentEl) return;
 
       const relatedNews = currentReport.recentNews.filter(item => item.tags.includes(tagName));
@@ -173,17 +126,83 @@ import AppLayout from '@/layouts/AppLayout.astro';
       tagDetailEl.classList.remove('hidden');
     }
 
+    function escapeHtml(s: string): string {
+      return String(s || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    // 渲染柱状图
+    function renderChart(tags: TagStats[]) {
+      if (!chartContainerEl) return;
+
+      // 过滤单字符标签（过于宽泛）并限制显示数量
+      const filteredTags = tags
+        .filter(t => t.tag.length > 1)
+        .slice(0, 20); // 只显示前20个
+
+      const maxCount = Math.max(...filteredTags.map(t => t.count), 1);
+
+      const chartHtml = filteredTags.map(tag => {
+        const widthPercent = (tag.count / maxCount) * 100;
+        const trendIcon = tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : '—';
+        const trendColor = tag.trend === 'up' ? 'text-green-600' : tag.trend === 'down' ? 'text-red-500' : 'text-gray-400';
+
+        return `
+          <div class="chart-row cursor-pointer hover:bg-white/40 rounded-lg p-2 transition-colors" data-tag="${escapeHtml(tag.tag)}">
+            <div class="flex items-center justify-between gap-3 mb-1">
+              <span class="font-medium text-onekey-text-primary text-sm">${escapeHtml(tag.tag)}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs ${trendColor}">${trendIcon} ${tag.changePercent > 0 ? tag.changePercent.toFixed(1) : 0}%</span>
+                <span class="font-mono text-sm text-onekey-text-primary">${tag.count}</span>
+              </div>
+            </div>
+            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-neon rounded-full transition-all duration-500" style="width: ${widthPercent}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      chartContainerEl.innerHTML = filteredTags.length > 0 ? `
+        <div class="space-y-3">
+          ${chartHtml}
+        </div>
+      ` : '<div class="text-sm text-onekey-text-secondary">暂无标签数据，点击"立即扫描"获取最新数据</div>';
+
+      // 绑定点击事件显示标签详情
+      document.querySelectorAll('.chart-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const tag = row.getAttribute('data-tag');
+          if (tag) showTagDetailInternal(tag);
+        });
+      });
+    }
+
     // 渲染最近新闻
     function renderRecentNews(items: NewsItemWithTags[]) {
       if (!recentNewsEl) return;
 
-      recentNewsEl.innerHTML = items.map(item => `
+      // 过滤掉没有标签的新闻，并限制显示数量
+      const filteredItems = items
+        .filter(item => item.tags.length > 0)
+        .slice(0, 30);
+
+      if (filteredItems.length === 0) {
+        recentNewsEl.innerHTML = '<div class="text-sm text-onekey-text-secondary">暂无新闻数据</div>';
+        return;
+      }
+
+      recentNewsEl.innerHTML = filteredItems.map(item => `
         <div class="py-3 border-b border-black/5 last:border-0">
           <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" class="text-sm text-onekey-text-primary hover:underline font-medium line-clamp-2">
             ${escapeHtml(item.title)}
           </a>
           <div class="mt-2 flex items-center gap-2 flex-wrap">
-            ${item.tags.map(t => `<span class="text-xs px-2 py-0.5 rounded-full border bg-white/60 text-onekey-text-secondary border-black/10">${escapeHtml(t)}</span>`).join('')}
+            ${item.tags.map(t => `<span class="text-xs px-2 py-0.5 rounded-full border bg-white/60 text-onekey-text-secondary border-black/10 hover:bg-onekey-accent-green/10 cursor-pointer" onclick="window.showTagDetail('${escapeHtml(t).replace(/'/g, "\\'")}')">${escapeHtml(t)}</span>`).join('')}
           </div>
         </div>
       `).join('');
