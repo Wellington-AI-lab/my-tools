@@ -11,6 +11,7 @@ const PUBLIC_PREFIXES = [
 // API 路径允许使用 X-Admin-Key 认证（用于 Cron/自动化）
 const API_KEY_AUTH_PATHS = [
   '/api/trends/run',
+  '/api/news/run',
 ];
 
 function isPublicPath(pathname: string): boolean {

@@ -6,9 +6,45 @@ const KEY_PREFIX = 'trends:daily';
 const KEY_LATEST = 'trends:latest';
 const KEY_INDEX = 'trends:index';
 const KEY_ALIASES = 'trends:aliases';
+const KEY_NEWS_KEYWORDS = 'news:keywords:latest';
 
 export function trendsDayKey(dayKey: string): string {
   return `${KEY_PREFIX}:${dayKey}`;
+}
+
+/**
+ * 从 Trend Radar 报告中提取关键词，供信息流使用
+ */
+function extractKeywordsForNews(report: TrendsReport): Record<string, string[]> {
+  const result: Record<string, string[]> = {
+    finance: [],
+    economy: [],
+    ai: [],
+  };
+
+  for (const group of report.trends_by_theme || []) {
+    const theme = group.theme;
+    // 只处理 finance, economy, ai 三个主题
+    if (theme === 'finance' || theme === 'economy' || theme === 'ai') {
+      // 从 keywords 提取
+      const keywords = (group.keywords || []).slice(0, 10);
+      // 从 cards 的标题中提取高频词（可选）
+      result[theme] = [...new Set(keywords)];
+    }
+  }
+
+  // 确保每个主题至少有默认关键词
+  if (result.finance.length === 0) {
+    result.finance = ['股市', '美股', 'A股', '降息', '美联储'];
+  }
+  if (result.economy.length === 0) {
+    result.economy = ['GDP', 'CPI', '通胀', '就业', '经济'];
+  }
+  if (result.ai.length === 0) {
+    result.ai = ['AI', '人工智能', 'ChatGPT', 'OpenAI', '大模型'];
+  }
+
+  return result;
 }
 
 export async function putTrendsReport(kv: KVNamespace, report: TrendsReport): Promise<void> {
@@ -23,6 +59,14 @@ export async function putTrendsReport(kv: KVNamespace, report: TrendsReport): Pr
   const current = await kvGetJson<string[]>(kv, KEY_INDEX, []);
   const next = [dayKey, ...current.filter((k) => k !== dayKey)].slice(0, 14);
   await kvPutJson(kv, KEY_INDEX, next, ttl);
+
+  // 提取关键词供信息流使用
+  const keywords = extractKeywordsForNews(report);
+  await kvPutJson(kv, KEY_NEWS_KEYWORDS, {
+    keywords,
+    updatedAt: new Date().toISOString(),
+    fromDayKey: dayKey,
+  }, ttl);
 }
 
 export async function getLatestTrendsReport(kv: KVNamespace): Promise<TrendsReport | null> {
