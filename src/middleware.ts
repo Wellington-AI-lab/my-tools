@@ -6,6 +6,7 @@ const PUBLIC_PREFIXES = [
   '/login',
   '/api/auth/login',
   '/api/auth/logout',
+  '/api/trends', // Allow public access to trends API (for frontend)
 ];
 
 // API 路径允许使用 X-Admin-Key 认证（用于 Cron/自动化）
