@@ -21,23 +21,38 @@ type ThePaperResponse = {
 async function fetchThePaper(opts?: { limit?: number; timeoutMs?: number }): Promise<NewsItem[]> {
   const url = 'https://cache.thepaper.cn/contentapi/wwwIndex/rightSidebar';
 
-  const resp = await fetchWithTimeout(url, { timeoutMs: opts?.timeoutMs ?? 10000 });
-  if (!resp.ok) throw new Error(`ThePaper HTTP ${resp.status}`);
+  try {
+    const resp = await fetchWithTimeout(url, {
+      timeoutMs: opts?.timeoutMs ?? 15000,
+      headers: {
+        Referer: 'https://www.thepaper.cn/',
+        Origin: 'https://www.thepaper.cn',
+      },
+    });
 
-  const json = (await resp.json()) as ThePaperResponse;
-  const items = json?.data?.hotNews ?? [];
-  const limit = opts?.limit ?? 30;
+    if (!resp.ok) {
+      console.warn(`ThePaper HTTP ${resp.status}`);
+      return [];
+    }
 
-  return items
-    .filter((item) => item.name && item.contId)
-    .slice(0, limit)
-    .map((item) => ({
-      id: generateId('thepaper', item.contId!),
-      source: 'thepaper' as const,
-      title: stripHtml(item.name!),
-      url: `https://www.thepaper.cn/newsDetail_forward_${item.contId}`,
-      publishedAt: item.pubTimeLong ? new Date(item.pubTimeLong).toISOString() : nowIso(),
-    }));
+    const json = (await resp.json()) as ThePaperResponse;
+    const items = json?.data?.hotNews ?? [];
+    const limit = opts?.limit ?? 30;
+
+    return items
+      .filter((item) => item.name && item.contId)
+      .slice(0, limit)
+      .map((item) => ({
+        id: generateId('thepaper', item.contId!),
+        source: 'thepaper' as const,
+        title: stripHtml(item.name!),
+        url: `https://www.thepaper.cn/newsDetail_forward_${item.contId}`,
+        publishedAt: item.pubTimeLong ? new Date(item.pubTimeLong).toISOString() : nowIso(),
+      }));
+  } catch (e) {
+    console.warn('ThePaper fetch failed:', e instanceof Error ? e.message : e);
+    return [];
+  }
 }
 
 export const thepaperAdapter: NewsSourceAdapter = {

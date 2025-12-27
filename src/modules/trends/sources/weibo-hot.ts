@@ -16,7 +16,7 @@ function decodeHtmlEntities(s: string): string {
  *
  * This endpoint can be rate-limited / blocked; caller should fallback to mock.
  */
-export async function fetchWeiboHotSummary(opts?: { timeoutMs?: number }): Promise<{ items: TrendRawItem[] }> {
+export async function fetchWeiboHotSummary(opts?: { timeoutMs?: number }): Promise<{ items: TrendRawItem[]; error?: string }> {
   const url = 'https://s.weibo.com/top/summary';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Math.max(1000, opts?.timeoutMs ?? 12000));
@@ -25,13 +25,18 @@ export async function fetchWeiboHotSummary(opts?: { timeoutMs?: number }): Promi
     const resp = await fetch(url, {
       method: 'GET',
       headers: {
-        'user-agent': 'my-tools/1.0 (trend-radar)',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
         accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
       },
       signal: controller.signal,
     });
     const html = await resp.text();
-    if (!resp.ok) throw new Error(`Weibo summary HTTP ${resp.status}`);
+
+    if (!resp.ok) {
+      console.warn(`Weibo summary HTTP ${resp.status}`);
+      return { items: [], error: `HTTP ${resp.status}` };
+    }
 
     // Basic extraction: find table rows containing td-02 title and optional "td-03" score.
     const rowRe = /<tr[^>]*>[\s\S]*?<\/tr>/gi;
@@ -72,8 +77,16 @@ export async function fetchWeiboHotSummary(opts?: { timeoutMs?: number }): Promi
       if (items.length >= 50) break;
     }
 
-    if (items.length === 0) throw new Error('Weibo parser produced 0 items (blocked or markup changed).');
+    if (items.length === 0) {
+      // 微博可能被限流或 HTML 结构变化，返回空数组和错误信息
+      console.warn('Weibo parser produced 0 items (blocked or markup changed)');
+      return { items: [], error: 'Parser produced 0 items' };
+    }
     return { items };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    console.warn('Weibo hot fetch failed:', msg);
+    return { items: [], error: msg };
   } finally {
     clearTimeout(timeout);
   }

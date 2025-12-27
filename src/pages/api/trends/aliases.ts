@@ -21,7 +21,8 @@ export const GET: APIRoute = async (context) => {
       headers: { 'content-type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });
@@ -45,7 +46,8 @@ export const PUT: APIRoute = async (context) => {
       headers: { 'content-type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });

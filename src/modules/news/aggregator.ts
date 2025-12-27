@@ -25,7 +25,6 @@ export async function aggregateAllSources(opts?: {
 
   const results = await Promise.allSettled(
     ALL_ADAPTERS.map(async (adapter) => {
-      const startTime = Date.now();
       try {
         const items = await adapter.fetch({ limit: limitPerSource, timeoutMs });
         return {

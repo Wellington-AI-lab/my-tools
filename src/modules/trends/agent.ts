@@ -38,8 +38,9 @@ export async function runTrendsAgent(opts: {
     raw.push(...(cn.items || []), ...(us.items || []));
     sourcesUsed.push('google_trends_rss');
     const n = (cn.items?.length ?? 0) + (us.items?.length ?? 0);
-    sourceStatus.google_trends_rss = { ok: n > 0, items: n };
-    log('fetch', `Google Trends RSS ok: +${n} items.`);
+    const errors = [cn.error, us.error].filter(Boolean).join('; ');
+    sourceStatus.google_trends_rss = { ok: n > 0, items: n, error: errors || undefined };
+    log('fetch', n > 0 ? `Google Trends RSS ok: +${n} items.` : `Google Trends RSS: ${errors || 'no items'}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     sourceStatus.google_trends_rss = { ok: false, items: 0, error: msg };
@@ -52,8 +53,8 @@ export async function runTrendsAgent(opts: {
     raw.push(...(wb.items || []));
     sourcesUsed.push('weibo_hot');
     const n = wb.items?.length ?? 0;
-    sourceStatus.weibo_hot = { ok: n > 0, items: n };
-    log('fetch', `Weibo ok: +${n} items.`);
+    sourceStatus.weibo_hot = { ok: n > 0, items: n, error: wb.error };
+    log('fetch', n > 0 ? `Weibo ok: +${n} items.` : `Weibo: ${wb.error || 'no items'}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     sourceStatus.weibo_hot = { ok: false, items: 0, error: msg };

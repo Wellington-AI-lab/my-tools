@@ -38,7 +38,7 @@ export async function fetchGoogleTrendsDailyRss(opts: {
   geo: 'CN' | 'US';
   hl?: string; // e.g. 'zh-CN' or 'en-US'
   timeoutMs?: number;
-}): Promise<{ items: TrendRawItem[] }> {
+}): Promise<{ items: TrendRawItem[]; error?: string }> {
   const geo = opts.geo;
   const hl = opts.hl ?? (geo === 'CN' ? 'zh-CN' : 'en-US');
   const url = `https://trends.google.com/trends/trendingsearches/daily/rss?geo=${encodeURIComponent(geo)}&hl=${encodeURIComponent(hl)}`;
@@ -50,13 +50,18 @@ export async function fetchGoogleTrendsDailyRss(opts: {
       method: 'GET',
       headers: {
         // mimic a browser a bit; some edges block empty UA
-        'user-agent': 'my-tools/1.0 (trend-radar)',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
         accept: 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5',
       },
       signal: controller.signal,
     });
     const text = await resp.text();
-    if (!resp.ok) throw new Error(`Google Trends RSS HTTP ${resp.status}`);
+
+    if (!resp.ok) {
+      // Google Trends RSS 可能因地理限制返回 404
+      console.warn(`Google Trends RSS HTTP ${resp.status} for geo=${geo}`);
+      return { items: [], error: `HTTP ${resp.status}` };
+    }
 
     const parsed = parseRss(text);
     const lang: TrendRawItem['language'] = geo === 'CN' ? 'zh' : 'en';
@@ -72,6 +77,10 @@ export async function fetchGoogleTrendsDailyRss(opts: {
     }));
 
     return { items };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    console.warn(`Google Trends RSS fetch failed for geo=${geo}:`, msg);
+    return { items: [], error: msg };
   } finally {
     clearTimeout(timeout);
   }

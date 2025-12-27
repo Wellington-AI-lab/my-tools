@@ -2,7 +2,7 @@
  * 信息流 Agent - 主流程编排
  */
 
-import type { NewsReport, NewsTheme, MatchedNewsItem } from './types';
+import type { NewsReport, NewsTheme, MatchedNewsItem, NewsSourceId } from './types';
 import { aggregateAllSources } from './aggregator';
 import { matchNewsWithKeywords, groupByTheme } from './matcher';
 import { getKeywords } from './store';
@@ -77,9 +77,9 @@ export async function runNewsAgent(opts: NewsAgentOpts): Promise<NewsReport> {
     }));
 
   // 构建 sources_status
-  const sourcesStatus: Record<string, { ok: boolean; items: number; error?: string }> = {};
+  const sourcesStatus = {} as NewsReport['meta']['sources_status'];
   for (const [sourceId, result] of Object.entries(aggregated.bySource)) {
-    sourcesStatus[sourceId] = {
+    sourcesStatus[sourceId as NewsSourceId] = {
       ok: !result.error && result.items.length > 0,
       items: result.items.length,
       error: result.error,
@@ -91,7 +91,7 @@ export async function runNewsAgent(opts: NewsAgentOpts): Promise<NewsReport> {
       generated_at: nowIso(),
       day_key: dayKey,
       keywords_used: keywordsByTheme,
-      sources_status: sourcesStatus as any,
+      sources_status: sourcesStatus,
       total_fetched: aggregated.totalFetched,
       total_matched: matched.length,
       execution_time_ms: Date.now() - startTime,

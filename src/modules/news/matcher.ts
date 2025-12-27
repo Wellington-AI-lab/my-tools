@@ -125,12 +125,14 @@ ${newsList}
     }>;
 
     const results: MatchedNewsItem[] = [];
+    const validThemes: NewsTheme[] = ['finance', 'economy', 'ai'];
+
     for (const match of parsed) {
       const item = items[match.index];
       if (!item) continue;
 
+      if (!validThemes.includes(match.theme as NewsTheme)) continue;
       const theme = match.theme as NewsTheme;
-      if (!['finance', 'economy', 'ai'].includes(theme)) continue;
 
       results.push({
         ...item,

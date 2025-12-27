@@ -51,11 +51,10 @@ async function fetchJin10(opts?: { limit?: number; timeoutMs?: number }): Promis
 
       // 解析时间: "20241227 10:30:00" => ISO
       const timeStr = item.time || '';
-      const year = timeStr.slice(0, 4);
-      const month = timeStr.slice(4, 6);
-      const day = timeStr.slice(6, 8);
-      const hms = timeStr.slice(9);
-      const publishedAt = `${year}-${month}-${day}T${hms}+08:00`;
+      const timeMatch = timeStr.match(/^(\d{4})(\d{2})(\d{2}) (\d{2}:\d{2}:\d{2})$/);
+      const publishedAt = timeMatch
+        ? `${timeMatch[1]}-${timeMatch[2]}-${timeMatch[3]}T${timeMatch[4]}+08:00`
+        : undefined;
 
       return {
         id: generateId('jin10', item.id),
