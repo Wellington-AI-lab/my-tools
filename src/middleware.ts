@@ -29,6 +29,11 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   const { pathname } = context.url;
   if (isPublicPath(pathname)) return next();
 
+  // 确保 locals 存在
+  if (!context.locals) {
+    context.locals = {} as any;
+  }
+
   // 开发环境跳过登录验证
   if (process.env.NODE_ENV === 'development') {
     context.locals.user = { role: 'user' };
