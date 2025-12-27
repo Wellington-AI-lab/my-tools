@@ -18,10 +18,10 @@ export const MODULES: ModuleDef[] = [
   },
   {
     id: 'trends',
-    name: 'Trend Radar',
-    description: '互联网趋势扫描，为信息打上标签',
+    name: '社会热点扫描',
+    description: '扫描社会热点，用AI标注新闻',
     href: '/tools/trends',
-    status: 'beta',
+    status: 'stable',
   },
   {
     id: 'rednote',

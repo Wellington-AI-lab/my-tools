@@ -9,6 +9,70 @@ export function getKV(locals: App.Locals): KVNamespace | null {
   return env?.KV ?? null;
 }
 
+export function getD1(locals: App.Locals): D1Database | null {
+  const env = getEnv(locals) as { TRENDS_DB?: D1Database };
+  return env?.TRENDS_DB ?? null;
+}
+
+export function requireD1(locals: App.Locals): D1Database {
+  const d1 = getD1(locals);
+
+  if (!d1 && isProduction(locals)) {
+    throw new Error('D1 binding is missing. Please bind D1 as `TRENDS_DB` in Cloudflare Pages (Settings → Functions → D1 database bindings).');
+  }
+
+  if (!d1) {
+    // Dev fallback: create a minimal in-memory D1 for local dev
+    const mem = (globalThis as any).__DEV_D1__ as Map<string, any[]> | undefined;
+    const store = mem ?? new Map<string, any[]>();
+    (globalThis as any).__DEV_D1__ = store;
+
+    return {
+      async prepare(stmt: string) {
+        const mockBatch = async (params: any[][]) => {
+          // Simple mock - just return empty results
+          return { results: [] };
+        };
+        return {
+          bind(...params: any[]) {
+            return {
+              async all() {
+                return { results: [] };
+              },
+              async first() {
+                return null;
+              },
+              async run() {
+                return { success: true, meta: { duration: 0 } };
+              },
+              async batch(...bindings: any[]) {
+                return mockBatch(bindings);
+              }
+            };
+          },
+          async all(params?: any) {
+            return { results: [] };
+          },
+          async first(params?: any) {
+            return null;
+          },
+          async run(params?: any) {
+            return { success: true, meta: { duration: 0 } };
+          }
+        } as any;
+      },
+      batch(statements: D1Statement[]) {
+        return Promise.all(statements.map(s => s.all()));
+      },
+      exec(stmt: string) {
+        return Promise.resolve({ success: true, meta: { duration: 0 } } as any);
+      }
+    } as unknown as D1Database;
+  }
+
+  return d1;
+}
+
 /**
  * 统一的生产环境判断
  */

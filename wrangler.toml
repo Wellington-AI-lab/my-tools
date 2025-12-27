@@ -8,6 +8,12 @@ pages_build_output_dir = "dist"
 binding = "KV"
 id = "52ccf57fcdf14a7e882adee054fd0a8b"
 
+# D1 database binding for trends historical data
+[[d1_databases]]
+binding = "TRENDS_DB"
+database_name = "trends-db"
+database_id = "51d6efae-0423-48b3-98be-a0d35034e589"
+
 # 注意：Secrets 通过命令行或 Dashboard 配置
 # 使用命令：npx wrangler pages secret put <NAME> --project-name=my-tools
 # 或在 Dashboard: Settings → Variables → Secrets

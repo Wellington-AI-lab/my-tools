@@ -3,7 +3,7 @@
  * 从 newsnow 获取新闻数据，使用 AI 打标签，统计标签趋势
  */
 
-import { requireKV, getEnv } from '@/lib/env';
+import { requireKV, requireD1, getEnv } from '@/lib/env';
 
 const NEWSNOW_API_URL = "https://newsbim.pages.dev/api/trends/aggregate";
 const CACHE_KEY_PREFIX = "trends:";
@@ -154,9 +154,11 @@ async function extractTagsWithAI(
   items: Array<{ id: string; title: string; url: string }>,
   accountId: string,
   apiToken: string
-): Promise<NewsItemWithTags[]> {
+): Promise<{ results: NewsItemWithTags[]; quotaExceeded: boolean; apiCalls: number }> {
   const BATCH_SIZE = 20; // 每批处理 20 条
   const results: NewsItemWithTags[] = [];
+  let quotaExceeded = false;
+  let apiCalls = 0;
 
   // Cloudflare Workers AI REST API endpoint
   const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3.1-8b-instruct`;
@@ -178,6 +180,7 @@ async function extractTagsWithAI(
 ${batchText}`;
 
     try {
+      apiCalls++;
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -193,6 +196,16 @@ ${batchText}`;
         }),
       });
 
+      // 检查配额超限错误
+      if (response.status === 429) {
+        const errorText = await response.text();
+        console.error(`[trends/scan] ⚠️  AI 配额超限! HTTP 429: ${errorText}`);
+        console.error(`[trends/scan] 本次已使用 ${apiCalls}/${Math.ceil(items.length / BATCH_SIZE)} 次 API 调用`);
+        console.error(`[trends/scan] 建议: 1) 降低刷新频率 2) 减少数据源数量`);
+        quotaExceeded = true;
+        throw new Error('QUOTA_EXCEEDED');
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`[trends/scan] AI API error: ${response.status} ${errorText}`);
@@ -206,7 +219,7 @@ ${batchText}`;
         throw new Error('Empty AI response');
       }
 
-      console.log(`[trends/scan] AI batch ${i / BATCH_SIZE + 1} response: ${aiText.substring(0, 200)}...`);
+      console.log(`[trends/scan] AI batch ${i / BATCH_SIZE + 1}/${Math.ceil(items.length / BATCH_SIZE)} response: ${aiText.substring(0, 200)}...`);
 
       // 解析 AI 返回的 JSON
       let aiTags: Array<{ index: number; tags: string[] }> = [];
@@ -251,8 +264,15 @@ ${batchText}`;
       }
 
     } catch (error) {
-      console.error(`[trends/scan] AI batch ${i / BATCH_SIZE + 1} failed:`, error);
-      // 出错时回退到关键词匹配
+      const isQuotaError = error instanceof Error && error.message === 'QUOTA_EXCEEDED';
+      if (isQuotaError) {
+        // 配额超限，回退到关键词匹配
+        console.error(`[trends/scan] 配额超限，回退到关键词匹配模式`);
+        quotaExceeded = true;
+      } else {
+        console.error(`[trends/scan] AI batch ${i / BATCH_SIZE + 1} failed:`, error);
+      }
+      // 回退到关键词匹配
       for (const item of batch) {
         const rawTags = extractKeywords(item.title);
         results.push({
@@ -266,7 +286,8 @@ ${batchText}`;
     }
   }
 
-  return results;
+  console.log(`[trends/scan] AI 处理完成: ${results.length} 条, API 调用 ${apiCalls} 次, 配额超限: ${quotaExceeded}`);
+  return { results, quotaExceeded, apiCalls };
 }
 
 interface NewsItemWithTags {
@@ -306,10 +327,40 @@ interface TrendReport {
   sources: string[];
   topTags: TagStats[];
   recentNews: NewsItemWithTags[];
+  aiQuotaExceeded?: boolean;  // AI 配额是否超限
+  aiApiCalls?: number;        // 本次使用的 AI 调用次数
+}
+
+/**
+ * 保存标签快照到 D1 数据库（用于历史趋势分析）
+ */
+async function saveTagSnapshots(
+  d1: D1Database,
+  scanTime: string,
+  topTags: TagStats[],
+  period: string = '4h'
+): Promise<void> {
+  try {
+    const stmt = d1.prepare(
+      'INSERT INTO tag_snapshots (scan_time, tag, count, rank, period) VALUES (?, ?, ?, ?, ?)'
+    );
+
+    // 批量插入所有标签快照
+    const statements = topTags.map((tag, index) =>
+      stmt.bind(scanTime, tag.tag, tag.count, index + 1, period)
+    );
+
+    await d1.batch(statements);
+    console.log(`[trends/scan] Saved ${topTags.length} tag snapshots to D1`);
+  } catch (error) {
+    console.error('[trends/scan] Failed to save tag snapshots:', error);
+    // 不抛出错误，避免影响主流程
+  }
 }
 
 export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
   const kv = requireKV(locals);
+  const d1 = requireD1(locals);
   const env = getEnv(locals) as any;
   const forceRefresh = url.searchParams.get('force') === 'true';
   const useAI = url.searchParams.get('ai') === 'true'; // AI 模式开关
@@ -347,10 +398,16 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
     const accountId = env.CLOUDFLARE_ACCOUNT_ID;
     const apiToken = env.CLOUDFLARE_API_TOKEN;
 
+    let aiQuotaExceeded = false;
+    let aiApiCalls = 0;
+
     if (useAI && accountId && apiToken) {
       // AI 模式：使用 REST API 批量处理
       console.log(`[trends/scan] Using AI mode with ${data.items.length} items`);
-      newsWithTags = await extractTagsWithAI(data.items, accountId, apiToken);
+      const aiResult = await extractTagsWithAI(data.items, accountId, apiToken);
+      newsWithTags = aiResult.results;
+      aiQuotaExceeded = aiResult.quotaExceeded;
+      aiApiCalls = aiResult.apiCalls;
     } else {
       // 关键词匹配模式
       newsWithTags = data.items.map(item => {
@@ -388,14 +445,26 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
     // 计算标签统计
     const topTags = calculateTagStats(newsWithTags, previousStats);
 
+    // 保存标签快照到 D1（用于历史趋势分析）
+    const scanTime = new Date().toISOString();
+    await saveTagSnapshots(d1, scanTime, topTags, '4h');
+
     // 构建报告
     const report: TrendReport = {
-      generatedAt: new Date().toISOString(),
+      generatedAt: scanTime,
       newsCount: data.count,
       sources: data.sources,
       topTags,
       recentNews: newsWithTags.slice(0, 20), // 只返回前20条新闻
+      aiQuotaExceeded,
+      aiApiCalls,
     };
+
+    // 配额超限警告
+    if (aiQuotaExceeded) {
+      console.warn(`[trends/scan] ⚠️  AI 配额已超限! 本次使用 ${aiApiCalls} 次 API 调用`);
+      console.warn(`[trends/scan] 建议: 1) 降低刷新频率 2) 减少数据源数量`);
+    }
 
     // 缓存结果
     await kv.put(cacheKey, JSON.stringify(report), { expirationTtl: CACHE_TTL });
