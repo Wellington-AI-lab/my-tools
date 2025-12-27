@@ -62,9 +62,9 @@ async function fetchYahooDaily(_env: ProviderEnv, symbol: string, start: string,
     throw new Error(`Yahoo Finance returned no data for ${symbol}`);
   }
   
-  const timestamps: number[] = result.timestamp || [];
-  const adjClose: number[] = result.indicators?.adjclose?.[0]?.adjclose || [];
-  const close: number[] = result.indicators?.quote?.[0]?.close || [];
+  const timestamps: number[] = result.timestamp ?? [];
+  const adjClose: number[] = result.indicators?.adjclose?.[0]?.adjclose ?? [];
+  const close: number[] = result.indicators?.quote?.[0]?.close ?? [];
   
   if (timestamps.length === 0) {
     throw new Error(`Yahoo Finance returned empty timestamps for ${symbol}`);

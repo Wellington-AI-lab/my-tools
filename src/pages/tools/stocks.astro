@@ -27,14 +27,11 @@ import AppLayout from '@/layouts/AppLayout.astro';
                 <button id="addRowBtn" class="text-sm px-3 py-1.5 rounded-full border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
                   + 添加一行
                 </button>
-                <button id="saveWatchlistBtn" class="text-sm px-3 py-1.5 rounded-full border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
-                  写入标的池
-                </button>
               </div>
             </div>
 
             <div class="p-4 bg-white">
-              <div id="rows" class="space-y-2"></div>
+              <div id="rows" class="flex flex-wrap gap-2"></div>
               <div class="mt-3 text-xs text-onekey-text-secondary">
                 提示：权重会自动归一化（不要求总和=100）。建议常用 ≤10 只。
               </div>
@@ -47,46 +44,46 @@ import AppLayout from '@/layouts/AppLayout.astro';
           </button>
         </div>
       </div>
-
-      <div class="glass-effect rounded-xl p-6 mt-4" id="resultSection">
-        <h2 class="text-xl font-bold text-onekey-text-primary text-center mb-4">回测结果</h2>
-        <div id="resultBox">
-          <div class="text-sm text-onekey-text-secondary">尚未计算。点击上方按钮开始回测。</div>
-        </div>
-      </div>
-
-      <!-- 收益率走势图 -->
-      <div class="glass-effect rounded-xl p-6 mt-4" id="chartSection" style="display: none;">
-        <h2 class="text-xl font-bold text-onekey-text-primary text-center mb-4">净值走势图</h2>
-        <div class="flex items-center justify-center gap-6 text-xs mb-4">
-          <div class="flex items-center gap-1.5">
-            <div class="w-3 h-0.5 bg-green-500 rounded"></div>
-            <span class="text-onekey-text-secondary">组合</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <div class="w-3 h-0.5 bg-blue-400 rounded"></div>
-            <span class="text-onekey-text-secondary">QQQ 基准</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <div class="w-3 h-3 bg-red-100 border border-red-300 rounded-sm"></div>
-            <span class="text-onekey-text-secondary">最大回撤区间</span>
-          </div>
-        </div>
-        <div id="chartContainer" style="height: 400px; width: 100%;"></div>
-        <div id="chartInfo" class="mt-3 text-xs text-onekey-text-muted text-center"></div>
-      </div>
     </div>
 
     <div class="lg:col-span-1">
       <div class="glass-effect rounded-xl p-6">
-        <h2 class="text-lg font-bold text-onekey-text-primary">标的池（Watchlist）</h2>
-        <p class="mt-2 text-sm text-onekey-text-secondary">
-          点击标的可快速加入组合；规则标签会自动合并展示。
-        </p>
-        <div id="watchlistBox" class="mt-4 space-y-2 text-sm text-onekey-text-secondary">
+        <h2 class="text-lg font-bold text-onekey-text-primary">美股市值前二十（截至2025年末）</h2>
+        <div id="watchlistBox" class="mt-4 flex flex-wrap gap-2">
           加载中...
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- 回测结果与净值走势图并排 -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 items-start">
+    <div class="glass-effect rounded-xl p-6" id="resultSection">
+      <h2 class="text-xl font-bold text-onekey-text-primary text-center mb-4">回测结果</h2>
+      <div id="resultBox">
+        <div class="text-sm text-onekey-text-secondary">尚未计算。点击上方按钮开始回测。</div>
+      </div>
+    </div>
+
+    <!-- 净值走势图 -->
+    <div class="glass-effect rounded-xl p-6 h-fit" id="chartSection" style="display: none;">
+      <h2 class="text-xl font-bold text-onekey-text-primary text-center mb-4">净值走势图</h2>
+      <div class="flex items-center justify-center gap-6 text-xs mb-4">
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-0.5 bg-green-500 rounded"></div>
+          <span class="text-onekey-text-secondary">组合</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-0.5 bg-blue-400 rounded"></div>
+          <span class="text-onekey-text-secondary">QQQ 基准</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-3 bg-red-100 border border-red-300 rounded-sm"></div>
+          <span class="text-onekey-text-secondary">最大回撤区间</span>
+        </div>
+      </div>
+      <div id="chartContainer" style="height: 350px; width: 100%;"></div>
+      <div id="chartInfo" class="mt-3 text-xs text-onekey-text-muted text-center"></div>
     </div>
   </div>
 
@@ -96,7 +93,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
     const rowsEl = document.getElementById('rows') as HTMLElement | null;
     const addRowBtn = document.getElementById('addRowBtn') as HTMLButtonElement | null;
     const calcBtn = document.getElementById('calcBtn') as HTMLButtonElement | null;
-    const saveBtn = document.getElementById('saveWatchlistBtn') as HTMLButtonElement | null;
     const errorBox = document.getElementById('errorBox') as HTMLElement | null;
     const resultBox = document.getElementById('resultBox') as HTMLElement | null;
     const watchlistBox = document.getElementById('watchlistBox') as HTMLElement | null;
@@ -107,8 +103,16 @@ import AppLayout from '@/layouts/AppLayout.astro';
     const chartInfo = document.getElementById('chartInfo') as HTMLElement | null;
     
     let chartInstance: ReturnType<typeof createChart> | null = null;
+    let chartResizeObserver: ResizeObserver | null = null;
 
     const MIN_DATE = '2000-01-01'; // 最早日期限制
+
+    // HTML 转义防止 XSS
+    function escapeHtml(str: string): string {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
     
     function todayIso() {
       return new Date().toISOString().slice(0, 10);
@@ -123,7 +127,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     if (startDateEl) {
       startDateEl.min = MIN_DATE;
-      startDateEl.value = yearsAgoIso(10);
+      startDateEl.value = '2010-01-01';
     }
     if (endDateEl) {
       endDateEl.min = MIN_DATE;
@@ -140,6 +144,46 @@ import AppLayout from '@/layouts/AppLayout.astro';
       errorBox.classList.add('hidden');
       errorBox.textContent = '';
     }
+
+    // 自动调整指标数字字体大小，使其完整显示
+    function fitMetricValues() {
+      requestAnimationFrame(() => {
+        const metricValues = document.querySelectorAll('.metric-value');
+        metricValues.forEach((el) => {
+          const element = el as HTMLElement;
+          const parent = element.parentElement;
+          if (!parent) return;
+
+          // 重置字体大小
+          element.style.fontSize = '';
+
+          // 获取可用宽度（父元素宽度减去 padding）
+          const parentStyle = getComputedStyle(parent);
+          const paddingLeft = parseFloat(parentStyle.paddingLeft) || 0;
+          const paddingRight = parseFloat(parentStyle.paddingRight) || 0;
+          const availableWidth = parent.clientWidth - paddingLeft - paddingRight;
+
+          // 获取当前字体大小
+          let fontSize = parseFloat(getComputedStyle(element).fontSize);
+          const minFontSize = 14; // 最小字体大小
+
+          // 如果内容超出，逐步缩小字体
+          while (element.scrollWidth > availableWidth && fontSize > minFontSize) {
+            fontSize -= 1;
+            element.style.fontSize = `${fontSize}px`;
+          }
+        });
+      });
+    }
+
+    // 窗口大小变化时重新调整（带防抖）
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    window.addEventListener('resize', () => {
+      if (document.querySelector('.metric-value')) {
+        if (resizeTimeout) clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(fitMetricValues, 100);
+      }
+    });
 
     // 数字格式化：千分位 + 两位小数
     function formatNumber(n: number, decimals = 2): string {
@@ -191,13 +235,14 @@ import AppLayout from '@/layouts/AppLayout.astro';
         const isCached = provider.includes('cache');
         const entryDate = entryDateBySymbol[w.symbol];
         const isLateEntry = entryDate && entryDate !== data.actualStartDate;
-        
+        const safeSymbol = escapeHtml(w.symbol);
+
         return `
           <div class="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-semibold text-onekey-text-primary font-mono">${w.symbol}</span>
+              <span class="font-semibold text-onekey-text-primary font-mono">${safeSymbol}</span>
               ${isCached ? '<span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">缓存</span>' : ''}
-              ${isLateEntry ? `<span class="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-mono">${entryDate} 入场</span>` : ''}
+              ${isLateEntry ? `<span class="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-mono">${escapeHtml(entryDate)} 入场</span>` : ''}
             </div>
             <span class="text-onekey-text-secondary font-mono">${pct}%</span>
           </div>
@@ -206,46 +251,46 @@ import AppLayout from '@/layouts/AppLayout.astro';
       
       return `
         <!-- 核心指标卡片 -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">年化收益 CAGR</div>
-            <div class="text-2xl font-bold font-mono ${cagrColor}">${fmtPct(cagr)}</div>
+            <div class="metric-value text-2xl font-bold font-mono ${cagrColor}">${fmtPct(cagr)}</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">总收益</div>
-            <div class="text-2xl font-bold font-mono ${returnColor}">${fmtPct(totalReturn)}</div>
+            <div class="metric-value text-2xl font-bold font-mono ${returnColor}">${fmtPct(totalReturn)}</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">最大回撤</div>
-            <div class="text-2xl font-bold font-mono text-red-500">-${fmt(maxDrawdown)}%</div>
+            <div class="metric-value text-2xl font-bold font-mono text-red-500">-${fmt(maxDrawdown)}%</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0">
             <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">夏普比率</div>
-            <div class="text-2xl font-bold font-mono text-onekey-text-primary">${fmt(sharpe, 3)}</div>
+            <div class="metric-value text-2xl font-bold font-mono text-onekey-text-primary">${fmt(sharpe, 3)}</div>
           </div>
         </div>
         
         <!-- 详细信息 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-4">
           <!-- 回测区间 -->
           <div class="bg-white/50 rounded-xl p-4 border border-black/5">
             <div class="text-sm font-semibold text-onekey-text-primary mb-3">📅 回测区间</div>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
+            <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <div class="flex gap-2">
                 <span class="text-onekey-text-secondary">起始日期</span>
                 <span class="text-onekey-text-primary font-medium font-mono">${data.actualStartDate}</span>
               </div>
-              <div class="flex justify-between">
+              <div class="flex gap-2">
                 <span class="text-onekey-text-secondary">结束日期</span>
                 <span class="text-onekey-text-primary font-medium font-mono">${data.actualEndDate}</span>
               </div>
-              <div class="flex justify-between">
+              <div class="flex gap-2">
                 <span class="text-onekey-text-secondary">回测年数</span>
                 <span class="text-onekey-text-primary font-medium font-mono">${years} 年</span>
               </div>
             </div>
           </div>
-          
+
           <!-- 组合成分 -->
           <div class="bg-white/50 rounded-xl p-4 border border-black/5">
             <div class="text-sm font-semibold text-onekey-text-primary mb-3">📊 组合成分</div>
@@ -283,19 +328,31 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     function createRow(symbol = '', weight = '') {
       const row = document.createElement('div');
-      row.className = 'grid grid-cols-12 gap-2 items-center';
+      row.className = 'inline-flex items-center gap-1 px-2 py-1 bg-gray-50 border border-black/10 rounded-lg';
       row.innerHTML = `
-        <input class="col-span-7 px-3 py-2 bg-white border border-black/10 rounded-lg text-sm" placeholder="例如：NVDA" value="${symbol}" />
-        <input class="col-span-4 px-3 py-2 bg-white border border-black/10 rounded-lg text-sm number" placeholder="权重" value="${weight}" />
-        <button class="col-span-1 text-sm px-2 py-2 rounded-lg border border-black/10 hover:border-red-400/60" type="button">×</button>
+        <input class="w-16 px-2 py-1 bg-white border border-black/10 rounded text-sm font-mono text-center" placeholder="代码" value="${escapeHtml(symbol)}" />
+        <span class="text-gray-400 text-xs">:</span>
+        <input class="w-10 px-1 py-1 bg-white border border-black/10 rounded text-sm text-center" placeholder="1" value="${escapeHtml(weight)}" />
+        <button class="ml-1 text-gray-400 hover:text-red-500 text-sm leading-none" type="button">×</button>
       `;
-      const [symEl, _wEl, delBtn] = Array.from(row.children) as [
+      const [symEl, , weightEl, delBtn] = Array.from(row.children) as [
         HTMLInputElement,
+        HTMLSpanElement,
         HTMLInputElement,
         HTMLButtonElement
       ];
       symEl.addEventListener('input', () => {
         symEl.value = String(symEl.value || '').toUpperCase();
+        const val = symEl.value.trim();
+        // 检查格式是否有效 或 是否重复
+        const isInvalid = val && (!isValidSymbol(val) || isSymbolExists(val, symEl));
+        if (isInvalid) {
+          symEl.classList.add('border-red-400', 'bg-red-50');
+          symEl.classList.remove('border-black/10', 'bg-white');
+        } else {
+          symEl.classList.remove('border-red-400', 'bg-red-50');
+          symEl.classList.add('border-black/10', 'bg-white');
+        }
       });
       delBtn.addEventListener('click', () => row.remove());
       return row;
@@ -308,13 +365,23 @@ import AppLayout from '@/layouts/AppLayout.astro';
       rowsEl.appendChild(createRow('GOOGL', '1'));
     }
 
+    // 验证股票代码格式（必须包含字母，只能包含字母、数字、连字符、点）
+    function isValidSymbol(symbol: string): boolean {
+      if (!symbol) return false;
+      // 必须包含至少一个字母
+      if (!/[A-Za-z]/.test(symbol)) return false;
+      // 只能包含字母、数字、连字符、点
+      if (!/^[A-Za-z0-9.\-]+$/.test(symbol)) return false;
+      return true;
+    }
+
     function collectWeights() {
       const items: Array<{ symbol: string; weight: number }> = [];
       if (!rowsEl) return items;
       for (const rowEl of Array.from(rowsEl.children)) {
         const row = rowEl as HTMLElement;
         const symInput = row.children[0] as HTMLInputElement | undefined;
-        const weightInput = row.children[1] as HTMLInputElement | undefined;
+        const weightInput = row.children[2] as HTMLInputElement | undefined; // index 2 (跳过冒号 span)
         const sym = symInput?.value?.trim();
         const wRaw = weightInput?.value?.trim();
         if (!sym) continue;
@@ -325,61 +392,73 @@ import AppLayout from '@/layouts/AppLayout.astro';
       return items;
     }
 
-    async function loadWatchlist() {
-      if (!watchlistBox) return;
-      try {
-        const resp = await fetch('/api/profile/watchlist', { credentials: 'include' });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
-        const items = data?.items || [];
-        if (!Array.isArray(items) || items.length === 0) {
-          watchlistBox.textContent = '暂无标的。你可以在回测页点击“写入标的池”。';
-          return;
+    // 获取当前已存在的股票代码（排除指定的输入框）
+    function getExistingSymbols(excludeInput?: HTMLInputElement): Set<string> {
+      const symbols = new Set<string>();
+      if (!rowsEl) return symbols;
+      for (const rowEl of Array.from(rowsEl.children)) {
+        const symInput = rowEl.children[0] as HTMLInputElement | undefined;
+        if (symInput && symInput !== excludeInput) {
+          const sym = symInput.value?.trim().toUpperCase();
+          if (sym) symbols.add(sym);
         }
-        watchlistBox.innerHTML = '';
-        for (const it of items) {
-          const btn = document.createElement('button');
-          const tags = Array.isArray(it.tags) && it.tags.length ? ` · ${it.tags.join(', ')}` : '';
-          btn.type = 'button';
-          btn.className = 'w-full text-left px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30';
-          btn.textContent = `${it.symbol}${tags}`;
-          btn.addEventListener('click', () => {
-            if (!rowsEl) return;
-            rowsEl.appendChild(createRow(it.symbol, '1'));
-          });
-          watchlistBox.appendChild(btn);
+      }
+      return symbols;
+    }
+
+    // 检查股票代码是否已存在
+    function isSymbolExists(symbol: string, excludeInput?: HTMLInputElement): boolean {
+      return getExistingSymbols(excludeInput).has(symbol.toUpperCase());
+    }
+
+    // 显示重复提示（短暂闪烁）
+    function showDuplicateHint(symbol: string) {
+      // 高亮已存在的行
+      if (!rowsEl) return;
+      for (const rowEl of Array.from(rowsEl.children)) {
+        const symInput = rowEl.children[0] as HTMLInputElement | undefined;
+        if (symInput?.value?.trim().toUpperCase() === symbol.toUpperCase()) {
+          const row = rowEl as HTMLElement;
+          row.classList.add('ring-2', 'ring-amber-400', 'rounded-lg');
+          setTimeout(() => row.classList.remove('ring-2', 'ring-amber-400', 'rounded-lg'), 1500);
+          break;
         }
-      } catch (e) {
-        watchlistBox.textContent = '加载失败（请确认 KV 已绑定）。';
       }
     }
 
-    async function saveToWatchlist() {
-      clearError();
-      const items = collectWeights().map((x) => ({
-        symbol: x.symbol,
-        tags: ['from-stocks'],
-      }));
-      if (items.length === 0) {
-        showError('请先填写至少一个有效标的和权重');
-        return;
-      }
-      try {
-        const resp = await fetch('/api/profile/watchlist', {
-          method: 'PUT',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ upsert: items }),
-          credentials: 'include',
+    // 固定的观察池股票列表
+    const DEFAULT_WATCHLIST = [
+      'NVDA', 'AAPL', 'GOOG', 'MSFT', 'AMZN', 'META', 'AVGO', 'TSLA', 'BRK-B', 'LLY',
+      'JPM', 'WMT', 'V', 'ORCL', 'MA', 'XOM', 'JNJ', 'PLTR', 'BAC', 'ABBV'
+    ];
+
+    function loadWatchlist() {
+      if (!watchlistBox) return;
+      watchlistBox.innerHTML = '';
+      for (const symbol of DEFAULT_WATCHLIST) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'px-3 py-1.5 text-sm font-mono font-medium rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/50 hover:bg-green-50 transition-colors';
+        btn.textContent = symbol;
+        btn.addEventListener('click', () => {
+          if (!rowsEl) return;
+          // 检查是否已存在
+          if (isSymbolExists(symbol)) {
+            showDuplicateHint(symbol);
+            return;
+          }
+          rowsEl.appendChild(createRow(symbol, '1'));
         });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
-        await loadWatchlist();
-      } catch (e) {
-        showError('写入标的池失败');
+        watchlistBox.appendChild(btn);
       }
     }
+
+    let isCalculating = false;
 
     async function calculate() {
+      // 防止重复请求
+      if (isCalculating) return;
+
       clearError();
       if (resultBox) resultBox.textContent = '计算中...';
       const weights = collectWeights();
@@ -390,21 +469,50 @@ import AppLayout from '@/layouts/AppLayout.astro';
         showError('请选择开始/结束日期');
         return;
       }
-      
+
       // 验证日期不早于 2000-01-01
       if (startDate < MIN_DATE) {
         showError(`开始日期不能早于 ${MIN_DATE}`);
         return;
       }
-      
+
       if (endDate < MIN_DATE) {
         showError(`结束日期不能早于 ${MIN_DATE}`);
         return;
       }
-      
+
       if (weights.length === 0) {
         showError('请填写至少一个有效标的与权重');
         return;
+      }
+
+      // 检查是否有重复的股票代码
+      const symbolSet = new Set<string>();
+      const duplicates: string[] = [];
+      const invalidSymbols: string[] = [];
+      for (const w of weights) {
+        if (symbolSet.has(w.symbol)) {
+          duplicates.push(w.symbol);
+        }
+        if (!isValidSymbol(w.symbol)) {
+          invalidSymbols.push(w.symbol);
+        }
+        symbolSet.add(w.symbol);
+      }
+      if (invalidSymbols.length > 0) {
+        showError(`股票代码格式无效：${invalidSymbols.join(', ')}，代码必须包含字母`);
+        return;
+      }
+      if (duplicates.length > 0) {
+        showError(`存在重复的股票代码：${duplicates.join(', ')}，请删除重复项`);
+        return;
+      }
+
+      // 禁用按钮，防止重复点击
+      isCalculating = true;
+      if (calcBtn) {
+        calcBtn.disabled = true;
+        calcBtn.textContent = '计算中...';
       }
 
       try {
@@ -417,17 +525,45 @@ import AppLayout from '@/layouts/AppLayout.astro';
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
 
+        // 成功时清除之前的错误
+        clearError();
+
         if (resultBox) {
           resultBox.innerHTML = renderResults(data, weights);
+          // 自动调整指标数字的字体大小
+          fitMetricValues();
         }
-        
+
         // 渲染图表
         renderChart(data);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        let msg = e instanceof Error ? e.message : String(e);
+
+        // 优化错误信息显示
+        const providerFailMatch = msg.match(/All providers failed for ([\w-]+)/);
+        const noPriceDataMatch = msg.match(/No usable price data.*for[:\s]*([\w-]+)/i);
+        const insufficientDataMatch = msg.match(/Insufficient data for ([\w-]+)/i);
+
+        if (providerFailMatch) {
+          msg = `未查询到 ${providerFailMatch[1]}，请修正。`;
+        } else if (insufficientDataMatch) {
+          msg = `${insufficientDataMatch[1]} 数据不足，可能不是有效的美股代码，请修正。`;
+        } else if (noPriceDataMatch) {
+          msg = `${noPriceDataMatch[1]} 在所选日期范围内无数据，请调整日期或股票代码。`;
+        } else if (msg.includes('Failed to fetch')) {
+          msg = '网络请求失败，请稍后重试。';
+        }
+
         showError(msg);
         if (resultBox) resultBox.innerHTML = '<div class="text-red-500">计算失败，请检查输入。</div>';
         if (chartSection) chartSection.style.display = 'none';
+      } finally {
+        // 恢复按钮状态
+        isCalculating = false;
+        if (calcBtn) {
+          calcBtn.disabled = false;
+          calcBtn.textContent = '计算（CAGR / 总收益 / 最大回撤 / 夏普）';
+        }
       }
     }
     
@@ -455,7 +591,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       // 创建新图表
       chartInstance = createChart(chartContainer, {
         width: chartContainer.clientWidth,
-        height: 400,
+        height: 350,
         layout: {
           background: { color: 'transparent' },
           textColor: '#6b7280',
@@ -471,6 +607,11 @@ import AppLayout from '@/layouts/AppLayout.astro';
         timeScale: {
           borderColor: 'rgba(0,0,0,0.1)',
           timeVisible: false,
+          rightOffset: 5,
+          barSpacing: 6,
+          minBarSpacing: 2,
+          fixLeftEdge: true,
+          fixRightEdge: true,
         },
         crosshair: {
           horzLine: { labelBackgroundColor: '#10b981' },
@@ -540,21 +681,29 @@ import AppLayout from '@/layouts/AppLayout.astro';
         }
       }
       
-      // 自适应容器大小
-      chartInstance.timeScale().fitContent();
-      
-      // 监听窗口大小变化
-      const resizeObserver = new ResizeObserver(() => {
-        if (chartInstance && chartContainer) {
-          chartInstance.resize(chartContainer.clientWidth, 400);
+      // 自适应时间轴到回测区间
+      requestAnimationFrame(() => {
+        if (chartInstance) {
+          chartInstance.timeScale().fitContent();
         }
       });
-      resizeObserver.observe(chartContainer);
+
+      // 监听窗口大小变化（先断开旧 observer 防止内存泄漏）
+      if (chartResizeObserver) {
+        chartResizeObserver.disconnect();
+        chartResizeObserver = null;
+      }
+      chartResizeObserver = new ResizeObserver(() => {
+        if (chartInstance && chartContainer) {
+          chartInstance.resize(chartContainer.clientWidth, 350);
+          chartInstance.timeScale().fitContent();
+        }
+      });
+      chartResizeObserver.observe(chartContainer);
     }
 
     if (addRowBtn) addRowBtn.addEventListener('click', () => rowsEl?.appendChild(createRow('', '1')));
     if (calcBtn) calcBtn.addEventListener('click', calculate);
-    if (saveBtn) saveBtn.addEventListener('click', saveToWatchlist);
 
     addDefaultRows();
     loadWatchlist();

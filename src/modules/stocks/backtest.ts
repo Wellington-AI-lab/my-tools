@@ -59,16 +59,24 @@ export function runBacktest(opts: {
   // Build price index for each symbol
   const priceIndex: Record<string, Map<string, number>> = {};
   const firstDateBySymbol: Record<string, string> = {};
-  
+
+  // 最小数据点要求（至少需要 20 个交易日的数据才认为是有效股票）
+  const MIN_DATA_POINTS = 20;
+
   for (const symbol of allSymbols) {
     const pts = (opts.seriesBySymbol[symbol] ?? [])
       .filter((p) => p.date >= startDate && p.date <= endDate)
       .sort((a, b) => a.date.localeCompare(b.date));
-    
+
     if (pts.length === 0) {
       throw new Error(`No usable price data in range for: ${symbol}`);
     }
-    
+
+    // 验证数据量是否足够（防止无效股票代码返回极少数据）
+    if (pts.length < MIN_DATA_POINTS) {
+      throw new Error(`Insufficient data for ${symbol}: only ${pts.length} data points (minimum ${MIN_DATA_POINTS} required). Please verify the stock symbol.`);
+    }
+
     priceIndex[symbol] = new Map(pts.map((p) => [p.date, p.close]));
     firstDateBySymbol[symbol] = pts[0].date;
   }
