@@ -1,0 +1,43 @@
+name: Trend Radar Cron
+
+on:
+  schedule:
+    # 每 4 小时运行一次 (UTC 时间: 0, 4, 8, 12, 16, 20)
+    # 对应北京时间: 8, 12, 16, 20, 0, 4
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+    # 允许手动触发
+
+jobs:
+  run-trends:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger Trend Radar
+        env:
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          API_URL: ${{ vars.API_URL || 'https://my-tools-bim.pages.dev' }}
+        run: |
+          echo "Triggering Trend Radar at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "${API_URL}/api/trends/run" \
+            -H "Content-Type: application/json" \
+            -H "X-Admin-Key: ${ADMIN_KEY}" \
+            -d '{}')
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Success!"
+            # 提取关键指标
+            echo "$body" | jq -r '.meta | "Day: \(.day_key) | Sources: \(.sources_used | join(",")) | Items: \(.items_kept) | Time: \(.execution_time_ms)ms"' 2>/dev/null || true
+          else
+            echo "Failed with status $http_code"
+            exit 1
+          fi
