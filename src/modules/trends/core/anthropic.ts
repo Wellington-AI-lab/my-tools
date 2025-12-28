@@ -4,6 +4,7 @@
  */
 
 import { CONFIG } from './constants';
+import { generateStrictSystemPrompt } from './tag-taxonomy';
 
 export interface AnthropicConfig {
   apiKey: string;
@@ -106,6 +107,8 @@ function buildFusionPrompt(input: TagFusionInput): string {
   const { title, content, cloudflareTags, additionalContext } = input;
 
   return `你是一个智能标签融合专家。你的任务是审查、补充和优化 AI 生成的新闻标签。
+
+${generateStrictSystemPrompt()}
 
 ## 新闻信息
 标题：${title}
@@ -219,12 +222,14 @@ function buildBatchFusionPrompt(
 Cloudflare AI 标签：${item.cloudflareTags.join(', ') || '(无)'}`;
   }).join('\n\n');
 
-  return `你是一个智能标签融合专家。请审查并优化以下新闻的标签。
+  return `你是一个智能标签融合专家。
+
+${generateStrictSystemPrompt()}
 
 ${itemsText}
 
 ## 任务
-为每条新闻输出 3-5 个最终标签。
+为每条新闻输出 3-5 个最终标签。标签必须从上面的白名单中选择。
 
 ## 输出格式（严格遵守 JSON）：
 \`\`\`json

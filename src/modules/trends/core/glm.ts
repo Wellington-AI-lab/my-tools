@@ -4,6 +4,7 @@
  */
 
 import { CONFIG } from './constants';
+import { generateStrictSystemPrompt } from './tag-taxonomy';
 
 export interface GLMConfig {
   apiKey: string;
@@ -59,7 +60,11 @@ export async function fuseTagsWithGLM(
         messages: [
           {
             role: 'system',
-            content: '你是一个智能标签融合专家。只返回 JSON 格式的标签，不要其他内容。'
+            content: `你是一个智能标签融合专家。
+
+${generateStrictSystemPrompt()}
+
+只返回 JSON 格式的标签数组，不要其他内容。`
           },
           {
             role: 'user',
@@ -219,12 +224,14 @@ async function callGLMBatch(
     return `## 新闻 ${idx + 1}\n标题：${item.news.title}\nCloudflare AI 标签：${item.cloudflareTags.join(', ') || '(无)'}`;
   }).join('\n\n');
 
-  const prompt = `你是一个智能标签融合专家。请审查并优化以下新闻的标签。
+  const prompt = `你是一个智能标签融合专家。
+
+${generateStrictSystemPrompt()}
 
 ${itemsText}
 
 ## 任务
-为每条新闻输出 3-5 个最终标签。
+为每条新闻输出 3-5 个最终标签。标签必须从上面的白名单中选择。
 
 ## 输出格式（严格遵守 JSON）：
 {"results": [{"index": 1, "tags": ["标签1", "标签2"], "reasoning": "理由"}, {"index": 2, "tags": ["标签1", "标签2"], "reasoning": "理由"}]}
@@ -242,7 +249,11 @@ ${itemsText}
       messages: [
         {
           role: 'system',
-          content: '你是一个智能标签融合专家。只返回 JSON 格式的标签，不要其他内容。'
+          content: `你是一个智能标签融合专家。
+
+${generateStrictSystemPrompt()}
+
+只返回 JSON 格式的标签数组，不要其他内容。`
         },
         {
           role: 'user',

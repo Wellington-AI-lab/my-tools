@@ -5,12 +5,14 @@
 
 import { CONFIG } from './constants';
 import { extractKeywords, filterTags, calculateTagScore } from './keywords';
+import { generateStrictSystemPrompt, getFlatTagList } from './tag-taxonomy';
 
 // Type definitions
 export interface NewsItem {
   id: string;
   title: string;
   url: string;
+  source?: string;  // Data source identifier (e.g., 'weibo_hot', 'google_trends_rss')
 }
 
 export interface NewsItemWithTags extends NewsItem {
@@ -106,12 +108,17 @@ async function processBatch(
 ): Promise<{ items: NewsItemWithTags[]; quotaExceeded: boolean; apiCalls: number }> {
   const batchText = batch.map((item, idx) => `${idx + 1}. ${item.title}`).join('\n');
 
-  const prompt = `分析以下新闻标题，提取每个新闻的 3-5 个关键词标签。
-标签要求：实体名（人名、公司、国家）、事件类型、行业领域。
-只返回 JSON 格式，格式为：[{"index":1,"tags":["标签1","标签2"]},{"index":2,...}]
+  // 生成严格的 System Prompt
+  const systemPrompt = `${generateStrictSystemPrompt()}
+
+## Your Task
+Analyze the following news headlines and extract 3-5 tags for each.
+Output MUST be in JSON format: [{"index":1,"tags":["标签1","标签2"]},{"index":2,...}];
 
 新闻标题：
 ${batchText}`;
+
+  const prompt = systemPrompt;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CONFIG.AI_API_TIMEOUT_MS);
@@ -128,7 +135,14 @@ ${batchText}`;
       },
       body: JSON.stringify({
         messages: [
-          { role: 'system', content: '你是一个新闻标签提取助手。只返回 JSON 格式的标签，不要其他内容。' },
+          {
+            role: 'system',
+            content: `你是一个新闻标签提取助手。
+
+${generateStrictSystemPrompt()}
+
+只返回 JSON 格式的标签数组，不要其他内容。`
+          },
           { role: 'user', content: prompt }
         ],
         max_tokens: CONFIG.AI_MAX_TOKENS,
@@ -170,6 +184,7 @@ ${batchText}`;
         id: item.id,
         title: item.title,
         url: item.url,
+        source: item.source,
         tags,
         tagScore: calculateTagScore(tags, true),
       };
@@ -215,6 +230,7 @@ function keywordFallback(item: NewsItem): NewsItemWithTags {
     id: item.id,
     title: item.title,
     url: item.url,
+    source: item.source,
     tags,
     tagScore: calculateTagScore(tags, false),
   };

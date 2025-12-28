@@ -3,7 +3,7 @@
  *
  * Key improvements:
  * - Idempotency via scan_id parameter
- * - ctx.waitUntil() for non-blocking D1 writes
+ * - Blocking D1 writes for data consistency
  * - Parallel AI batch processing
  * - Optimized keyword extraction
  * - Proper cache key management
@@ -23,6 +23,13 @@ import { extractKeywords, filterTags, calculateTagScore } from '@/modules/trends
 import { saveTagSnapshots, getPreviousStats } from '@/modules/trends/db/snapshots';
 import { saveNewsHistory } from '@/modules/trends/db/news';
 import { runCleanup, shouldRunCleanup } from '@/modules/trends/db/cleanup';
+import {
+  fuseAndNormalizeTags,
+  logFusionStats,
+  type TagFusionStats,
+  VALID_TAGS,
+  TAG_ALIAS_MAP,
+} from '@/modules/trends/core/tag-normalization';
 
 // Type definitions
 interface NewsnowResponse {
@@ -41,6 +48,14 @@ interface NewsnowResponse {
   sources: string[];
 }
 
+// Local news item with source extracted from API response
+interface NewsItemWithSource {
+  id: string;
+  title: string;
+  url: string;
+  source?: string;
+}
+
 interface TrendReport {
   generatedAt: string;
   newsCount: number;
@@ -56,6 +71,9 @@ interface TrendReport {
   llmProvider?: 'anthropic' | 'glm' | 'none';
   llmCalls?: number;
   llmEnhanced?: number;
+  // Tag normalization stats
+  normalizedTagsCount?: number;
+  droppedTagsCount?: number;
 }
 
 interface ErrorResponse {
@@ -147,12 +165,26 @@ async function performScan(options: {
     const scanTime = new Date().toISOString();
 
     // Process news items - Cloudflare AI only (GLM enhancement via scheduled worker)
-    const processingResult = await processNewsItems(newsnowData.items, env);
+    // Extract source from extra field for each item
+    const itemsWithSource: NewsItemWithSource[] = newsnowData.items.map(item => ({
+      id: item.id,
+      title: item.title,
+      url: item.url,
+      source: item.extra?.source,
+    }));
+    const processingResult = await processNewsItems(itemsWithSource, env);
+
+    // Apply tag normalization (双向一致性策略 - Downstream)
+    const normalizationResult = await applyTagNormalization(
+      processingResult.newsWithTags,
+      d1,
+      scanId
+    );
 
     // Calculate tag stats
     const currentWindow = Math.floor(Date.now() / CONFIG.SCAN_WINDOW_MS);
     const previousStats = await getPreviousStats(d1, currentWindow);
-    const topTags = calculateTagStats(processingResult.newsWithTags, previousStats || undefined);
+    const topTags = calculateTagStats(normalizationResult.normalizedNews, previousStats || undefined);
 
     // Build report
     const report: TrendReport = {
@@ -160,7 +192,7 @@ async function performScan(options: {
       newsCount: newsnowData.count,
       sources: newsnowData.sources,
       topTags,
-      recentNews: processingResult.newsWithTags.slice(0, CONFIG.MAX_RETURNED_NEWS),
+      recentNews: normalizationResult.normalizedNews.slice(0, CONFIG.MAX_RETURNED_NEWS),
       cached: false,
       scanId,
       aiQuotaExceeded: processingResult.aiQuotaExceeded,
@@ -169,6 +201,8 @@ async function performScan(options: {
       llmProvider: processingResult.llmProvider,
       llmCalls: processingResult.llmCalls,
       llmEnhanced: processingResult.llmEnhanced,
+      normalizedTagsCount: normalizationResult.normalizedCount,
+      droppedTagsCount: normalizationResult.droppedCount,
     };
 
     // Cache the report
@@ -176,8 +210,11 @@ async function performScan(options: {
       expirationTtl: CONFIG.CACHE_TTL
     });
 
-    // Save to D1 and cleanup via waitUntil (non-blocking)
-    persistData(d1, scanTime, topTags, processingResult.newsWithTags, enableCleanup).catch(console.error);
+    // Save to D1 in background (non-blocking - don't delay response)
+    // Note: dropped_tags are already written in applyTagNormalization
+    persistData(d1, scanTime, topTags, normalizationResult.normalizedNews, enableCleanup).catch(err => {
+      console.error('[trends/scan] Background persistence error:', err);
+    });
 
     return Response.json(report);
 
@@ -229,7 +266,7 @@ async function fetchNewsData(): Promise<NewsnowResponse> {
  * GLM enhancement happens via scheduled worker
  */
 async function processNewsItems(
-  items: Array<{ id: string; title: string; url: string }>,
+  items: NewsItemWithSource[],
   env: any
 ): Promise<{
   newsWithTags: NewsItemWithTags[];
@@ -279,7 +316,7 @@ async function processNewsItems(
 /**
  * Keyword-based tag extraction
  */
-function keywordMode(item: { id: string; title: string; url: string }): NewsItemWithTags {
+function keywordMode(item: NewsItemWithSource): NewsItemWithTags {
   const rawTags = extractKeywords(item.title);
   const tags = filterTags(rawTags);
 
@@ -287,9 +324,113 @@ function keywordMode(item: { id: string; title: string; url: string }): NewsItem
     id: item.id,
     title: item.title,
     url: item.url,
+    source: item.source,
     tags: tags.slice(0, CONFIG.MAX_TAGS_PER_ITEM),
     tagScore: calculateTagScore(tags, false),
   };
+}
+
+/**
+ * Apply tag normalization to all news items
+ * 双向一致性策略 - Downstream: 标签融合与归一化
+ */
+async function applyTagNormalization(
+  newsWithTags: NewsItemWithTags[],
+  d1: D1Database,
+  scanId: string
+): Promise<{
+  normalizedNews: NewsItemWithTags[];
+  normalizedCount: number;
+  droppedCount: number;
+}> {
+  let totalNormalized = 0;
+  const droppedTags: Array<{ original: string; normalized: string; reason: string }> = [];
+
+  // Use the full VALID_TAGS and TAG_ALIAS_MAP from tag-taxonomy.ts
+  // Convert Set to Array for faster has() check
+  const validTagSet = VALID_TAGS;
+
+  // Normalize tags for each news item
+  const normalizedNews = newsWithTags.map(item => {
+    const originalTags = item.tags;
+    const normalizedTags = originalTags.map(tag => {
+      // Apply normalization (alias mapping + whitelist check)
+      const trimmed = tag.trim();
+      if (!trimmed) {
+        droppedTags.push({ original: tag, normalized: '', reason: 'EMPTY' });
+        return null;
+      }
+
+      // Simple lowercase check for alias mapping
+      const lowerKey = trimmed.toLowerCase();
+      const normalized = TAG_ALIAS_MAP[lowerKey] ?? trimmed;
+
+      if (validTagSet.has(normalized)) {
+        totalNormalized++;
+        return normalized;
+      }
+
+      // Tag not in whitelist - log as dropped
+      droppedTags.push({ original: tag, normalized, reason: 'NOT_IN_WHITELIST' });
+      return null;
+    }).filter(Boolean) as string[];
+
+    // Recalculate tag score
+    const newTagScore = calculateTagScore(normalizedTags, item.tagScore > 0);
+
+    return {
+      ...item,
+      tags: normalizedTags,
+      tagScore: newTagScore,
+    };
+  });
+
+  // Log dropped tags to D1 in background (non-blocking)
+  if (droppedTags.length > 0) {
+    console.log(`[trends/scan] Normalized ${totalNormalized} tags, dropping ${droppedTags.length} invalid tags`);
+    // Fire-and-forget: don't await D1 writes
+    writeDroppedTagsInBackground(d1, droppedTags, scanId);
+  }
+
+  return {
+    normalizedNews,
+    normalizedCount: totalNormalized,
+    droppedCount: droppedTags.length,
+  };
+}
+
+/**
+ * Write dropped tags to D1 in background (non-blocking)
+ */
+function writeDroppedTagsInBackground(
+  d1: D1Database,
+  droppedTags: Array<{ original: string; normalized: string; reason: string }>,
+  scanId: string
+): void {
+  const createdAt = new Date().toISOString();
+  const batchSize = 50;
+
+  (async () => {
+    try {
+      let totalWritten = 0;
+      for (let i = 0; i < droppedTags.length; i += batchSize) {
+        const batch = droppedTags.slice(i, i + batchSize);
+        for (const tag of batch) {
+          const result = await d1
+            .prepare(`
+              INSERT INTO dropped_tags (original_tag, normalized_tag, reason, created_at, scan_id)
+              VALUES (?, ?, ?, ?, ?)
+            `)
+            .bind(tag.original, tag.normalized, tag.reason, createdAt, scanId)
+            .run();
+          totalWritten += result.meta?.changes || 0;
+        }
+      }
+      console.log(`[trends/scan] Wrote ${totalWritten} dropped tags to D1 in background`);
+    } catch (error) {
+      console.error(`[trends/scan] Background D1 write error:`, error);
+    }
+  })();
 }
 
 /**
