@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { getEnv, requireKV } from '@/lib/env';
+import { getEnv, getD1, getKV } from '@/lib/env';
 import { runTrendsAgent } from '@/modules/trends/agent';
 import { putTrendsReport } from '@/modules/trends/store';
 
@@ -11,7 +11,6 @@ const schema = z.object({
 
 /**
  * 验证 API 密钥（用于 Cron/自动化触发）
- * 如果请求带有 X-Admin-Key header，则验证密钥而不是 session
  */
 function verifyAdminKey(request: Request, env: any): boolean {
   const adminKey = request.headers.get('X-Admin-Key');
@@ -20,7 +19,6 @@ function verifyAdminKey(request: Request, env: any): boolean {
   const expectedKey = env.ADMIN_KEY ?? process.env.ADMIN_KEY;
   if (!expectedKey) return false;
 
-  // 使用常量时间比较防止时序攻击
   if (adminKey.length !== expectedKey.length) return false;
   let result = 0;
   for (let i = 0; i < adminKey.length; i++) {
@@ -29,13 +27,10 @@ function verifyAdminKey(request: Request, env: any): boolean {
   return result === 0;
 }
 
-// Manual trigger (auth-required via middleware) or automated trigger (X-Admin-Key)
 export const POST: APIRoute = async (context) => {
   const env = getEnv(context.locals) as any;
 
-  // 如果带有 X-Admin-Key，验证密钥（绕过 session 认证）
-  const hasAdminKey = context.request.headers.has('X-Admin-Key');
-  if (hasAdminKey && !verifyAdminKey(context.request, env)) {
+  if (context.request.headers.has('X-Admin-Key') && !verifyAdminKey(context.request, env)) {
     return new Response(JSON.stringify({ error: 'Unauthorized: invalid admin key' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
@@ -51,7 +46,15 @@ export const POST: APIRoute = async (context) => {
       });
     }
 
-    const kv = requireKV(context.locals);
+    const d1 = getD1(context.locals);
+    if (!d1) {
+      return new Response(JSON.stringify({ error: 'D1 database not available' }), {
+        status: 503,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    const kv = getKV(context.locals);
     const env = getEnv(context.locals) as any;
     const report = await runTrendsAgent({
       env: {
@@ -62,7 +65,9 @@ export const POST: APIRoute = async (context) => {
       minScore: parsed.data.minScore,
       dedupSimilarity: parsed.data.dedupSimilarity,
     });
-    await putTrendsReport(kv, report);
+
+    // New signature: putTrendsReport(d1, report, kv?)
+    await putTrendsReport(d1, report, kv);
 
     return new Response(JSON.stringify(report), {
       status: 200,
