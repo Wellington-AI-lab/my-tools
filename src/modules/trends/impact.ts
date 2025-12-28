@@ -1,5 +1,5 @@
 import type { TrendEventCluster } from '@/modules/trends/cluster';
-import { openAICompatibleChatCompletion } from '@/modules/rednote/llm/openai-compatible-client';
+import { openAICompatibleChatCompletion } from '@/modules/in-depth-analysis/llm/openai-compatible-client';
 
 type Impact = NonNullable<TrendEventCluster['impact']>;
 

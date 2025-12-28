@@ -1,4 +1,4 @@
-import type { RednoteFeedCard, RednoteRawItem } from '@/modules/rednote/types';
+import type { RednoteFeedCard, RednoteRawItem } from '@/modules/in-depth-analysis/types';
 
 export const DEFAULT_BLACKLIST = ['私聊', '领资料', '兼职', '加V', '回复111'] as const;
 

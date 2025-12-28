@@ -1,9 +1,9 @@
-import type { RednoteRawItem, RednoteTimeRangePreset } from '@/modules/rednote/types';
+import type { RednoteRawItem, RednoteTimeRangePreset } from '@/modules/in-depth-analysis/types';
 
 // Load mock JSON as a raw string so we don't depend on TS `resolveJsonModule`.
 // Vite/Astro will bundle this for both dev and Cloudflare runtime.
 // eslint-disable-next-line import/no-unresolved
-import rawJson from '@/modules/rednote/mock/rednote-raw.mock.json?raw';
+import rawJson from '@/modules/in-depth-analysis/mock/in-depth-analysis-raw.mock.json?raw';
 
 type MockFile = {
   generated_at?: string;

@@ -1,4 +1,4 @@
-export type ModuleId = 'stocks' | 'telegram' | 'rednote' | 'trends' | 'dashboard';
+export type ModuleId = 'stocks' | 'telegram' | 'in-depth-analysis' | 'trends';
 
 export type ModuleDef = {
   id: ModuleId;
@@ -9,13 +9,6 @@ export type ModuleDef = {
 };
 
 export const MODULES: ModuleDef[] = [
-  {
-    id: 'dashboard',
-    name: '🚀 Mission Control',
-    description: '趋势雷达仪表板 - 实时监控热点信号',
-    href: '/dashboard',
-    status: 'stable',
-  },
   {
     id: 'trends',
     name: '社会热点扫描',
@@ -31,7 +24,7 @@ export const MODULES: ModuleDef[] = [
     status: 'stable',
   },
   {
-    id: 'rednote',
+    id: 'in-depth-analysis',
     name: '深度分析',
     description: '根据趋势雷达扫描出的信息标签进行多源检索',
     href: '/tools/deep-analysis',

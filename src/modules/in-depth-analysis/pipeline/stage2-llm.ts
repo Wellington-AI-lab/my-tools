@@ -1,5 +1,5 @@
-import type { RednoteFeedCard } from '@/modules/rednote/types';
-import { openAICompatibleChatCompletion } from '@/modules/rednote/llm/openai-compatible-client';
+import type { RednoteFeedCard } from '@/modules/in-depth-analysis/types';
+import { openAICompatibleChatCompletion } from '@/modules/in-depth-analysis/llm/openai-compatible-client';
 
 type Stage2Output = {
   authenticity: Array<{

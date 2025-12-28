@@ -1,4 +1,4 @@
-import type { RednoteAgentResponse, RednoteFeedCard } from '@/modules/rednote/types';
+import type { RednoteAgentResponse, RednoteFeedCard } from '@/modules/in-depth-analysis/types';
 
 export function stage3BuildResponse(opts: {
   executionTimeMs: number;

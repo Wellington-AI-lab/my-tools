@@ -1,6 +1,6 @@
 import type { TrendCard, TrendTheme } from '@/modules/trends/types';
 import { ALL_THEMES } from '@/modules/trends/themes';
-import { openAICompatibleChatCompletion } from '@/modules/rednote/llm/openai-compatible-client';
+import { openAICompatibleChatCompletion } from '@/modules/in-depth-analysis/llm/openai-compatible-client';
 
 function safeJsonParse<T>(s: string): T | null {
   try {

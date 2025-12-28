@@ -1,9 +1,9 @@
-import type { RednoteAgentRequest, RednoteAgentResponse } from '@/modules/rednote/types';
-import { fetchRednoteRawMock } from '@/modules/rednote/datasource/mock';
-import { fetchRednoteRawFromApify } from '@/modules/rednote/datasource/apify';
-import { DEFAULT_BLACKLIST, stage1Filter } from '@/modules/rednote/pipeline/stage1-filter';
-import { stage2Reasoning } from '@/modules/rednote/pipeline/stage2-llm';
-import { stage3BuildResponse } from '@/modules/rednote/pipeline/stage3-response';
+import type { RednoteAgentRequest, RednoteAgentResponse } from '@/modules/in-depth-analysis/types';
+import { fetchRednoteRawMock } from '@/modules/in-depth-analysis/datasource/mock';
+import { fetchRednoteRawFromApify } from '@/modules/in-depth-analysis/datasource/apify';
+import { DEFAULT_BLACKLIST, stage1Filter } from '@/modules/in-depth-analysis/pipeline/stage1-filter';
+import { stage2Reasoning } from '@/modules/in-depth-analysis/pipeline/stage2-llm';
+import { stage3BuildResponse } from '@/modules/in-depth-analysis/pipeline/stage3-response';
 
 function nowIso() {
   return new Date().toISOString();

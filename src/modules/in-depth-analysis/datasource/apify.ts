@@ -1,4 +1,4 @@
-import type { RednoteRawItem, RednoteTimeRangePreset } from '@/modules/rednote/types';
+import type { RednoteRawItem, RednoteTimeRangePreset } from '@/modules/in-depth-analysis/types';
 
 /**
  * Placeholder for future: Apify `xiaohongshu-search` datasource.

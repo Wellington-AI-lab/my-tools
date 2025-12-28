@@ -14,11 +14,11 @@ import type { TrendEventCluster } from '../cluster';
 // ============================================================================
 // Mock LLM 客户端
 // ============================================================================
-vi.mock('../rednote/llm/openai-compatible-client', () => ({
+vi.mock('../in-depth-analysis/llm/openai-compatible-client', () => ({
   openAICompatibleChatCompletion: vi.fn(),
 }));
 
-import { openAICompatibleChatCompletion } from '../rednote/llm/openai-compatible-client';
+import { openAICompatibleChatCompletion } from '../in-depth-analysis/llm/openai-compatible-client';
 
 // ============================================================================
 // 测试数据构造器

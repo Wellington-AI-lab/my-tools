@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getEnv } from '@/lib/env';
-import { runRednoteAgent } from '@/modules/rednote/agent';
+import { runRednoteAgent } from '@/modules/in-depth-analysis/agent';
 
 const schema = z.object({
   keyword: z.string().trim().min(1).max(80),
