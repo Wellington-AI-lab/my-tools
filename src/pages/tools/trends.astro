@@ -2,79 +2,120 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 ---
 
-<AppLayout title="社会热点扫描">
-  <div class="space-y-4">
+<AppLayout title="全球热点排行">
+  <div class="max-w-4xl mx-auto space-y-4">
     <!-- 标题区域 -->
-    <div class="glass-effect rounded-xl p-6">
-      <h1 class="text-3xl font-bold text-onekey-text-primary text-center">社会热点扫描</h1>
-      <div class="mt-4 flex items-center justify-center gap-3 flex-wrap">
-        <div id="metaInfo" class="text-xs text-onekey-text-muted font-mono"></div>
+    <div class="glass-effect rounded-xl p-4">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <h1 class="text-2xl font-bold text-onekey-text-primary">全球热点排行</h1>
         <div class="flex items-center gap-2">
           <a href="https://newsbim.pages.dev" target="_blank" rel="noreferrer" class="text-xs px-3 py-1.5 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors">
             查看数据源
           </a>
-          <button id="scanBtn" class="text-xs px-3 py-1.5 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
+          <button id="scanBtn" class="text-xs px-3 py-1.5 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors" type="button">
             人工刷新
           </button>
         </div>
       </div>
+      <div id="metaInfo" class="mt-2 text-xs text-onekey-text-muted font-mono"></div>
     </div>
 
-    <!-- 趋势分析区域 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- 本周飙升榜 -->
-      <div class="glass-effect rounded-xl p-4">
-        <div class="flex items-center gap-2 mb-3">
+    <!-- 维度切换 Tabs -->
+    <div class="glass-effect rounded-xl p-2">
+      <div class="flex items-center gap-1 overflow-x-auto" id="tabContainer">
+        <button data-tab="hot" class="tab-btn active flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-1.5">
           <span class="text-lg">🔥</span>
-          <h3 class="font-bold text-onekey-text-primary">本周飙升榜</h3>
-        </div>
-        <div id="velocityList" class="space-y-2 text-sm">
-          <div class="text-onekey-text-secondary">加载中...</div>
-        </div>
-      </div>
-
-      <!-- 持续热点 -->
-      <div class="glass-effect rounded-xl p-4">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="text-lg">📊</span>
-          <h3 class="font-bold text-onekey-text-primary">持续热点</h3>
-        </div>
-        <div id="persistentList" class="space-y-2 text-sm">
-          <div class="text-onekey-text-secondary">加载中...</div>
-        </div>
-      </div>
-
-      <!-- 实时异动 -->
-      <div class="glass-effect rounded-xl p-4">
-        <div class="flex items-center gap-2 mb-3">
+          <span>实时热搜</span>
+        </button>
+        <button data-tab="velocity24h" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-1.5">
           <span class="text-lg">⚡</span>
-          <h3 class="font-bold text-onekey-text-primary">实时异动 (24h)</h3>
-        </div>
-        <div id="recentVelocityList" class="space-y-2 text-sm">
-          <div class="text-onekey-text-secondary">加载中...</div>
-        </div>
+          <span>24h异动</span>
+        </button>
+        <button data-tab="weekly" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-1.5">
+          <span class="text-lg">📈</span>
+          <span>本周飙升</span>
+        </button>
+        <button data-tab="persistent" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-1.5">
+          <span class="text-lg">🕐</span>
+          <span>持续热点</span>
+        </button>
       </div>
     </div>
 
-    <!-- 标签统计柱状图 -->
-    <div class="glass-effect rounded-xl p-6">
-      <h2 class="text-lg font-bold text-onekey-text-primary mb-4">热门标签</h2>
-      <div id="chartContainer" class="mt-4">
-        <div class="text-sm text-onekey-text-secondary">点击"人工刷新"获取数据...</div>
+    <!-- 搜索框 -->
+    <div class="glass-effect rounded-xl p-3">
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="搜索话题..."
+          class="w-full pl-10 pr-4 py-2 rounded-lg border border-black/10 bg-white/80 focus:outline-none focus:border-onekey-accent-green/50 text-sm"
+        />
       </div>
     </div>
 
-    <!-- 标签详情（点击柱状图展开） -->
-    <div id="tagDetail" class="glass-effect rounded-xl p-6 hidden">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <h2 class="text-lg font-bold text-onekey-text-primary" id="tagDetailTitle">标签详情</h2>
-        <button id="closeTagDetail" class="text-sm px-3 py-1 rounded-full border border-black/10 bg-white/60 hover:border-onekey-accent-green/30">关闭</button>
+    <!-- 榜单主体 -->
+    <div class="glass-effect rounded-xl overflow-hidden">
+      <div id="rankingList" class="divide-y divide-black/5">
+        <div class="p-8 text-center text-onekey-text-secondary">加载中...</div>
       </div>
-      <div id="tagDetailContent" class="space-y-2"></div>
+      <!-- 加载更多 -->
+      <div id="loadMoreContainer" class="hidden">
+        <button id="loadMoreBtn" class="w-full py-3 text-sm text-onekey-text-muted hover:bg-black/5 transition-colors">
+          加载更多
+        </button>
+      </div>
+    </div>
+
+    <!-- 话题详情弹窗 -->
+    <div id="detailModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
+        <div class="p-4 border-b border-black/10 flex items-center justify-between">
+          <h2 id="detailTitle" class="text-lg font-bold text-onekey-text-primary"></h2>
+          <button id="closeDetail" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-gray-500">✕</button>
+        </div>
+        <div id="detailContent" class="p-4 overflow-y-auto flex-1"></div>
+      </div>
     </div>
   </div>
 
+  <style>
+    .tab-btn {
+      color: #666;
+      background: transparent;
+    }
+    .tab-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    .tab-btn.active {
+      background: white;
+      color: #111;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .tab-btn[data-tab="hot"].active {
+      border-bottom: 2px solid #ef4444;
+    }
+    .tab-btn[data-tab="velocity24h"].active {
+      border-bottom: 2px solid #f97316;
+    }
+    .tab-btn[data-tab="weekly"].active {
+      border-bottom: 2px solid #22c55e;
+    }
+    .tab-btn[data-tab="persistent"].active {
+      border-bottom: 2px solid #3b82f6;
+    }
+    .rank-item {
+      transition: all 0.2s;
+    }
+    .rank-item:hover {
+      background: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+
   <script>
+    // ========== 类型定义 ==========
+
     type TagStats = {
       tag: string;
       count: number;
@@ -101,216 +142,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
       cached?: boolean;
     };
 
-    const metaInfoEl = document.getElementById('metaInfo');
-    const chartContainerEl = document.getElementById('chartContainer');
-    const scanBtn = document.getElementById('scanBtn');
-    const tagDetailEl = document.getElementById('tagDetail');
-    const tagDetailTitleEl = document.getElementById('tagDetailTitle');
-    const tagDetailContentEl = document.getElementById('tagDetailContent');
-    const closeTagDetailBtn = document.getElementById('closeTagDetail');
-
-    let currentReport: TrendReport | null = null;
-
-    // 暴露到全局，供标签点击调用
-    (window as any).showTagDetail = (tagName: string) => {
-      if (currentReport) showTagDetailInternal(tagName);
-    };
-
-    function showTagDetailInternal(tagName: string) {
-      if (!currentReport || !tagDetailEl || !tagDetailTitleEl || !tagDetailContentEl) return;
-
-      const relatedNews = currentReport.recentNews.filter(item => item.tags.includes(tagName));
-
-      tagDetailTitleEl.textContent = `"${escapeHtml(tagName)}" 相关新闻 (${relatedNews.length})`;
-
-      tagDetailContentEl.innerHTML = relatedNews.length > 0
-        ? relatedNews.map(item => `
-            <div class="py-2 border-b border-black/5 last:border-0">
-              <div class="flex items-start gap-3">
-                <div class="flex-1 min-w-0">
-                  <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" class="text-sm text-onekey-text-primary hover:underline font-medium line-clamp-2">
-                    ${escapeHtml(item.title)}
-                  </a>
-                  <div class="mt-1 flex items-center gap-2 flex-wrap">
-                    ${item.tags.map(t => `<span class="text-xs px-2 py-0.5 rounded-full border ${t === tagName ? 'bg-onekey-accent-green/20 text-green-700 border-onekey-accent-green/40' : 'bg-white/60 text-onekey-text-secondary border-black/10'}">${escapeHtml(t)}</span>`).join('')}
-                  </div>
-                </div>
-              </div>
-            </div>
-          `).join('')
-        : '<div class="text-sm text-onekey-text-secondary">暂无相关新闻</div>';
-
-      tagDetailEl.classList.remove('hidden');
-    }
-
-    function escapeHtml(s: string): string {
-      return String(s || '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    // 渲染柱状图
-    function renderChart(tags: TagStats[]) {
-      if (!chartContainerEl) return;
-
-      // 过滤单字符标签（过于宽泛）并限制显示数量
-      const filteredTags = tags
-        .filter(t => t.tag.length > 1)
-        .slice(0, 20); // 只显示前20个
-
-      const maxCount = Math.max(...filteredTags.map(t => t.count), 1);
-
-      const chartHtml = filteredTags.map(tag => {
-        const widthPercent = (tag.count / maxCount) * 100;
-        const trendIcon = tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : '—';
-        const trendColor = tag.trend === 'up' ? 'text-green-600' : tag.trend === 'down' ? 'text-red-500' : 'text-gray-400';
-
-        return `
-          <div class="chart-row cursor-pointer hover:bg-white/40 rounded-lg p-2 transition-colors" data-tag="${escapeHtml(tag.tag)}">
-            <div class="flex items-center justify-between gap-3 mb-1">
-              <span class="font-medium text-onekey-text-primary text-sm">${escapeHtml(tag.tag)}</span>
-              <div class="flex items-center gap-2">
-                <span class="text-xs ${trendColor}">${trendIcon} ${tag.changePercent > 0 ? tag.changePercent.toFixed(1) : 0}%</span>
-                <span class="font-mono text-sm text-onekey-text-primary">${tag.count}</span>
-              </div>
-            </div>
-            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-neon rounded-full transition-all duration-500" style="width: ${widthPercent}%"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      chartContainerEl.innerHTML = filteredTags.length > 0 ? `
-        <div class="space-y-3">
-          ${chartHtml}
-        </div>
-      ` : '<div class="text-sm text-onekey-text-secondary">暂无标签数据，点击"人工刷新"获取最新数据</div>';
-
-      // 绑定点击事件显示标签详情
-      document.querySelectorAll('.chart-row').forEach(row => {
-        row.addEventListener('click', () => {
-          const tag = row.getAttribute('data-tag');
-          if (tag) showTagDetailInternal(tag);
-        });
-      });
-    }
-
-    // 加载趋势数据（使用缓存，不触发 AI）
-    async function loadTrends() {
-      if (chartContainerEl) {
-        chartContainerEl.innerHTML = '<div class="text-sm text-onekey-text-secondary">加载中...</div>';
-      }
-
-      try {
-        const resp = await fetch('/api/trends/scan', { credentials: 'include' });
-        const data = await resp.json().catch(() => ({}));
-
-        if (!resp.ok) {
-          throw new Error(data?.error || `HTTP ${resp.status}`);
-        }
-
-        currentReport = data as TrendReport;
-        displayReport(data);
-      } catch (error: any) {
-        console.error('Load error:', error);
-        if (chartContainerEl) {
-          chartContainerEl.innerHTML = `<div class="text-sm text-red-500">加载失败: ${escapeHtml(error.message || '未知错误')}</div>`;
-        }
-      }
-    }
-
-    // 显示报告数据
-    function displayReport(data: TrendReport) {
-      currentReport = data;
-
-      // 更新元信息
-      if (metaInfoEl) {
-        const date = new Date(data.generatedAt);
-        const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-        const isCached = (data as any).cached === true;
-        let metaText = isCached
-          ? `缓存数据 (更新于 ${timeStr}) | 每4小时自动刷新`
-          : `每4小时自动更新，最近更新 ${timeStr}`;
-        if (data.aiApiCalls !== undefined) {
-          metaText += ` | AI 调用: ${data.aiApiCalls} 次`;
-        }
-        metaInfoEl.textContent = metaText;
-      }
-
-      // 渲染柱状图
-      renderChart(data.topTags);
-
-      // 配额超限警告
-      if (data.aiQuotaExceeded && chartContainerEl) {
-        const warningHtml = `
-          <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4">
-            <div class="flex items-start gap-3">
-              <span class="text-yellow-600 text-xl">⚠️</span>
-              <div>
-                <div class="font-medium text-yellow-800">AI 配额已超限</div>
-                <div class="text-sm text-yellow-700 mt-1">
-                  本次使用了 ${data.aiApiCalls || 0} 次 AI 调用。已自动回退到关键词匹配模式。
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-        chartContainerEl.insertAdjacentHTML('afterbegin', warningHtml);
-      }
-    }
-
-    // 强制刷新并使用 AI 重新扫描
-    async function scanTrends() {
-      if (scanBtn) {
-        scanBtn.disabled = true;
-        scanBtn.textContent = '刷新中...';
-      }
-      if (chartContainerEl) {
-        chartContainerEl.innerHTML = '<div class="text-sm text-onekey-text-secondary">正在从 newsnow 获取新闻并使用 AI 打标签...</div>';
-      }
-
-      try {
-        const resp = await fetch('/api/trends/scan?force=true', { credentials: 'include' });
-        const data = await resp.json().catch(() => ({}));
-
-        if (!resp.ok) {
-          throw new Error(data?.error || `HTTP ${resp.status}`);
-        }
-
-        currentReport = data as TrendReport;
-        displayReport(data);
-
-      } catch (error: any) {
-        console.error('Scan error:', error);
-        if (chartContainerEl) {
-          chartContainerEl.innerHTML = `<div class="text-sm text-red-500">扫描失败: ${escapeHtml(error.message || '未知错误')}</div>`;
-        }
-      } finally {
-        if (scanBtn) {
-          scanBtn.disabled = false;
-          scanBtn.textContent = '人工刷新';
-        }
-      }
-    }
-
-    // 绑定事件
-    if (scanBtn) scanBtn.addEventListener('click', scanTrends);
-
-    if (closeTagDetailBtn) {
-      closeTagDetailBtn.addEventListener('click', () => {
-        if (tagDetailEl) tagDetailEl.classList.add('hidden');
-      });
-    }
-
-    // 页面加载时使用缓存数据
-    loadTrends();
-
-    // ========== 趋势分析功能 ==========
-
     interface VelocityItem {
       tag: string;
       currentCount: number;
@@ -328,124 +159,421 @@ import AppLayout from '@/layouts/AppLayout.astro';
       bestRank: number;
     }
 
-    // 加载本周飙升榜
-    async function loadVelocityRanking() {
-      const container = document.getElementById('velocityList');
-      if (!container) return;
+    interface RankingItem {
+      tag: string;
+      rank: number;
+      hotValue: number;
+      trend: 'up' | 'down' | 'stable';
+      changePercent?: number;
+      changeValue?: number;
+      badge?: 'NEW' | '爆' | '沸' | '热';
+      category?: string;
+      icon: string;
+    }
 
-      try {
-        const resp = await fetch('/api/trends/history?mode=velocity&days=7&limit=10');
-        const data = await resp.json();
-        const items = data.items || [];
+    // ========== 状态管理 ==========
 
-        if (items.length === 0) {
-          container.innerHTML = '<div class="text-onekey-text-secondary">暂无数据</div>';
-          return;
-        }
+    let currentTab: 'hot' | 'velocity24h' | 'weekly' | 'persistent' = 'hot';
+    let rankingData: RankingItem[] = [];
+    let allData: Map<string, RankingItem> = new Map();
+    let displayedCount = 30;
+    let currentReport: TrendReport | null = null;
 
-        container.innerHTML = items.slice(0, 8).map((item: VelocityItem, i: number) => {
-          const trendIcon = item.trend === 'up' ? '↑' : item.trend === 'down' ? '↓' : '—';
-          const trendColor = item.trend === 'up' ? 'text-green-600' : item.trend === 'down' ? 'text-red-500' : 'text-gray-400';
-          const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `<span class="text-gray-400">${i + 1}</span>`;
+    // ========== DOM 元素 ==========
 
-          return `
-            <div class="flex items-center justify-between py-1 cursor-pointer hover:bg-white/40 rounded px-2" onclick="showTagDetail('${escapeHtml(item.tag)}')">
-              <div class="flex items-center gap-2">
-                <span>${medal}</span>
-                <span class="font-medium">${escapeHtml(item.tag)}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs ${trendColor}">${trendIcon} ${item.percentChange > 0 ? '+' : ''}${item.percentChange}%</span>
-              </div>
-            </div>
-          `;
-        }).join('');
-      } catch (error) {
-        console.error('Velocity ranking error:', error);
-        container.innerHTML = '<div class="text-onekey-text-secondary">加载失败</div>';
+    const metaInfoEl = document.getElementById('metaInfo');
+    const rankingListEl = document.getElementById('rankingList');
+    const searchInputEl = document.getElementById('searchInput') as HTMLInputElement;
+    const loadMoreContainerEl = document.getElementById('loadMoreContainer');
+    const loadMoreBtnEl = document.getElementById('loadMoreBtn');
+    const scanBtnEl = document.getElementById('scanBtn');
+    const detailModalEl = document.getElementById('detailModal');
+    const detailTitleEl = document.getElementById('detailTitle');
+    const detailContentEl = document.getElementById('detailContent');
+    const closeDetailEl = document.getElementById('closeDetail');
+
+    // ========== 工具函数 ==========
+
+    function escapeHtml(s: string): string {
+      return String(s || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function formatNumber(num: number): string {
+      if (num >= 10000) {
+        return (num / 10000).toFixed(1) + '万';
+      }
+      return num.toString();
+    }
+
+    function getRankStyle(rank: number): { rankClass: string; numClass: string } {
+      if (rank <= 3) {
+        return { rankClass: 'text-red-600', numClass: 'text-red-600 font-bold' };
+      } else if (rank <= 10) {
+        return { rankClass: 'text-orange-500', numClass: 'text-orange-500 font-semibold' };
+      }
+      return { rankClass: 'text-gray-400', numClass: 'text-gray-400' };
+    }
+
+    function getTrendIcon(trend: 'up' | 'down' | 'stable'): string {
+      return trend === 'up' ? '↑' : trend === 'down' ? '↓' : '—';
+    }
+
+    function getTrendColor(trend: 'up' | 'down' | 'stable'): string {
+      return trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-500' : 'text-gray-400';
+    }
+
+    function getBadgeStyle(badge?: string): string {
+      if (!badge) return '';
+      switch (badge) {
+        case 'NEW': return 'bg-blue-500 text-white';
+        case '爆': return 'bg-red-500 text-white';
+        case '沸': return 'bg-orange-500 text-white';
+        case '热': return 'bg-yellow-500 text-white';
+        default: return 'bg-gray-500 text-white';
       }
     }
 
-    // 加载持续热点
-    async function loadPersistentTags() {
-      const container = document.getElementById('persistentList');
-      if (!container) return;
+    // ========== 徽章计算 ==========
 
-      try {
-        const resp = await fetch('/api/trends/history?mode=persistent&days=7&limit=10');
-        const data = await resp.json();
-        const items = data.items || [];
+    function calculateBadge(item: RankingItem, rank: number): 'NEW' | '爆' | '沸' | '热' | undefined {
+      // 热: 前10名且无其他徽章
+      if (rank <= 10) return '热';
+      // 沸: 热度值 > 100 或 前3名
+      if (rank <= 3 || item.hotValue > 100) return '沸';
+      // 爆: 24h涨幅 > 200%
+      if (item.changePercent && item.changePercent > 200) return '爆';
+      return undefined;
+    }
 
-        if (items.length === 0) {
-          container.innerHTML = '<div class="text-onekey-text-secondary">暂无数据</div>';
-          return;
-        }
+    // ========== 渲染榜单 ==========
 
-        container.innerHTML = items.slice(0, 8).map((item: PersistentItem, i: number) => {
-          const fireIcon = item.avgCount > 50 ? '🔥' : item.avgCount > 30 ? '📈' : '📊';
+    function renderRankingList(items: RankingItem[]) {
+      if (!rankingListEl) return;
 
-          return `
-            <div class="flex items-center justify-between py-1 cursor-pointer hover:bg-white/40 rounded px-2" onclick="showTagDetail('${escapeHtml(item.tag)}')">
-              <div class="flex items-center gap-2">
-                <span>${fireIcon}</span>
-                <span class="font-medium">${escapeHtml(item.tag)}</span>
+      if (items.length === 0) {
+        rankingListEl.innerHTML = `
+          <div class="p-8 text-center text-onekey-text-secondary">
+            <div class="text-4xl mb-2">📭</div>
+            <div>暂无数据</div>
+          </div>
+        `;
+        loadMoreContainerEl?.classList.add('hidden');
+        return;
+      }
+
+      const displayItems = items.slice(0, displayedCount);
+
+      const html = displayItems.map((item) => {
+        const rankStyle = getRankStyle(item.rank);
+        const trendIcon = getTrendIcon(item.trend);
+        const trendColor = getTrendColor(item.trend);
+        const badgeStyle = getBadgeStyle(item.badge);
+
+        return `
+          <div class="rank-item p-3 cursor-pointer" data-tag="${escapeHtml(item.tag)}" onclick="showTagDetail('${escapeHtml(item.tag)}')">
+            <div class="flex items-center gap-3">
+              <!-- 左侧：排名区 -->
+              <div class="w-12 flex-shrink-0 text-center">
+                <span class="${rankStyle.numClass} text-lg">${item.rank}</span>
+                ${item.badge ? `<span class="ml-1 text-xs px-1.5 py-0.5 rounded ${badgeStyle}">${item.badge}</span>` : ''}
               </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500">${item.appearanceCount}次</span>
+
+              <!-- 中间：话题信息 -->
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-onekey-text-primary truncate">${escapeHtml(item.tag)}</div>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-xs text-gray-500">热度 ${formatNumber(item.hotValue)}</span>
+                  ${item.category ? `<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">${escapeHtml(item.category)}</span>` : ''}
+                </div>
+              </div>
+
+              <!-- 右侧：趋势指示 -->
+              <div class="flex-shrink-0 text-right">
+                <div class="flex items-center gap-1 justify-end">
+                  <span class="${trendColor} text-sm font-medium">${trendIcon}</span>
+                  ${item.changePercent !== undefined ? `<span class="${trendColor} text-xs">${item.changePercent > 0 ? '+' : ''}${Math.round(item.changePercent)}%</span>` : ''}
+                  <span class="text-lg">${item.icon}</span>
+                </div>
               </div>
             </div>
-          `;
-        }).join('');
-      } catch (error) {
-        console.error('Persistent tags error:', error);
-        container.innerHTML = '<div class="text-onekey-text-secondary">加载失败</div>';
+          </div>
+        `;
+      }).join('');
+
+      rankingListEl.innerHTML = html;
+
+      // 显示/隐藏加载更多按钮
+      if (items.length > displayedCount) {
+        loadMoreContainerEl?.classList.remove('hidden');
+      } else {
+        loadMoreContainerEl?.classList.add('hidden');
       }
     }
 
-    // 加载实时异动 (24h)
-    async function loadRecentVelocity() {
-      const container = document.getElementById('recentVelocityList');
-      if (!container) return;
+    // ========== 加载数据 ==========
+
+    async function loadRealtimeHot(): Promise<RankingItem[]> {
+      const resp = await fetch('/api/trends/scan', { credentials: 'include' });
+      const data = await resp.json() as TrendReport;
+      currentReport = data;
+
+      // 更新元信息
+      if (metaInfoEl) {
+        const date = new Date(data.generatedAt);
+        const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        const isCached = data.cached === true;
+        let metaText = isCached
+          ? `缓存数据 (更新于 ${timeStr}) | 每4小时自动刷新`
+          : `每4小时自动更新，最近更新 ${timeStr}`;
+        if (data.aiApiCalls !== undefined) {
+          metaText += ` | AI 调用: ${data.aiApiCalls} 次`;
+        }
+        metaInfoEl.textContent = metaText;
+      }
+
+      return data.topTags.map((tag, index) => ({
+        tag: tag.tag,
+        rank: index + 1,
+        hotValue: tag.count,
+        trend: tag.trend,
+        changePercent: tag.changePercent,
+        icon: '🔥',
+      }));
+    }
+
+    async function loadVelocity24h(): Promise<RankingItem[]> {
+      const resp = await fetch('/api/trends/history?mode=velocity&hours=24&limit=50');
+      const data = await resp.json();
+      const items: VelocityItem[] = data.items || [];
+
+      return items.map((item, index) => {
+        const badge = item.percentChange > 200 ? '爆' : item.percentChange > 50 ? 'NEW' : undefined;
+        return {
+          tag: item.tag,
+          rank: index + 1,
+          hotValue: item.currentCount,
+          trend: item.trend,
+          changePercent: item.percentChange,
+          changeValue: item.velocity,
+          badge,
+          icon: '⚡',
+        };
+      });
+    }
+
+    async function loadWeeklySurge(): Promise<RankingItem[]> {
+      const resp = await fetch('/api/trends/history?mode=velocity&days=7&limit=50');
+      const data = await resp.json();
+      const items: VelocityItem[] = data.items || [];
+
+      return items.map((item, index) => ({
+        tag: item.tag,
+        rank: index + 1,
+        hotValue: item.currentCount,
+        trend: item.trend,
+        changePercent: item.percentChange,
+        changeValue: item.velocity,
+        icon: '📈',
+      }));
+    }
+
+    async function loadPersistent(): Promise<RankingItem[]> {
+      const resp = await fetch('/api/trends/history?mode=persistent&days=7&limit=50');
+      const data = await resp.json();
+      const items: PersistentItem[] = data.items || [];
+
+      return items.map((item, index) => ({
+        tag: item.tag,
+        rank: index + 1,
+        hotValue: item.avgCount,
+        trend: 'stable',
+        badge: item.appearanceCount >= 5 ? '热' : undefined,
+        icon: '🕐',
+      }));
+    }
+
+    async function switchTab(tab: 'hot' | 'velocity24h' | 'weekly' | 'persistent') {
+      currentTab = tab;
+      displayedCount = 30;
+
+      // 更新 Tab 样式
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+      });
+
+      // 显示加载状态
+      if (rankingListEl) {
+        rankingListEl.innerHTML = '<div class="p-8 text-center text-onekey-text-secondary">加载中...</div>';
+      }
 
       try {
-        const resp = await fetch('/api/trends/history?mode=velocity&hours=24&limit=10');
-        const data = await resp.json();
-        const items = data.items || [];
+        let items: RankingItem[] = [];
 
-        if (items.length === 0) {
-          container.innerHTML = '<div class="text-onekey-text-secondary">暂无数据</div>';
-          return;
+        switch (tab) {
+          case 'hot':
+            items = await loadRealtimeHot();
+            break;
+          case 'velocity24h':
+            items = await loadVelocity24h();
+            break;
+          case 'weekly':
+            items = await loadWeeklySurge();
+            break;
+          case 'persistent':
+            items = await loadPersistent();
+            break;
         }
 
-        container.innerHTML = items.slice(0, 8).map((item: VelocityItem) => {
-          const trendIcon = item.trend === 'up' ? '⬆️' : item.trend === 'down' ? '⬇️' : '➡️';
-          const bgClass = item.velocity > 10 ? 'bg-green-50 border-green-200' :
-                          item.velocity < -10 ? 'bg-red-50 border-red-200' :
-                          'bg-gray-50 border-gray-200';
+        // 计算徽章（对于没有徽章的项）
+        items = items.map(item => ({
+          ...item,
+          badge: item.badge || calculateBadge(item, item.rank),
+        }));
 
-          return `
-            <div class="flex items-center justify-between py-1 px-2 rounded border ${bgClass} cursor-pointer hover:opacity-80" onclick="showTagDetail('${escapeHtml(item.tag)}')">
-              <div class="flex items-center gap-2">
-                <span>${trendIcon}</span>
-                <span class="font-medium">${escapeHtml(item.tag)}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500">${item.currentCount}</span>
-              </div>
+        rankingData = items;
+        allData.set(tab, items);
+
+        renderRankingList(items);
+      } catch (error) {
+        console.error('Load error:', error);
+        if (rankingListEl) {
+          rankingListEl.innerHTML = `
+            <div class="p-8 text-center text-red-500">
+              <div class="text-4xl mb-2">⚠️</div>
+              <div>加载失败，请稍后重试</div>
             </div>
           `;
-        }).join('');
-      } catch (error) {
-        console.error('Recent velocity error:', error);
-        container.innerHTML = '<div class="text-onekey-text-secondary">加载失败</div>';
+        }
       }
     }
 
-    // 页面加载后获取趋势分析数据
-    setTimeout(() => {
-      loadVelocityRanking();
-      loadPersistentTags();
-      loadRecentVelocity();
-    }, 1000);
+    // ========== 搜索功能 ==========
+
+    function filterBySearch(query: string) {
+      if (!query.trim()) {
+        renderRankingList(rankingData);
+        return;
+      }
+
+      const filtered = rankingData.filter(item =>
+        item.tag.toLowerCase().includes(query.toLowerCase())
+      );
+      renderRankingList(filtered);
+    }
+
+    // ========== 话题详情 ==========
+
+    async function showTagDetail(tagName: string) {
+      if (!detailModalEl || !detailTitleEl || !detailContentEl) return;
+
+      detailTitleEl.textContent = tagName;
+      detailContentEl.innerHTML = '<div class="text-center py-8 text-gray-500">加载中...</div>';
+      detailModalEl.classList.remove('hidden');
+
+      try {
+        // 如果没有当前报告，先加载
+        if (!currentReport) {
+          const resp = await fetch('/api/trends/scan', { credentials: 'include' });
+          currentReport = await resp.json() as TrendReport;
+        }
+
+        const relatedNews = currentReport.recentNews.filter(item => item.tags.includes(tagName));
+
+        detailContentEl.innerHTML = relatedNews.length > 0
+          ? relatedNews.map(item => `
+              <div class="py-2 border-b border-black/5 last:border-0">
+                <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" class="text-sm text-onekey-text-primary hover:underline font-medium line-clamp-2">
+                  ${escapeHtml(item.title)}
+                </a>
+                <div class="mt-1 flex items-center gap-1 flex-wrap">
+                  ${item.tags.map(t => `<span class="text-xs px-2 py-0.5 rounded-full border ${t === tagName ? 'bg-onekey-accent-green/20 text-green-700 border-onekey-accent-green/40' : 'bg-gray-100 text-gray-600 border-gray-200'}">${escapeHtml(t)}</span>`).join('')}
+                </div>
+              </div>
+            `).join('')
+          : '<div class="text-center py-8 text-gray-500">暂无相关新闻</div>';
+      } catch (error) {
+        detailContentEl.innerHTML = '<div class="text-center py-8 text-red-500">加载失败</div>';
+      }
+    }
+
+    // 暴露到全局
+    (window as any).showTagDetail = showTagDetail;
+
+    // ========== 人工刷新 ==========
+
+    async function manualRefresh() {
+      if (!scanBtnEl) return;
+
+      scanBtnEl.disabled = true;
+      scanBtnEl.textContent = '刷新中...';
+
+      try {
+        const resp = await fetch('/api/trends/scan?force=true', { credentials: 'include' });
+        const data = await resp.json() as TrendReport;
+        currentReport = data;
+
+        // 刷新当前 Tab
+        await switchTab(currentTab);
+
+        // 显示成功提示
+        if (metaInfoEl) {
+          const originalText = metaInfoEl.textContent;
+          metaInfoEl.textContent = '✓ 刷新成功！';
+          setTimeout(() => {
+            if (originalText) metaInfoEl.textContent = originalText;
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Refresh error:', error);
+      } finally {
+        scanBtnEl.disabled = false;
+        scanBtnEl.textContent = '人工刷新';
+      }
+    }
+
+    // ========== 事件绑定 ==========
+
+    // Tab 切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab') as 'hot' | 'velocity24h' | 'weekly' | 'persistent';
+        if (tab) switchTab(tab);
+      });
+    });
+
+    // 搜索输入
+    searchInputEl?.addEventListener('input', (e) => {
+      filterBySearch((e.target as HTMLInputElement).value);
+    });
+
+    // 加载更多
+    loadMoreBtnEl?.addEventListener('click', () => {
+      displayedCount += 20;
+      renderRankingList(rankingData);
+    });
+
+    // 关闭详情弹窗
+    closeDetailEl?.addEventListener('click', () => {
+      detailModalEl?.classList.add('hidden');
+    });
+
+    detailModalEl?.addEventListener('click', (e) => {
+      if (e.target === detailModalEl) {
+        detailModalEl.classList.add('hidden');
+      }
+    });
+
+    // 人工刷新
+    scanBtnEl?.addEventListener('click', manualRefresh);
+
+    // ========== 初始化 ==========
+
+    // 页面加载时默认显示实时热搜
+    switchTab('hot');
   </script>
 </AppLayout>
