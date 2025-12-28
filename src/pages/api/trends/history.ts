@@ -12,6 +12,13 @@ interface HistoryQuery {
   limit?: number;    // 返回数量限制
 }
 
+interface RealtimeItem {
+  tag: string;
+  totalCount: number;
+  avgCount: number;
+  appearanceCount: number;
+}
+
 interface TagSnapshot {
   scan_time: string;
   tag: string;
@@ -51,6 +58,7 @@ interface VelocityItem {
  * GET /api/trends/history?mode=velocity&hours=24  (增长最快)
  * GET /api/trends/history?mode=persistent&days=7   (持续热点)
  * GET /api/trends/history?mode=top&days=7         (时段Top)
+ * GET /api/trends/history?mode=realtime&hours=8   (实时热搜聚合)
  */
 export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
   const d1 = requireD1(locals);
@@ -58,7 +66,7 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
   const days = parseInt(url.searchParams.get('days') || '7');
   const hours = parseInt(url.searchParams.get('hours') || '0');
   const limit = parseInt(url.searchParams.get('limit') || '100');
-  const mode = url.searchParams.get('mode') || 'tag'; // tag | velocity | persistent | top
+  const mode = url.searchParams.get('mode') || 'tag'; // tag | velocity | persistent | top | realtime
 
   try {
     const startTime = hours > 0
@@ -74,6 +82,9 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
     } else if (mode === 'top') {
       // 返回指定时间段的Top标签
       return await getTopTags(d1, startTime, limit);
+    } else if (mode === 'realtime') {
+      // 返回实时热搜聚合（最近N小时的总热度）
+      return await getRealtimeTags(d1, startTime, limit);
     } else if (tag) {
       // 返回特定标签的历史数据
       return await getTagHistory(d1, tag, startTime, limit);
@@ -259,6 +270,40 @@ async function getTopTags(d1: D1Database, startTime: string, limit: number) {
     totalCount: row.total_count,
     appearanceCount: row.appearance_count,
     avgRank: Math.round(row.avg_rank)
+  }));
+
+  return Response.json({
+    period: { start: startTime, end: new Date().toISOString() },
+    items
+  });
+}
+
+/**
+ * 获取实时热搜聚合（最近N小时的总热度）
+ * 用于"实时热搜"Tab，返回指定时间段内的累计热度排名
+ */
+async function getRealtimeTags(d1: D1Database, startTime: string, limit: number) {
+  const stmt = d1.prepare(`
+    SELECT
+      tag,
+      SUM(count) as total_count,
+      COUNT(*) as appearance_count,
+      AVG(count) as avg_count,
+      MAX(count) as max_count
+    FROM tag_snapshots
+    WHERE scan_time >= ?
+    GROUP BY tag
+    ORDER BY total_count DESC
+    LIMIT ?
+  `);
+
+  const result = await stmt.bind(startTime, limit).all();
+
+  const items: RealtimeItem[] = (result.results || []).map((row: any) => ({
+    tag: row.tag,
+    totalCount: row.total_count,
+    avgCount: Math.round(row.avg_count),
+    appearanceCount: row.appearance_count
   }));
 
   return Response.json({

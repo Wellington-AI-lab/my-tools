@@ -341,6 +341,7 @@ interface TrendReport {
 
 /**
  * 保存标签快照到 D1 数据库（用于历史趋势分析）
+ * 同时清理5年前的旧数据
  */
 async function saveTagSnapshots(
   d1: D1Database,
@@ -349,11 +350,22 @@ async function saveTagSnapshots(
   period: string = '4h'
 ): Promise<void> {
   try {
+    // 先清理5年前的旧数据（5年 = 365 * 5 天）
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    const cutoffDate = fiveYearsAgo.toISOString();
+
+    const deleteStmt = d1.prepare(
+      'DELETE FROM tag_snapshots WHERE scan_time < ?'
+    );
+    await deleteStmt.bind(cutoffDate).all();
+    console.log(`[trends/scan] Cleaned snapshots older than 5 years (${cutoffDate.slice(0, 10)})`);
+
+    // 批量插入所有标签快照
     const stmt = d1.prepare(
       'INSERT INTO tag_snapshots (scan_time, tag, count, rank, period) VALUES (?, ?, ?, ?, ?)'
     );
 
-    // 批量插入所有标签快照
     const statements = topTags.map((tag, index) =>
       stmt.bind(scanTime, tag.tag, tag.count, index + 1, period)
     );
