@@ -3,82 +3,63 @@ import AppLayout from '@/layouts/AppLayout.astro';
 ---
 
 <AppLayout title="社会热点扫描">
-  <div class="max-w-4xl mx-auto space-y-4">
+  <div class="max-w-5xl mx-auto space-y-4">
     <!-- 标题区域 -->
-    <div class="glass-effect rounded-xl p-4">
-      <h1 class="text-2xl font-bold text-onekey-text-primary text-center">社会热点扫描</h1>
-      <div class="mt-3 flex items-center justify-center gap-2 flex-wrap">
-        <a href="https://newsbim.pages.dev" target="_blank" rel="noreferrer" class="text-xs px-3 py-1.5 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors">
+    <div class="glass-effect rounded-xl p-6">
+      <h1 class="text-2xl font-bold text-onekey-text-primary text-center mb-4">社会热点扫描</h1>
+      <div class="flex items-center justify-center gap-2 flex-wrap">
+        <a href="https://newsbim.pages.dev" target="_blank" rel="noreferrer" class="text-sm px-4 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors">
           查看数据源
         </a>
-        <button id="scanBtn" class="text-xs px-3 py-1.5 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors" type="button">
+        <button id="scanBtn" class="text-sm px-4 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors" type="button">
           人工刷新
         </button>
       </div>
-      <div id="metaInfo" class="mt-2 text-center text-xs text-onekey-text-muted font-mono"></div>
+      <div id="metaInfo" class="mt-3 text-center text-xs text-onekey-text-muted font-mono"></div>
     </div>
 
     <!-- 维度切换 Tabs -->
-    <div class="glass-effect rounded-xl p-3">
+    <div class="glass-effect rounded-xl p-4">
       <div class="flex items-center gap-1 overflow-x-auto" id="tabContainer">
-        <button data-tab="hot" class="tab-btn active flex-1 min-w-[100px] px-3 py-2 rounded-lg font-medium text-sm transition-all">
+        <button data-tab="hot" class="tab-btn active flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
           <div class="flex items-center justify-center gap-1">
             <span class="text-lg">🔥</span>
             <span>实时热搜</span>
           </div>
-          <div class="text-xs text-gray-400 mt-1">最近8小时</div>
+          <div class="text-xs text-onekey-text-secondary mt-1">最近4小时</div>
         </button>
-        <button data-tab="velocity24h" class="tab-btn flex-1 min-w-[100px] px-3 py-2 rounded-lg font-medium text-sm transition-all">
+        <button data-tab="velocity24h" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
           <div class="flex items-center justify-center gap-1">
             <span class="text-lg">⚡</span>
-            <span>24小时异动</span>
+            <span>8小时异动</span>
           </div>
-          <div class="text-xs text-gray-400 mt-1">较前12小时涨幅</div>
+          <div class="text-xs text-onekey-text-secondary mt-1">较前4小时涨幅</div>
         </button>
-        <button data-tab="weekly" class="tab-btn flex-1 min-w-[100px] px-3 py-2 rounded-lg font-medium text-sm transition-all">
+        <button data-tab="weekly" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
           <div class="flex items-center justify-center gap-1">
             <span class="text-lg">📈</span>
-            <span>本周飙升</span>
+            <span>稳定热点</span>
           </div>
-          <div class="text-xs text-gray-400 mt-1">较上半周涨幅</div>
+          <div class="text-xs text-onekey-text-secondary mt-1">近3天持续上榜</div>
         </button>
-        <button data-tab="persistent" class="tab-btn flex-1 min-w-[100px] px-3 py-2 rounded-lg font-medium text-sm transition-all">
+        <button data-tab="persistent" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
           <div class="flex items-center justify-center gap-1">
             <span class="text-lg">🕐</span>
             <span>持续热点</span>
           </div>
-          <div class="text-xs text-gray-400 mt-1">7日稳定榜</div>
+          <div class="text-xs text-onekey-text-secondary mt-1">7日稳定榜</div>
         </button>
       </div>
     </div>
 
-    <!-- 搜索框 -->
-    <div class="glass-effect rounded-xl p-3">
-      <form id="searchForm" action="https://www.google.com/search" method="get" target="_blank">
-        <div class="relative">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-          <input
-            id="searchInput"
-            name="q"
-            type="text"
-            placeholder="Google"
-            class="w-full pl-10 pr-4 py-2 rounded-lg border border-black/10 bg-white/80 focus:outline-none focus:border-onekey-accent-green/50 text-sm"
-          />
-          <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-onekey-accent-green">
-            搜索
-          </button>
-        </div>
-      </form>
-    </div>
-
     <!-- 榜单主体 -->
     <div class="glass-effect rounded-xl overflow-hidden">
-      <div id="rankingList" class="divide-y divide-black/5">
+      <div id="rankingList">
         <div class="p-8 text-center text-onekey-text-secondary">加载中...</div>
       </div>
       <!-- 加载更多 -->
-      <div id="loadMoreContainer" class="hidden">
-        <button id="loadMoreBtn" class="w-full py-3 text-sm text-onekey-text-muted hover:bg-black/5 transition-colors">
+      <div id="loadMoreContainer" class="hidden border-t border-black/5">
+        <button id="loadMoreBtn" class="w-full py-3 text-sm text-onekey-text-secondary hover:bg-black/5 transition-colors">
           加载更多
         </button>
       </div>
@@ -89,7 +70,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
         <div class="p-4 border-b border-black/10 flex items-center justify-between">
           <h2 id="detailTitle" class="text-lg font-bold text-onekey-text-primary"></h2>
-          <button id="closeDetail" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-gray-500">✕</button>
+          <button id="closeDetail" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">✕</button>
         </div>
         <div id="detailContent" class="p-4 overflow-y-auto flex-1"></div>
       </div>
@@ -102,12 +83,12 @@ import AppLayout from '@/layouts/AppLayout.astro';
       background: transparent;
     }
     .tab-btn:hover {
-      background: rgba(0, 0, 0, 0.05);
+      background: rgba(0, 0, 0, 0.04);
     }
     .tab-btn.active {
       background: white;
       color: #111;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
     .tab-btn[data-tab="hot"].active {
       border-bottom: 2px solid #ef4444;
@@ -121,11 +102,12 @@ import AppLayout from '@/layouts/AppLayout.astro';
     .tab-btn[data-tab="persistent"].active {
       border-bottom: 2px solid #3b82f6;
     }
-    .rank-item {
-      transition: all 0.2s;
+    .rank-card {
+      transition: all 0.15s ease;
     }
-    .rank-item:hover {
-      background: rgba(255, 255, 255, 0.6);
+    .rank-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
   </style>
 
@@ -199,20 +181,19 @@ import AppLayout from '@/layouts/AppLayout.astro';
     let currentTab: 'hot' | 'velocity24h' | 'weekly' | 'persistent' = 'hot';
     let rankingData: RankingItem[] = [];
     let allData: Map<string, RankingItem> = new Map();
-    let displayedCount = 30;
+    let displayedCount = 40;
     let currentReport: TrendReport | null = null;
 
     // 保存各维度的原始数据，用于详情展示
     let realtimeDataMap: Map<string, RealtimeItem> = new Map();
     let velocity24hDataMap: Map<string, VelocityItem> = new Map();
-    let weeklyDataMap: Map<string, VelocityItem> = new Map();
+    let weeklyDataMap: Map<string, PersistentItem> = new Map();
     let persistentDataMap: Map<string, PersistentItem> = new Map();
 
     // ========== DOM 元素 ==========
 
     const metaInfoEl = document.getElementById('metaInfo');
     const rankingListEl = document.getElementById('rankingList');
-    const searchInputEl = document.getElementById('searchInput') as HTMLInputElement;
     const loadMoreContainerEl = document.getElementById('loadMoreContainer');
     const loadMoreBtnEl = document.getElementById('loadMoreBtn');
     const scanBtnEl = document.getElementById('scanBtn');
@@ -239,46 +220,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
       return num.toString();
     }
 
-    function getRankStyle(rank: number): { rankClass: string; numClass: string } {
-      if (rank <= 3) {
-        return { rankClass: 'text-red-600', numClass: 'text-red-600 font-bold' };
-      } else if (rank <= 10) {
-        return { rankClass: 'text-orange-500', numClass: 'text-orange-500 font-semibold' };
-      }
-      return { rankClass: 'text-gray-400', numClass: 'text-gray-400' };
-    }
-
-    function getTrendIcon(trend: 'up' | 'down' | 'stable'): string {
-      return trend === 'up' ? '↑' : trend === 'down' ? '↓' : '—';
-    }
-
-    function getTrendColor(trend: 'up' | 'down' | 'stable'): string {
-      return trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-500' : 'text-gray-400';
-    }
-
-    function getBadgeStyle(badge?: string): string {
-      if (!badge) return '';
-      switch (badge) {
-        case 'NEW': return 'bg-blue-500 text-white';
-        case '爆': return 'bg-red-500 text-white';
-        case '沸': return 'bg-orange-500 text-white';
-        case '热': return 'bg-yellow-500 text-white';
-        default: return 'bg-gray-500 text-white';
-      }
-    }
-
-    // ========== 徽章计算 ==========
-
-    function calculateBadge(item: RankingItem, rank: number): 'NEW' | '爆' | '沸' | '热' | undefined {
-      // 热: 前10名且无其他徽章
-      if (rank <= 10) return '热';
-      // 沸: 热度值 > 100 或 前3名
-      if (rank <= 3 || item.hotValue > 100) return '沸';
-      // 爆: 24h涨幅 > 200%
-      if (item.changePercent && item.changePercent > 200) return '爆';
-      return undefined;
-    }
-
     // ========== 渲染榜单 ==========
 
     function renderRankingList(items: RankingItem[]) {
@@ -297,42 +238,49 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       const displayItems = items.slice(0, displayedCount);
 
-      const html = displayItems.map((item) => {
-        const rankStyle = getRankStyle(item.rank);
-        const trendIcon = getTrendIcon(item.trend);
-        const trendColor = getTrendColor(item.trend);
-        const badgeStyle = getBadgeStyle(item.badge);
+      const html = `
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 p-4">
+          ${displayItems.map((item) => {
+            // 排名颜色 - 参考 stocks 页面配色
+            const rankColor = item.rank <= 3 ? 'text-red-600' : item.rank <= 10 ? 'text-orange-500' : 'text-gray-400';
+            const rankBg = item.rank <= 3
+              ? 'bg-white border-red-200 shadow-sm'
+              : item.rank <= 10
+              ? 'bg-white border-orange-200 shadow-sm'
+              : 'bg-white/60 border-black/5';
+            const fontClass = item.rank <= 10 ? 'font-semibold' : 'font-medium';
 
-        return `
-          <div class="rank-item p-3 cursor-pointer" data-tag="${escapeHtml(item.tag)}" onclick="showTagDetail('${escapeHtml(item.tag)}')">
-            <div class="flex items-center gap-3">
-              <!-- 左侧：排名区 -->
-              <div class="w-12 flex-shrink-0 text-center">
-                <span class="${rankStyle.numClass} text-lg">${item.rank}</span>
-                ${item.badge ? `<span class="ml-1 text-xs px-1.5 py-0.5 rounded ${badgeStyle}">${item.badge}</span>` : ''}
-              </div>
+            const trendIcon = item.trend === 'up' ? '↑' : item.trend === 'down' ? '↓' : '—';
+            const trendColor = item.trend === 'up' ? 'text-green-600' : item.trend === 'down' ? 'text-red-500' : 'text-gray-400';
 
-              <!-- 中间：话题信息 -->
-              <div class="flex-1 min-w-0">
-                <div class="font-medium text-onekey-text-primary truncate">${escapeHtml(item.tag)}</div>
-                <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-xs text-gray-500">热度 ${formatNumber(item.hotValue)}</span>
-                  ${item.category ? `<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">${escapeHtml(item.category)}</span>` : ''}
+            return `
+              <div class="rank-card relative px-3 py-3 rounded-lg border ${rankBg} cursor-pointer"
+                   data-tag="${escapeHtml(item.tag)}"
+                   onclick="showTagDetail('${escapeHtml(item.tag)}')">
+                <!-- 排名角标 -->
+                <span class="absolute -top-1 -left-1 w-5 h-5 flex items-center justify-center ${rankColor} text-xs font-bold -rotate-12 bg-white rounded-full shadow-sm">
+                  ${item.rank}
+                </span>
+
+                <!-- 内容 -->
+                <div class="text-center pt-1">
+                  <div class="text-sm ${fontClass} text-onekey-text-primary truncate leading-tight">
+                    ${escapeHtml(item.tag)}
+                  </div>
+                  <div class="flex items-center justify-center gap-1 mt-1.5 text-xs text-onekey-text-secondary">
+                    <span>${formatNumber(item.hotValue)}</span>
+                    ${item.changePercent !== undefined ? `
+                      <span class="${trendColor}">
+                        ${trendIcon}${Math.round(Math.abs(item.changePercent))}%
+                      </span>
+                    ` : ''}
+                  </div>
                 </div>
               </div>
-
-              <!-- 右侧：趋势指示 -->
-              <div class="flex-shrink-0 text-right">
-                <div class="flex items-center gap-1 justify-end">
-                  <span class="${trendColor} text-sm font-medium">${trendIcon}</span>
-                  ${item.changePercent !== undefined ? `<span class="${trendColor} text-xs">${item.changePercent > 0 ? '+' : ''}${Math.round(item.changePercent)}%</span>` : ''}
-                  <span class="text-lg">${item.icon}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
+            `;
+          }).join('')}
+        </div>
+      `;
 
       rankingListEl.innerHTML = html;
 
@@ -347,8 +295,8 @@ import AppLayout from '@/layouts/AppLayout.astro';
     // ========== 加载数据 ==========
 
     async function loadRealtimeHot(): Promise<RankingItem[]> {
-      // 调用 realtime 模式，获取最近8小时的聚合数据
-      const resp = await fetch('/api/trends/history?mode=realtime&hours=8&limit=50');
+      // 调用 realtime 模式，获取最近4小时的聚合数据
+      const resp = await fetch('/api/trends/history?mode=realtime&hours=4&limit=50');
       const data = await resp.json();
       const items: RealtimeItem[] = data.items || [];
 
@@ -359,9 +307,9 @@ import AppLayout from '@/layouts/AppLayout.astro';
       // 更新元信息
       if (metaInfoEl) {
         const periodStart = data.period?.start;
-        const startDate = periodStart ? new Date(periodStart) : new Date(Date.now() - 8 * 60 * 60 * 1000);
+        const startDate = periodStart ? new Date(periodStart) : new Date(Date.now() - 4 * 60 * 60 * 1000);
         const timeStr = startDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-        metaInfoEl.textContent = `最近8小时聚合 (自 ${timeStr} 起) | 每4小时自动刷新`;
+        metaInfoEl.textContent = `最近4小时聚合 (自 ${timeStr} 起) | 每4小时自动刷新`;
       }
 
       return items.map((item, index) => ({
@@ -385,7 +333,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
     }
 
     async function loadVelocity24h(): Promise<RankingItem[]> {
-      const resp = await fetch('/api/trends/history?mode=velocity&hours=24&limit=50');
+      const resp = await fetch('/api/trends/history?mode=velocity&hours=8&limit=50');
       const data = await resp.json();
       const items: VelocityItem[] = data.items || [];
 
@@ -395,28 +343,28 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       // 更新元信息
       if (metaInfoEl) {
-        metaInfoEl.textContent = '24小时涨幅分析 | 每4小时自动刷新';
+        metaInfoEl.textContent = '8小时异动分析 | 每4小时自动刷新';
       }
 
       return items.map((item, index) => {
-        const badge = item.percentChange > 200 ? '爆' : item.percentChange > 50 ? 'NEW' : undefined;
+        // 显示总热度（current + previous），与其他板块保持一致
+        const totalCount = item.currentCount + item.previousCount;
         return {
           tag: item.tag,
           rank: index + 1,
-          hotValue: item.currentCount,
+          hotValue: totalCount,
           trend: item.trend,
           changePercent: item.percentChange,
           changeValue: item.velocity,
-          badge,
           icon: '⚡',
         };
       });
     }
 
     async function loadWeeklySurge(): Promise<RankingItem[]> {
-      const resp = await fetch('/api/trends/history?mode=velocity&days=7&limit=50');
+      const resp = await fetch('/api/trends/history?mode=persistent&days=3&limit=50');
       const data = await resp.json();
-      const items: VelocityItem[] = data.items || [];
+      const items: PersistentItem[] = data.items || [];
 
       // 保存原始数据
       weeklyDataMap.clear();
@@ -424,16 +372,14 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       // 更新元信息
       if (metaInfoEl) {
-        metaInfoEl.textContent = '本周涨幅分析 (较上半周) | 每4小时自动刷新';
+        metaInfoEl.textContent = '3天稳定热点分析 | 每4小时自动刷新';
       }
 
       return items.map((item, index) => ({
         tag: item.tag,
         rank: index + 1,
-        hotValue: item.currentCount,
-        trend: item.trend,
-        changePercent: item.percentChange,
-        changeValue: item.velocity,
+        hotValue: item.avgCount,
+        trend: 'stable',
         icon: '📈',
       }));
     }
@@ -457,14 +403,13 @@ import AppLayout from '@/layouts/AppLayout.astro';
         rank: index + 1,
         hotValue: item.avgCount,
         trend: 'stable',
-        badge: item.appearanceCount >= 5 ? '热' : undefined,
         icon: '🕐',
       }));
     }
 
     async function switchTab(tab: 'hot' | 'velocity24h' | 'weekly' | 'persistent') {
       currentTab = tab;
-      displayedCount = 30;
+      displayedCount = 40;
 
       // 更新 Tab 样式
       document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -496,12 +441,6 @@ import AppLayout from '@/layouts/AppLayout.astro';
             break;
         }
 
-        // 计算徽章（对于没有徽章的项）
-        items = items.map(item => ({
-          ...item,
-          badge: item.badge || calculateBadge(item, item.rank),
-        }));
-
         rankingData = items;
         allData.set(tab, items);
 
@@ -519,23 +458,17 @@ import AppLayout from '@/layouts/AppLayout.astro';
       }
     }
 
-    // ========== 搜索功能 ==========
-    // 互联网搜索通过 form 表单直接跳转到 Google，无需额外逻辑
-
     // ========== 话题详情 ==========
 
     async function showTagDetail(tagName: string) {
       if (!detailModalEl || !detailTitleEl || !detailContentEl) return;
 
       detailTitleEl.textContent = tagName;
-      detailContentEl.innerHTML = '<div class="text-center py-8 text-gray-500">加载中...</div>';
+      detailContentEl.innerHTML = '<div class="text-center py-8 text-onekey-text-secondary">加载中...</div>';
       detailModalEl.classList.remove('hidden');
 
-      // 根据当前维度显示不同的详情内容
-      let detailHtml = '';
-      let newsHtml = '';
-
-      // 加载相关新闻（通用）
+      // 先从当前扫描报告中查找相关新闻
+      let relatedNews: NewsItemWithTags[] = [];
       if (!currentReport) {
         try {
           const resp = await fetch('/api/trends/scan', { credentials: 'include' });
@@ -546,146 +479,80 @@ import AppLayout from '@/layouts/AppLayout.astro';
       }
 
       if (currentReport) {
-        const relatedNews = currentReport.recentNews.filter(item => item.tags.includes(tagName));
-        if (relatedNews.length > 0) {
-          newsHtml = `
-            <div class="mt-4 pt-3 border-t border-black/10">
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="text-sm font-medium text-gray-700">相关新闻</h3>
-                <a href="https://www.google.com/search?q=${encodeURIComponent(tagName)}" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                  <span>🔍</span> Google 搜索
-                </a>
-              </div>
-              <div class="space-y-2">
-                ${relatedNews.slice(0, 4).map(item => `
-                  <div class="py-2 border-b border-black/5 last:border-0">
-                    <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" class="text-sm text-onekey-text-primary hover:underline font-medium line-clamp-2">
-                      ${escapeHtml(item.title)}
-                    </a>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `;
-        } else {
-          // 没有相关新闻时，显示搜索按钮
-          newsHtml = `
-            <div class="mt-4 pt-3 border-t border-black/10 text-center">
-              <a href="https://www.google.com/search?q=${encodeURIComponent(tagName)}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                <span>🔍</span>
-                <span class="text-sm font-medium">在 Google 搜索"${escapeHtml(tagName)}"</span>
+        relatedNews = currentReport.recentNews.filter(item => item.tags.includes(tagName));
+      }
+
+      // 如果当前扫描没有相关新闻，从历史数据中查询
+      if (relatedNews.length === 0) {
+        try {
+          const resp = await fetch(`/api/trends/news?tag=${encodeURIComponent(tagName)}&limit=6`);
+          const data = await resp.json();
+          if (data.items && data.items.length > 0) {
+            relatedNews = data.items.map((item: any) => ({
+              id: item.id,
+              title: item.title,
+              url: item.url,
+              tags: item.tags || [],
+              tagScore: 50,
+            }));
+          }
+        } catch (e) {
+          console.error('Failed to fetch historical news:', e);
+        }
+      }
+
+      // 生成维度描述
+      const tabDescriptions: Record<string, string> = {
+        hot: '最近4小时聚合热搜数据',
+        velocity24h: '8小时异动分析',
+        weekly: '3天稳定热点分析',
+        persistent: '7日持续上榜的稳定热点'
+      };
+
+      const dimensionDesc = tabDescriptions[currentTab] || '';
+
+      // 生成内容
+      let contentHtml = '';
+
+      if (relatedNews.length > 0) {
+        contentHtml = `
+          <div class="space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-black/10">
+              <span class="text-sm text-onekey-text-secondary">${dimensionDesc}</span>
+              <a href="https://www.google.com/search?q=${encodeURIComponent(tagName)}" target="_blank" rel="noreferrer"
+                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 text-sm font-medium rounded-lg hover:bg-green-100 transition-colors">
+                🔍 Google 搜索
               </a>
             </div>
-          `;
-        }
+            <div class="space-y-1">
+              ${relatedNews.slice(0, 6).map((item, idx) => `
+                <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer"
+                   class="block py-3 ${idx < relatedNews.slice(0, 6).length - 1 ? 'border-b border-black/5' : ''} hover:bg-black/5 rounded-lg px-2 -mx-2 transition-colors group">
+                  <div class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-xs font-medium text-onekey-text-muted group-hover:text-green-600">
+                      ${idx + 1}
+                    </span>
+                    <span class="text-sm text-onekey-text-primary leading-snug group-hover:text-green-600 transition-colors">
+                      ${escapeHtml(item.title)}
+                    </span>
+                  </div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        contentHtml = `
+          <div class="text-center py-8">
+            <a href="https://www.google.com/search?q=${encodeURIComponent(tagName)}" target="_blank" rel="noreferrer"
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-600 font-medium rounded-lg hover:bg-green-100 transition-colors">
+              🔍 在 Google 搜索"${escapeHtml(tagName)}"
+            </a>
+          </div>
+        `;
       }
 
-      // 根据当前维度生成不同的详情内容
-      switch (currentTab) {
-        case 'hot': {
-          const data = realtimeDataMap.get(tagName);
-          if (data) {
-            detailHtml = `
-              <div class="grid grid-cols-3 gap-2">
-                <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${formatNumber(data.totalCount)}</div>
-                  <div class="text-xs opacity-90">8小时总热度</div>
-                </div>
-                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${formatNumber(data.avgCount)}</div>
-                  <div class="text-xs opacity-90">平均热度</div>
-                </div>
-                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${data.appearanceCount}</div>
-                  <div class="text-xs opacity-90">出现次数</div>
-                </div>
-              </div>
-              <div class="mt-2 text-center text-xs text-gray-500">🔥 实时热搜 - 最近8小时聚合数据</div>
-            `;
-          }
-          break;
-        }
-        case 'velocity24h': {
-          const data = velocity24hDataMap.get(tagName);
-          if (data) {
-            const trendIcon = getTrendIcon(data.trend);
-            const isPositive = data.percentChange >= 0;
-            detailHtml = `
-              <div class="grid grid-cols-3 gap-2">
-                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${formatNumber(data.currentCount)}</div>
-                  <div class="text-xs opacity-90">当前热度</div>
-                </div>
-                <div class="bg-gradient-to-br from-gray-400 to-gray-500 rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${formatNumber(data.previousCount)}</div>
-                  <div class="text-xs opacity-90">前期热度</div>
-                </div>
-                <div class="bg-gradient-to-br ${isPositive ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600'} rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${trendIcon} ${data.percentChange > 0 ? '+' : ''}${Math.round(data.percentChange)}%</div>
-                  <div class="text-xs opacity-90">24小时涨幅</div>
-                </div>
-              </div>
-              <div class="mt-2 text-center text-xs text-gray-500">⚡ 24小时异动 - 后12小时 vs 前12小时对比</div>
-            `;
-          }
-          break;
-        }
-        case 'weekly': {
-          const data = weeklyDataMap.get(tagName);
-          if (data) {
-            const trendIcon = getTrendIcon(data.trend);
-            const isPositive = data.percentChange >= 0;
-            detailHtml = `
-              <div class="grid grid-cols-3 gap-2">
-                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${formatNumber(data.currentCount)}</div>
-                  <div class="text-xs opacity-90">下半周热度</div>
-                </div>
-                <div class="bg-gradient-to-br from-gray-400 to-gray-500 rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${formatNumber(data.previousCount)}</div>
-                  <div class="text-xs opacity-90">上半周热度</div>
-                </div>
-                <div class="bg-gradient-to-br ${isPositive ? 'from-emerald-500 to-emerald-600' : 'from-red-500 to-red-600'} rounded-lg p-4 text-center text-white">
-                  <div class="text-3xl font-bold">${trendIcon} ${data.percentChange > 0 ? '+' : ''}${Math.round(data.percentChange)}%</div>
-                  <div class="text-xs opacity-90">本周涨幅</div>
-                </div>
-              </div>
-              <div class="mt-2 text-center text-xs text-gray-500">📈 本周飙升 - 下半周 vs 上半周对比</div>
-            `;
-          }
-          break;
-        }
-        case 'persistent': {
-          const data = persistentDataMap.get(tagName);
-          if (data) {
-            detailHtml = `
-              <div class="grid grid-cols-4 gap-2">
-                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-center text-white">
-                  <div class="text-2xl font-bold">${data.appearanceCount}</div>
-                  <div class="text-xs opacity-90">上榜天数</div>
-                </div>
-                <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-3 text-center text-white">
-                  <div class="text-2xl font-bold">${formatNumber(data.avgCount)}</div>
-                  <div class="text-xs opacity-90">平均热度</div>
-                </div>
-                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 text-center text-white">
-                  <div class="text-2xl font-bold">${formatNumber(data.maxCount)}</div>
-                  <div class="text-xs opacity-90">最高热度</div>
-                </div>
-                <div class="bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg p-3 text-center text-white">
-                  <div class="text-2xl font-bold">#${data.bestRank}</div>
-                  <div class="text-xs opacity-90">最佳排名</div>
-                </div>
-              </div>
-              <div class="mt-2 text-center text-xs text-gray-500">🕐 持续热点 - 近7天稳定表现</div>
-            `;
-          }
-          break;
-        }
-      }
-
-      detailContentEl.innerHTML = detailHtml || '<div class="text-center py-8 text-gray-500">暂无数据</div>';
-      detailContentEl.innerHTML += newsHtml;
+      detailContentEl.innerHTML = contentHtml;
     }
 
     // 暴露到全局
@@ -746,7 +613,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     detailModalEl?.addEventListener('click', (e) => {
       if (e.target === detailModalEl) {
-        detailModalEl.classList.add('hidden');
+        detailModalEl?.classList.add('hidden');
       }
     });
 

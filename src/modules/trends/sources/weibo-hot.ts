@@ -14,12 +14,19 @@ function decodeHtmlEntities(s: string): string {
  * MVP parser:
  * Fetch https://s.weibo.com/top/summary and parse the hot list table.
  *
- * This endpoint can be rate-limited / blocked; caller should fallback to mock.
+ * This endpoint can be rate-limited / blocked; caller should fallback to mock or Apify.
  */
 export async function fetchWeiboHotSummary(opts?: { timeoutMs?: number }): Promise<{ items: TrendRawItem[]; error?: string }> {
+  // If Apify is available, return empty items to let the agent use Apify instead
+  if (process.env.APIFY_TOKEN) {
+    console.log('[weibo-hot] Apify token detected, skipping regex parser (letting agent use Apify)');
+    return { items: [] };
+  }
+
   const url = 'https://s.weibo.com/top/summary';
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(1000, opts?.timeoutMs ?? 12000));
+  const timeoutMs = Math.max(1000, opts?.timeoutMs ?? 12000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const resp = await fetch(url, {

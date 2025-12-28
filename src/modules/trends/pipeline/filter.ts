@@ -36,10 +36,13 @@ export function filterAndGroupTrends(raw: TrendRawItem[], cfg: TrendsFilterConfi
   const scoreFiltered = mapped.filter((c) => (c.signals?.score ?? 0) >= minScore && c.title);
   scoreFiltered.sort((a, b) => (b.signals?.score ?? 0) - (a.signals?.score ?? 0));
 
+  // Hard limit for CPU safety: O(N^2) deduplication must have bounded input
+  const processingQueue = scoreFiltered.slice(0, 50);
+
   // Dedup by title similarity (CN 2-gram works okay for mixed zh/en too).
   const kept: TrendCard[] = [];
   const keptGrams: Array<Set<string>> = [];
-  for (const c of scoreFiltered) {
+  for (const c of processingQueue) {
     const g = bigrams(c.title);
     let isDup = false;
     for (let i = 0; i < kept.length; i++) {

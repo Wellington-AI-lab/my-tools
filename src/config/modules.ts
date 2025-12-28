@@ -25,9 +25,9 @@ export const MODULES: ModuleDef[] = [
   },
   {
     id: 'rednote',
-    name: '关注重点',
+    name: '深度分析',
     description: '根据趋势雷达扫描出的信息标签进行多源检索',
-    href: '/tools/rednote-agent',
+    href: '/tools/deep-analysis',
     status: 'beta',
   },
   {

@@ -2,23 +2,19 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 ---
 
-<AppLayout title="关注重点">
+<AppLayout title="深度分析">
   <div class="space-y-4">
-    <div class="glass-effect rounded-xl p-6">
-      <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 class="text-2xl font-bold text-onekey-text-primary">关注重点</h1>
-          <p class="mt-2 text-sm text-onekey-text-secondary">
-            基于 Trend Radar 提取的关键词，每日自动聚合财经、经济、AI 领域的热点新闻。
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button id="news_run" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
-            手动运行
-          </button>
-        </div>
+    <div class="glass-effect rounded-xl p-6 text-center">
+      <h1 class="text-2xl font-bold text-onekey-text-primary">深度分析</h1>
+      <p class="mt-2 text-sm text-onekey-text-secondary">
+        基于 Trend Radar 提取的关键词，每日自动聚合财经、经济、AI 领域的热点新闻。
+      </p>
+      <div class="mt-4 flex items-center justify-center gap-2">
+        <button id="news_run" class="text-sm px-3 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
+          手动运行
+        </button>
       </div>
-      <div id="news_meta" class="mt-3 text-xs text-onekey-text-muted font-mono"></div>
+      <div id="news_meta" class="mt-3 text-xs text-onekey-text-muted font-mono text-center"></div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">

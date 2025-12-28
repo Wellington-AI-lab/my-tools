@@ -55,7 +55,12 @@ export async function putTrendsReport(kv: KVNamespace, report: TrendsReport): Pr
   await kvPutJson(kv, trendsDayKey(dayKey), report, ttl);
   await kvPutJson(kv, KEY_LATEST, report, ttl);
 
-  // Maintain an index of recent day keys (no KV list dependency).
+  // ⚠️ RACE CONDITION WARNING: Read-Modify-Write pattern on KEY_INDEX
+  // In distributed edge environments, simultaneous scan requests can race to update this index.
+  // One request may read stale data, overwrite another's update, causing "lost update".
+  // Current mitigation: scan_id deduplication + KV lock reduces but doesn't eliminate this risk.
+  // Future: Consider using D1 for index (atomic operations) or accept eventual consistency.
+  // TODO: Re-architect to use D1-based index with atomic upsert/append operations.
   const current = await kvGetJson<string[]>(kv, KEY_INDEX, []);
   const next = [dayKey, ...current.filter((k) => k !== dayKey)].slice(0, 14);
   await kvPutJson(kv, KEY_INDEX, next, ttl);

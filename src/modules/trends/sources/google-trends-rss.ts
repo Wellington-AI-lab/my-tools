@@ -55,13 +55,20 @@ export async function fetchGoogleTrendsDailyRss(opts: {
       },
       signal: controller.signal,
     });
-    const text = await resp.text();
 
     if (!resp.ok) {
       // Google Trends RSS 可能因地理限制返回 404
       console.warn(`Google Trends RSS HTTP ${resp.status} for geo=${geo}`);
       return { items: [], error: `HTTP ${resp.status}` };
     }
+
+    // OOM protection: check Content-Length before reading body
+    const contentLength = resp.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 1024 * 1024 * 2) { // 2MB limit
+      throw new Error('RSS feed too large (max 2MB)');
+    }
+
+    const text = await resp.text();
 
     const parsed = parseRss(text);
     const lang: TrendRawItem['language'] = geo === 'CN' ? 'zh' : 'en';

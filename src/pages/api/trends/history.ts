@@ -1,22 +1,29 @@
 /**
- * 历史趋势分析 API
- * 查询标签的历史变化、速度、加速度等
+ * Trends History API (Refactored)
+ *
+ * Improvements:
+ * - Unified query builder
+ * - Proper error responses
+ * - Type safety
+ * - Optimized SQL queries
  */
 
 import { requireD1 } from '@/lib/env';
 
-interface HistoryQuery {
-  tag?: string;      // 查询特定标签
-  days?: number;     // 查询天数
-  hours?: number;    // 查询小时数
-  limit?: number;    // 返回数量限制
+// Type definitions
+interface QueryParams {
+  tag?: string;
+  days?: number;
+  hours?: number;
+  limit?: number;
+  mode?: string;
 }
 
-interface RealtimeItem {
-  tag: string;
-  totalCount: number;
-  avgCount: number;
-  appearanceCount: number;
+interface HistoryResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  period?: { start: string; end: string };
 }
 
 interface TagSnapshot {
@@ -24,7 +31,6 @@ interface TagSnapshot {
   tag: string;
   count: number;
   rank: number;
-  period: string;
 }
 
 interface TrendPoint {
@@ -38,75 +44,86 @@ interface TagHistory {
   data: TrendPoint[];
   currentCount: number;
   currentRank: number;
-  velocity: number;        // 速度：最近周期变化量
-  acceleration: number;    // 加速度：速度变化
+  velocity: number;
+  acceleration: number;
   trend: 'up' | 'down' | 'stable';
 }
 
-interface VelocityItem {
-  tag: string;
-  currentCount: number;
-  previousCount: number;
-  velocity: number;
-  percentChange: number;
-  trend: 'up' | 'down' | 'stable';
-}
+// Constants
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 500;
+const MIN_DAYS = 1;
+const MAX_DAYS = 365;
 
 /**
- * 获取标签历史数据
- * GET /api/trends/history?tag=AI&days=7
- * GET /api/trends/history?mode=velocity&hours=24  (增长最快)
- * GET /api/trends/history?mode=persistent&days=7   (持续热点)
- * GET /api/trends/history?mode=top&days=7         (时段Top)
- * GET /api/trends/history?mode=realtime&hours=8   (实时热搜聚合)
+ * GET handler
  */
-export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
+export async function GET({ locals, url }: { locals: App.Locals; url: URL }): Promise<Response> {
   const d1 = requireD1(locals);
-  const tag = url.searchParams.get('tag');
-  const days = parseInt(url.searchParams.get('days') || '7');
-  const hours = parseInt(url.searchParams.get('hours') || '0');
-  const limit = parseInt(url.searchParams.get('limit') || '100');
-  const mode = url.searchParams.get('mode') || 'tag'; // tag | velocity | persistent | top | realtime
+  const params = parseQueryParams(url);
 
   try {
-    const startTime = hours > 0
-      ? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
-      : new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const startTime = calculateStartTime(params.days, params.hours);
 
-    if (mode === 'velocity') {
-      // 返回增长最快的标签（速度分析）
-      return await getVelocityAnalysis(d1, startTime, limit);
-    } else if (mode === 'persistent') {
-      // 返回持续热点（长期保持高位的标签）
-      return await getPersistentTags(d1, startTime, limit);
-    } else if (mode === 'top') {
-      // 返回指定时间段的Top标签
-      return await getTopTags(d1, startTime, limit);
-    } else if (mode === 'realtime') {
-      // 返回实时热搜聚合（最近N小时的总热度）
-      return await getRealtimeTags(d1, startTime, limit);
-    } else if (tag) {
-      // 返回特定标签的历史数据
-      return await getTagHistory(d1, tag, startTime, limit);
-    } else {
-      // 默认返回所有标签的最新状态
-      return await getLatestTags(d1, limit);
+    switch (params.mode) {
+      case 'velocity':
+        return await getVelocityAnalysis(d1, startTime, params.limit);
+
+      case 'persistent':
+        return await getPersistentTags(d1, startTime, params.limit);
+
+      case 'top':
+        return await getTopTags(d1, startTime, params.limit);
+
+      case 'realtime':
+        return await getRealtimeTags(d1, startTime, params.limit);
+
+      default:
+        if (params.tag) {
+          return await getTagHistory(d1, params.tag, startTime, params.limit);
+        }
+        return await getLatestTags(d1, params.limit);
     }
   } catch (error: any) {
     console.error('[trends/history] Error:', error);
-    return Response.json({
-      error: error.message || 'Failed to fetch history',
-      data: null
-    }, { status: 500 });
+    return errorResponse(error.message);
   }
 }
 
 /**
- * 获取特定标签的历史趋势
+ * Parse and validate query parameters
  */
-async function getTagHistory(d1: D1Database, tag: string, startTime: string, limit: number) {
+function parseQueryParams(url: URL): QueryParams {
+  const days = clamp(parseInt(url.searchParams.get('days') || '7'), MIN_DAYS, MAX_DAYS);
+  const hours = clamp(parseInt(url.searchParams.get('hours') || '0'), 0, 24 * 7); // Max 1 week
+  const limit = clamp(parseInt(url.searchParams.get('limit') || '100'), 1, MAX_LIMIT);
+  const mode = url.searchParams.get('mode') || 'tag';
+  const tag = sanitizeTag(url.searchParams.get('tag'));
+
+  return { days, hours, limit, mode, tag: tag || undefined };
+}
+
+/**
+ * Calculate start time from parameters
+ */
+function calculateStartTime(days: number, hours: number): string {
+  const ms = hours > 0
+    ? hours * 60 * 60 * 1000
+    : days * 24 * 60 * 60 * 1000;
+  return new Date(Date.now() - ms).toISOString();
+}
+
+/**
+ * Get tag history
+ */
+async function getTagHistory(
+  d1: D1Database,
+  tag: string,
+  startTime: string,
+  limit: number
+): Promise<Response> {
   const stmt = d1.prepare(`
-    SELECT scan_time, tag, count, rank, period
+    SELECT scan_time, tag, count, rank
     FROM tag_snapshots
     WHERE tag = ? AND scan_time >= ?
     ORDER BY scan_time DESC
@@ -128,27 +145,11 @@ async function getTagHistory(d1: D1Database, tag: string, startTime: string, lim
     });
   }
 
-  // 按时间升序排列
-  const data = snapshots.reverse().map(s => ({
-    time: s.scan_time,
-    count: s.count,
-    rank: s.rank
-  }));
+  const data = snapshots
+    .reverse()
+    .map(s => ({ time: s.scan_time, count: s.count, rank: s.rank }));
 
-  // 计算速度和加速度
-  const velocity = data.length >= 2
-    ? data[data.length - 1].count - data[data.length - 2].count
-    : 0;
-
-  const acceleration = data.length >= 3
-    ? (data[data.length - 1].count - data[data.length - 2].count) -
-      (data[data.length - 2].count - data[data.length - 3].count)
-    : 0;
-
-  let trend: 'up' | 'down' | 'stable' = 'stable';
-  if (velocity > 2) trend = 'up';
-  else if (velocity < -2) trend = 'down';
-
+  const { velocity, acceleration, trend } = calculateVelocity(data);
   const latest = snapshots[0];
 
   return Response.json({
@@ -163,14 +164,18 @@ async function getTagHistory(d1: D1Database, tag: string, startTime: string, lim
 }
 
 /**
- * 获取速度分析：增长最快的标签
+ * Get velocity analysis (fastest growing tags)
  */
-async function getVelocityAnalysis(d1: D1Database, startTime: string, limit: number) {
-  // 获取两个时间点的数据进行对比
-  const midTime = new Date(Date.now() - (Date.now() - new Date(startTime).getTime()) / 2).toISOString();
+async function getVelocityAnalysis(
+  d1: D1Database,
+  startTime: string,
+  limit: number
+): Promise<Response> {
+  const midTime = new Date(
+    Date.now() - (Date.now() - new Date(startTime).getTime()) / 2
+  ).toISOString();
 
-  // 获取最新和最早的数据对比
-  const comparisonStmt = d1.prepare(`
+  const stmt = d1.prepare(`
     SELECT
       tag,
       SUM(CASE WHEN scan_time >= ? THEN count ELSE 0 END) as recent_count,
@@ -178,22 +183,18 @@ async function getVelocityAnalysis(d1: D1Database, startTime: string, limit: num
     FROM tag_snapshots
     WHERE scan_time >= ?
     GROUP BY tag
-    HAVING recent_count > 0 AND previous_count > 0
+    HAVING recent_count > 0
     ORDER BY (recent_count - previous_count) DESC
     LIMIT ?
   `);
 
-  const result = await comparisonStmt.bind(midTime, midTime, startTime, limit).all();
+  const result = await stmt.bind(midTime, midTime, startTime, limit).all();
 
-  const items: VelocityItem[] = (result.results || []).map((row: any) => {
+  const items = (result.results || []).map((row: any) => {
     const recentCount = row.recent_count || 0;
     const previousCount = row.previous_count || 0;
     const velocity = recentCount - previousCount;
     const percentChange = previousCount > 0 ? (velocity / previousCount) * 100 : 100;
-
-    let trend: 'up' | 'down' | 'stable' = 'stable';
-    if (velocity > 5) trend = 'up';
-    else if (velocity < -5) trend = 'down';
 
     return {
       tag: row.tag,
@@ -201,20 +202,25 @@ async function getVelocityAnalysis(d1: D1Database, startTime: string, limit: num
       previousCount,
       velocity,
       percentChange: Math.round(percentChange * 10) / 10,
-      trend
+      trend: getTrendDirection(velocity, 5)
     };
   });
 
+  // Return format expected by frontend: { items, period }
   return Response.json({
-    period: { start: startTime, end: new Date().toISOString() },
-    items
+    items,
+    period: { start: startTime, end: new Date().toISOString() }
   });
 }
 
 /**
- * 获取持续热点标签
+ * Get persistent tags (long-running hot topics)
  */
-async function getPersistentTags(d1: D1Database, startTime: string, limit: number) {
+async function getPersistentTags(
+  d1: D1Database,
+  startTime: string,
+  limit: number
+): Promise<Response> {
   const stmt = d1.prepare(`
     SELECT
       tag,
@@ -240,16 +246,21 @@ async function getPersistentTags(d1: D1Database, startTime: string, limit: numbe
     bestRank: row.best_rank
   }));
 
+  // Return format expected by frontend: { items, period }
   return Response.json({
-    period: { start: startTime, end: new Date().toISOString() },
-    items
+    items,
+    period: { start: startTime, end: new Date().toISOString() }
   });
 }
 
 /**
- * 获取指定时间段内Top标签
+ * Get top tags for period
  */
-async function getTopTags(d1: D1Database, startTime: string, limit: number) {
+async function getTopTags(
+  d1: D1Database,
+  startTime: string,
+  limit: number
+): Promise<Response> {
   const stmt = d1.prepare(`
     SELECT
       tag,
@@ -272,17 +283,21 @@ async function getTopTags(d1: D1Database, startTime: string, limit: number) {
     avgRank: Math.round(row.avg_rank)
   }));
 
+  // Return format expected by frontend: { items, period }
   return Response.json({
-    period: { start: startTime, end: new Date().toISOString() },
-    items
+    items,
+    period: { start: startTime, end: new Date().toISOString() }
   });
 }
 
 /**
- * 获取实时热搜聚合（最近N小时的总热度）
- * 用于"实时热搜"Tab，返回指定时间段内的累计热度排名
+ * Get realtime aggregated tags
  */
-async function getRealtimeTags(d1: D1Database, startTime: string, limit: number) {
+async function getRealtimeTags(
+  d1: D1Database,
+  startTime: string,
+  limit: number
+): Promise<Response> {
   const stmt = d1.prepare(`
     SELECT
       tag,
@@ -299,25 +314,26 @@ async function getRealtimeTags(d1: D1Database, startTime: string, limit: number)
 
   const result = await stmt.bind(startTime, limit).all();
 
-  const items: RealtimeItem[] = (result.results || []).map((row: any) => ({
+  const items = (result.results || []).map((row: any) => ({
     tag: row.tag,
     totalCount: row.total_count,
     avgCount: Math.round(row.avg_count),
     appearanceCount: row.appearance_count
   }));
 
+  // Return format expected by frontend: { items, period }
   return Response.json({
-    period: { start: startTime, end: new Date().toISOString() },
-    items
+    items,
+    period: { start: startTime, end: new Date().toISOString() }
   });
 }
 
 /**
- * 获取最新标签状态
+ * Get latest tags
  */
-async function getLatestTags(d1: D1Database, limit: number) {
+async function getLatestTags(d1: D1Database, limit: number): Promise<Response> {
   const stmt = d1.prepare(`
-    SELECT scan_time, tag, count, rank, period
+    SELECT scan_time, tag, count, rank
     FROM tag_snapshots
     WHERE scan_time = (
       SELECT MAX(scan_time) FROM tag_snapshots
@@ -339,4 +355,51 @@ async function getLatestTags(d1: D1Database, limit: number) {
     scanTime: items.length > 0 ? items[0].scanTime : null,
     items
   });
+}
+
+// Utility functions
+
+function calculateVelocity(data: TrendPoint[]): {
+  velocity: number;
+  acceleration: number;
+  trend: 'up' | 'down' | 'stable';
+} {
+  const velocity = data.length >= 2
+    ? data[data.length - 1].count - data[data.length - 2].count
+    : 0;
+
+  const acceleration = data.length >= 3
+    ? (data[data.length - 1].count - data[data.length - 2].count) -
+      (data[data.length - 2].count - data[data.length - 3].count)
+    : 0;
+
+  const trend = getTrendDirection(velocity, 2);
+
+  return { velocity, acceleration, trend };
+}
+
+function getTrendDirection(
+  value: number,
+  threshold: number
+): 'up' | 'down' | 'stable' {
+  if (value > threshold) return 'up';
+  if (value < -threshold) return 'down';
+  return 'stable';
+}
+
+function sanitizeTag(tag: string | null): string | null {
+  if (!tag) return null;
+  const sanitized = tag.trim().slice(0, 100);
+  return sanitized || null;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function errorResponse(message: string): Response {
+  return Response.json({
+    success: false,
+    error: message
+  }, { status: 500 });
 }
