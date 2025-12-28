@@ -1,0 +1,453 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+---
+
+<AppLayout title="新闻聚合">
+  <!-- 统计面板 -->
+  <div class="news-header">
+    <h1 class="news-title">新闻聚合</h1>
+    <div class="news-stats" id="statsPanel">
+      <div class="stat-item">加载中...</div>
+    </div>
+  </div>
+
+  <!-- 来源筛选 -->
+  <div class="filter-section">
+    <button class="filter-btn active" data-source="all">全部</button>
+    <button class="filter-btn" data-source="V2EX">V2EX</button>
+    <button class="filter-btn" data-source="Hacker News">Hacker News</button>
+    <button class="filter-btn" data-source="36氪">36氪</button>
+    <button class="filter-btn" data-source="TechCrunch">TechCrunch</button>
+    <button class="filter-btn" data-source="少数派">少数派</button>
+  </div>
+
+  <!-- 新闻列表 -->
+  <div class="news-list" id="newsList">
+    <div class="loading">加载中...</div>
+  </div>
+
+  <!-- 加载更多 -->
+  <div class="load-more-section">
+    <button id="loadMoreBtn" class="load-more-btn" style="display: none;">加载更多</button>
+    <div id="loadingMore" class="loading" style="display: none;">加载中...</div>
+    <div id="noMoreData" class="no-more" style="display: none;">没有更多了</div>
+  </div>
+
+  <style is:global>
+    /* 根元素 */
+    :root {
+      --v2ex-color: #e74c3c;
+      --hn-color: #ff6600;
+      --36kr-color: #00a6e7;
+      --tc-color: #00a97e;
+      --ssp-color: #7c6cdb;
+    }
+
+    /* 头部统计 */
+    .news-header {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid #E5E7EB;
+      margin-bottom: 16px;
+    }
+
+    .news-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1F2937;
+      margin: 0 0 16px 0;
+    }
+
+    .news-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #F9FAFB;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #374151;
+    }
+
+    .stat-item .count {
+      font-weight: 600;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+
+    /* 筛选按钮 */
+    .filter-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      background: #FFFFFF;
+      font-size: 0.875rem;
+      color: #374151;
+      cursor: pointer;
+      transition: all 150ms;
+    }
+
+    .filter-btn:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .filter-btn.active {
+      background: #1F2937;
+      color: white;
+      border-color: #1F2937;
+    }
+
+    /* 新闻列表 */
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .news-card {
+      background: #FFFFFF;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #E5E7EB;
+      transition: all 150ms;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+    }
+
+    .news-card:hover {
+      border-color: #10B981;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .news-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .news-title-text {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #1F2937;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .news-source {
+      flex-shrink: 0;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: white;
+      white-space: nowrap;
+    }
+
+    .news-source.v2ex { background: var(--v2ex-color); }
+    .news-source.hn { background: var(--hn-color); }
+    .news-source.kr36 { background: var(--36kr-color); }
+    .news-source.tc { background: var(--tc-color); }
+    .news-source.ssp { background: var(--ssp-color); }
+    .news-source.default { background: #6B7280; }
+
+    .news-summary {
+      font-size: 0.875rem;
+      color: #6B7280;
+      line-height: 1.6;
+      margin-bottom: 8px;
+      white-space: pre-wrap;
+    }
+
+    .news-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: #9CA3AF;
+    }
+
+    .news-time {
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+
+    .news-link-icon {
+      margin-left: auto;
+      color: #10B981;
+    }
+
+    /* 加载更多 */
+    .load-more-section {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .load-more-btn {
+      padding: 10px 24px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      background: #FFFFFF;
+      font-size: 0.875rem;
+      color: #374151;
+      cursor: pointer;
+      transition: all 150ms;
+    }
+
+    .load-more-btn:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .load-more-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .loading, .no-more {
+      padding: 20px;
+      font-size: 0.875rem;
+      color: #6B7280;
+    }
+
+    /* 响应式 */
+    @media (min-width: 768px) {
+      .news-list {
+        gap: 16px;
+      }
+    }
+  </style>
+
+  <script>
+    const API_BASE = 'https://news-api.zhusen-wang.workers.dev';
+    const PAGE_SIZE = 15;
+
+    // 状态
+    let currentPage = 1;
+    let currentSource = 'all';
+    let hasMore = true;
+    let isLoading = false;
+
+    // DOM 元素
+    const statsPanel = document.getElementById('statsPanel') as HTMLElement;
+    const newsList = document.getElementById('newsList') as HTMLElement;
+    const loadMoreBtn = document.getElementById('loadMoreBtn') as HTMLButtonElement;
+    const loadingMore = document.getElementById('loadingMore') as HTMLElement;
+    const noMoreData = document.getElementById('noMoreData') as HTMLElement;
+    const filterBtns = document.querySelectorAll('.filter-btn');
+
+    // 来源颜色映射
+    const sourceClassMap: Record<string, string> = {
+      'V2EX': 'v2ex',
+      'Hacker News': 'hn',
+      '36氪': 'kr36',
+      'TechCrunch': 'tc',
+      '少数派': 'ssp',
+    };
+
+    function getSourceClass(source: string): string {
+      return sourceClassMap[source] || 'default';
+    }
+
+    // 格式化时间
+    function formatTime(timestamp: number): string {
+      const now = Date.now();
+      const diff = now - timestamp * 1000;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return '刚刚';
+      if (minutes < 60) return `${minutes} 分钟前`;
+      if (hours < 24) return `${hours} 小时前`;
+      if (days < 7) return `${days} 天前`;
+
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+    }
+
+    // HTML 转义
+    function escapeHtml(str: string): string {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // 加载统计信息
+    async function loadStats() {
+      try {
+        const resp = await fetch(`${API_BASE}/stats`);
+        const data = await resp.json();
+        if (data.success) {
+          renderStats(data);
+        }
+      } catch (e) {
+        console.error('Failed to load stats:', e);
+      }
+    }
+
+    // 渲染统计信息
+    function renderStats(data: any) {
+      if (!statsPanel) return;
+
+      const totalHtml = `
+        <div class="stat-item">
+          <span>总计</span>
+          <span class="count">${data.totalArticles || 0}</span>
+        </div>
+      `;
+
+      const sourceHtml = (data.bySource || []).map((s: any) => `
+        <div class="stat-item">
+          <span>${escapeHtml(s.source)}</span>
+          <span class="count">${s.count}</span>
+        </div>
+      `).join('');
+
+      statsPanel.innerHTML = totalHtml + sourceHtml;
+    }
+
+    // 加载新闻
+    async function loadNews(append = false) {
+      if (isLoading || !hasMore) return;
+
+      isLoading = true;
+      updateLoadMoreUI();
+
+      try {
+        const url = new URL(`${API_BASE}/latest`);
+        url.searchParams.set('page', String(currentPage));
+        url.searchParams.set('limit', String(PAGE_SIZE));
+
+        const resp = await fetch(url.toString());
+        const data = await resp.json();
+
+        if (data.success) {
+          if (append) {
+            renderNews(data.data, true);
+          } else {
+            renderNews(data.data, false);
+          }
+          hasMore = data.hasMore;
+          currentPage++;
+
+          if (!hasMore) {
+            showNoMore();
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load news:', e);
+        if (!append && newsList) {
+          newsList.innerHTML = '<div class="loading">加载失败，请刷新重试</div>';
+        }
+      } finally {
+        isLoading = false;
+        updateLoadMoreUI();
+      }
+    }
+
+    // 渲染新闻列表
+    function renderNews(articles: any[], append: boolean) {
+      if (!newsList) return;
+
+      const html = articles.map(article => {
+        const sourceClass = getSourceClass(article.source);
+        const timeStr = formatTime(article.created_at);
+        const summary = article.summary ? escapeHtml(article.summary) : '';
+
+        return `
+          <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" class="news-card">
+            <div class="news-card-header">
+              <h3 class="news-title-text">${escapeHtml(article.title)}</h3>
+              <span class="news-source ${sourceClass}">${escapeHtml(article.source)}</span>
+            </div>
+            ${summary ? `<p class="news-summary">${summary}</p>` : ''}
+            <div class="news-meta">
+              <span class="news-time">${timeStr}</span>
+              <span class="news-link-icon">→</span>
+            </div>
+          </a>
+        `;
+      }).join('');
+
+      if (append) {
+        newsList.insertAdjacentHTML('beforeend', html);
+      } else {
+        newsList.innerHTML = html;
+      }
+    }
+
+    // 更新加载更多按钮状态
+    function updateLoadMoreUI() {
+      if (loadMoreBtn) loadMoreBtn.style.display = isLoading || !hasMore ? 'none' : 'inline-block';
+      if (loadingMore) loadingMore.style.display = isLoading ? 'block' : 'none';
+      if (noMoreData) noMoreData.style.display = !hasMore && !isLoading ? 'block' : 'none';
+
+      if (loadMoreBtn) {
+        loadMoreBtn.disabled = isLoading;
+        loadMoreBtn.textContent = '加载更多';
+      }
+    }
+
+    // 显示没有更多数据
+    function showNoMore() {
+      if (noMoreData) noMoreData.style.display = 'block';
+      if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+    }
+
+    // 重置列表
+    function resetList() {
+      currentPage = 1;
+      hasMore = true;
+      isLoading = false;
+      if (newsList) newsList.innerHTML = '<div class="loading">加载中...</div>';
+      if (noMoreData) noMoreData.style.display = 'none';
+      updateLoadMoreUI();
+    }
+
+    // 筛选按钮事件
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const source = btn.getAttribute('data-source') || 'all';
+
+        // 更新按钮状态
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // 如果筛选源改变，重新加载
+        if (source !== currentSource) {
+          currentSource = source;
+          resetList();
+
+          // TODO: 后端暂不支持筛选，这里先加载全部
+          // 后续可以在前端实现筛选
+          loadNews(false);
+        }
+      });
+    });
+
+    // 加载更多按钮事件
+    loadMoreBtn?.addEventListener('click', () => {
+      loadNews(true);
+    });
+
+    // 初始化
+    loadStats();
+    loadNews(false);
+  </script>
+</AppLayout>

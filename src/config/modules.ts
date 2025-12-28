@@ -1,4 +1,4 @@
-export type ModuleId = 'stocks' | 'telegram' | 'in-depth-analysis' | 'trends';
+export type ModuleId = 'stocks' | 'telegram' | 'in-depth-analysis' | 'trends' | 'news';
 
 export type ModuleDef = {
   id: ModuleId;
@@ -14,6 +14,13 @@ export const MODULES: ModuleDef[] = [
     name: '股票组合模拟收益率回测',
     description: '',
     href: '/tools/stocks',
+    status: 'stable',
+  },
+  {
+    id: 'news',
+    name: '新闻聚合',
+    description: '聚合 V2EX、HackerNews、36氪等科技资讯',
+    href: '/tools/news',
     status: 'stable',
   },
   {
