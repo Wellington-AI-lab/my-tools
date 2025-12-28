@@ -3,265 +3,350 @@ import AppLayout from '@/layouts/AppLayout.astro';
 ---
 
 <AppLayout title="新闻聚合">
-  <!-- 统计面板 -->
-  <div class="news-header">
-    <h1 class="news-title">新闻聚合</h1>
-    <div class="news-stats" id="statsPanel">
-      <div class="stat-item">加载中...</div>
+  <div class="titan-content">
+    <!-- 标题卡片 -->
+    <div class="titan-card">
+      <h1 class="titan-heading titan-heading-2 titan-text-center">新闻聚合</h1>
+      <div id="metaInfo" class="titan-meta-info">
+        <span class="titan-number" id="totalCount">-</span> 篇文章 · 数据持续更新中
+      </div>
+    </div>
+
+    <!-- 统计面板 -->
+    <div class="titan-stats-grid" id="statsPanel">
+      <div class="titan-loading">加载中...</div>
+    </div>
+
+    <!-- 来源筛选 Tabs -->
+    <div class="titan-tabs-container">
+      <div class="titan-tabs" id="filterTabs">
+        <button data-source="all" class="titan-tab active">
+          <div class="titan-tab-icon">📰</div>
+          <div class="titan-tab-label">全部</div>
+        </button>
+        <button data-source="V2EX" class="titan-tab">
+          <div class="titan-tab-icon">💬</div>
+          <div class="titan-tab-label">V2EX</div>
+        </button>
+        <button data-source="Hacker News" class="titan-tab">
+          <div class="titan-tab-icon">🔶</div>
+          <div class="titan-tab-label">HN</div>
+        </button>
+        <button data-source="36氪" class="titan-tab">
+          <div class="titan-tab-icon">🚀</div>
+          <div class="titan-tab-label">36氪</div>
+        </button>
+        <button data-source="TechCrunch" class="titan-tab">
+          <div class="titan-tab-icon">⚡</div>
+          <div class="titan-tab-label">TechCrunch</div>
+        </button>
+        <button data-source="少数派" class="titan-tab">
+          <div class="titan-tab-icon">🎯</div>
+          <div class="titan-tab-label">少数派</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 新闻列表 -->
+    <div class="titan-card titan-card-list">
+      <div id="newsList" class="titan-news-list">
+        <div class="titan-loading">加载中...</div>
+      </div>
+      <!-- 加载更多 -->
+      <div id="loadMoreContainer" class="titan-load-more hidden">
+        <button id="loadMoreBtn" class="titan-load-more-btn">加载更多</button>
+      </div>
     </div>
   </div>
 
-  <!-- 来源筛选 -->
-  <div class="filter-section">
-    <button class="filter-btn active" data-source="all">全部</button>
-    <button class="filter-btn" data-source="V2EX">V2EX</button>
-    <button class="filter-btn" data-source="Hacker News">Hacker News</button>
-    <button class="filter-btn" data-source="36氪">36氪</button>
-    <button class="filter-btn" data-source="TechCrunch">TechCrunch</button>
-    <button class="filter-btn" data-source="少数派">少数派</button>
-  </div>
-
-  <!-- 新闻列表 -->
-  <div class="news-list" id="newsList">
-    <div class="loading">加载中...</div>
-  </div>
-
-  <!-- 加载更多 -->
-  <div class="load-more-section">
-    <button id="loadMoreBtn" class="load-more-btn" style="display: none;">加载更多</button>
-    <div id="loadingMore" class="loading" style="display: none;">加载中...</div>
-    <div id="noMoreData" class="no-more" style="display: none;">没有更多了</div>
-  </div>
-
   <style is:global>
-    /* 根元素 */
-    :root {
-      --v2ex-color: #e74c3c;
-      --hn-color: #ff6600;
-      --36kr-color: #00a6e7;
-      --tc-color: #00a97e;
-      --ssp-color: #7c6cdb;
-    }
+    /* Titan News Page Styles */
 
-    /* 头部统计 */
-    .news-header {
-      background: #FFFFFF;
-      border-radius: 16px;
-      padding: 20px;
-      border: 1px solid #E5E7EB;
-      margin-bottom: 16px;
-    }
-
-    .news-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #1F2937;
-      margin: 0 0 16px 0;
-    }
-
-    .news-stats {
+    .titan-content {
+      max-width: 80rem;
+      margin: 0 auto;
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .titan-text-center {
+      text-align: center;
+    }
+
+    .titan-meta-info {
+      margin-top: 12px;
+      text-align: center;
+      font-size: var(--titan-text-sm);
+      color: var(--titan-ink-secondary);
+    }
+
+    /* 统计面板网格 */
+    .titan-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 12px;
     }
 
-    .stat-item {
+    .titan-stat-item {
+      background: var(--titan-surface-base);
+      border: 1px solid var(--titan-border-subtle);
+      border-radius: var(--titan-radius-md);
+      padding: 16px;
+      text-align: center;
+      transition: all var(--titan-duration-normal) var(--titan-ease-out);
+    }
+
+    .titan-stat-item:hover {
+      border-color: var(--titan-border-default);
+      transform: translateY(-2px);
+    }
+
+    .titan-stat-value {
+      font-size: var(--titan-text-2xl);
+      font-weight: 700;
+      color: var(--titan-ink-primary);
+      font-family: "Georgia", 'Times New Roman', serif;
+      margin-bottom: 4px;
+    }
+
+    .titan-stat-label {
+      font-size: var(--titan-text-xs);
+      color: var(--titan-ink-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Tabs */
+    .titan-tabs-container {
+      background: var(--titan-surface-base);
+      border: 1px solid var(--titan-border-subtle);
+      border-radius: var(--titan-radius-lg);
+      padding: 8px;
+    }
+
+    .titan-tabs {
       display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      background: #F9FAFB;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      color: #374151;
+      align-items: stretch;
+      gap: 4px;
+      overflow-x: auto;
     }
 
-    .stat-item .count {
-      font-weight: 600;
-      font-family: 'Monaco', 'Menlo', monospace;
-    }
-
-    /* 筛选按钮 */
-    .filter-section {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .filter-btn {
-      padding: 8px 16px;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      background: #FFFFFF;
-      font-size: 0.875rem;
-      color: #374151;
+    .titan-tab {
+      flex: 1;
+      min-width: 80px;
+      padding: 12px 16px;
+      border-radius: var(--titan-radius-md);
+      font-size: var(--titan-text-sm);
+      font-weight: 500;
+      color: var(--titan-ink-secondary);
+      background: transparent;
+      border: 1px solid transparent;
       cursor: pointer;
-      transition: all 150ms;
+      transition: all var(--titan-duration-fast) var(--titan-ease-out);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
     }
 
-    .filter-btn:hover {
-      background: #F9FAFB;
-      border-color: #D1D5DB;
+    .titan-tab:hover {
+      color: var(--titan-ink-primary);
+      background: var(--titan-surface-subtle);
     }
 
-    .filter-btn.active {
-      background: #1F2937;
-      color: white;
-      border-color: #1F2937;
+    .titan-tab.active {
+      background: var(--titan-surface-base);
+      color: var(--titan-ink-primary);
+      box-shadow: var(--titan-shadow-card);
+      border-bottom-width: 2px;
+      border-bottom-style: solid;
+      border-bottom-color: var(--titan-action-primary);
+    }
+
+    .titan-tab-icon {
+      font-size: var(--titan-text-lg);
+    }
+
+    .titan-tab-label {
+      font-weight: 600;
+      font-size: var(--titan-text-xs);
     }
 
     /* 新闻列表 */
-    .news-list {
+    .titan-card-list {
+      overflow: hidden;
+    }
+
+    .titan-news-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
     }
 
-    .news-card {
-      background: #FFFFFF;
-      border-radius: 12px;
-      padding: 16px;
-      border: 1px solid #E5E7EB;
-      transition: all 150ms;
-      cursor: pointer;
-      text-decoration: none;
+    .titan-news-item {
       display: block;
+      padding: 16px;
+      border-bottom: 1px solid var(--titan-border-subtle);
+      text-decoration: none;
+      transition: all var(--titan-duration-fast) var(--titan-ease-out);
+      cursor: pointer;
     }
 
-    .news-card:hover {
-      border-color: #10B981;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    .titan-news-item:last-child {
+      border-bottom: none;
     }
 
-    .news-card-header {
+    .titan-news-item:hover {
+      background: var(--titan-surface-subtle);
+    }
+
+    .titan-news-header {
       display: flex;
       align-items: flex-start;
-      justify-content: space-between;
       gap: 12px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
-    .news-title-text {
-      font-size: 1rem;
-      font-weight: 500;
-      color: #1F2937;
-      line-height: 1.5;
+    .titan-news-title {
       flex: 1;
+      font-size: var(--titan-text-base);
+      font-weight: 500;
+      color: var(--titan-ink-primary);
+      line-height: 1.5;
     }
 
-    .news-source {
+    .titan-news-source {
       flex-shrink: 0;
       padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 500;
+      border-radius: var(--titan-radius-xl);
+      font-size: var(--titan-text-xs);
+      font-weight: 600;
       color: white;
       white-space: nowrap;
     }
 
-    .news-source.v2ex { background: var(--v2ex-color); }
-    .news-source.hn { background: var(--hn-color); }
-    .news-source.kr36 { background: var(--36kr-color); }
-    .news-source.tc { background: var(--tc-color); }
-    .news-source.ssp { background: var(--ssp-color); }
-    .news-source.default { background: #6B7280; }
+    /* 来源颜色 */
+    .titan-source-v2ex { background: #e74c3c; }
+    .titan-source-hn { background: #ff6600; }
+    .titan-source-36kr { background: #00a6e7; }
+    .titan-source-tc { background: #00a97e; }
+    .titan-source-ssp { background: #7c6cdb; }
+    .titan-source-default { background: var(--titan-ink-secondary); }
 
-    .news-summary {
-      font-size: 0.875rem;
-      color: #6B7280;
+    .titan-news-summary {
+      font-size: var(--titan-text-sm);
+      color: var(--titan-ink-secondary);
       line-height: 1.6;
       margin-bottom: 8px;
       white-space: pre-wrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
-    .news-meta {
+    .titan-news-meta {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.75rem;
-      color: #9CA3AF;
+      font-size: var(--titan-text-xs);
+      color: var(--titan-ink-tertiary);
     }
 
-    .news-time {
-      font-family: 'Monaco', 'Menlo', monospace;
+    .titan-news-time {
+      font-family: "Georgia", 'Times New Roman', serif;
     }
 
-    .news-link-icon {
+    .titan-news-link {
       margin-left: auto;
-      color: #10B981;
+      color: var(--titan-action-primary);
+      font-size: var(--titan-text-sm);
     }
 
-    /* 加载更多 */
-    .load-more-section {
-      margin-top: 20px;
+    /* 加载状态 */
+    .titan-loading {
+      padding: 32px;
       text-align: center;
+      color: var(--titan-ink-secondary);
+      font-size: var(--titan-text-sm);
     }
 
-    .load-more-btn {
-      padding: 10px 24px;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      background: #FFFFFF;
-      font-size: 0.875rem;
-      color: #374151;
+    .titan-load-more {
+      border-top: 1px solid var(--titan-border-subtle);
+    }
+
+    .titan-load-more.hidden {
+      display: none;
+    }
+
+    .titan-load-more-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: var(--titan-text-sm);
+      color: var(--titan-ink-secondary);
+      background: transparent;
+      border: none;
       cursor: pointer;
-      transition: all 150ms;
+      transition: background var(--titan-duration-fast);
     }
 
-    .load-more-btn:hover {
-      background: #F9FAFB;
-      border-color: #D1D5DB;
-    }
-
-    .load-more-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .loading, .no-more {
-      padding: 20px;
-      font-size: 0.875rem;
-      color: #6B7280;
+    .titan-load-more-btn:hover {
+      background: var(--titan-surface-subtle);
     }
 
     /* 响应式 */
-    @media (min-width: 768px) {
-      .news-list {
-        gap: 16px;
+    @media (max-width: 640px) {
+      .titan-tabs {
+        justify-content: flex-start;
+      }
+
+      .titan-tab {
+        min-width: 70px;
+        padding: 10px 12px;
+      }
+
+      .titan-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
   </style>
 
   <script>
     const API_BASE = 'https://news-api.zhusen-wang.workers.dev';
-    const PAGE_SIZE = 15;
+    const PAGE_SIZE = 20;
 
     // 状态
     let currentPage = 1;
     let currentSource = 'all';
     let hasMore = true;
     let isLoading = false;
+    let allArticles: any[] = [];
 
     // DOM 元素
-    const statsPanel = document.getElementById('statsPanel') as HTMLElement;
-    const newsList = document.getElementById('newsList') as HTMLElement;
-    const loadMoreBtn = document.getElementById('loadMoreBtn') as HTMLButtonElement;
-    const loadingMore = document.getElementById('loadingMore') as HTMLElement;
-    const noMoreData = document.getElementById('noMoreData') as HTMLElement;
-    const filterBtns = document.querySelectorAll('.filter-btn');
+    const totalCountEl = document.getElementById('totalCount');
+    const statsPanel = document.getElementById('statsPanel');
+    const newsList = document.getElementById('newsList');
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
 
     // 来源颜色映射
     const sourceClassMap: Record<string, string> = {
-      'V2EX': 'v2ex',
-      'Hacker News': 'hn',
-      '36氪': 'kr36',
-      'TechCrunch': 'tc',
-      '少数派': 'ssp',
+      'V2EX': 'titan-source-v2ex',
+      'Hacker News': 'titan-source-hn',
+      '36氪': 'titan-source-36kr',
+      'TechCrunch': 'titan-source-tc',
+      '少数派': 'titan-source-ssp',
     };
 
     function getSourceClass(source: string): string {
-      return sourceClassMap[source] || 'default';
+      return sourceClassMap[source] || 'titan-source-default';
+    }
+
+    // HTML 转义
+    function escapeHtml(str: string): string {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
     }
 
     // 格式化时间
@@ -273,19 +358,12 @@ import AppLayout from '@/layouts/AppLayout.astro';
       const days = Math.floor(diff / 86400000);
 
       if (minutes < 1) return '刚刚';
-      if (minutes < 60) return `${minutes} 分钟前`;
-      if (hours < 24) return `${hours} 小时前`;
-      if (days < 7) return `${days} 天前`;
+      if (minutes < 60) return `${minutes}分钟前`;
+      if (hours < 24) return `${hours}小时前`;
+      if (days < 7) return `${days}天前`;
 
       const date = new Date(timestamp * 1000);
       return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-    }
-
-    // HTML 转义
-    function escapeHtml(str: string): string {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
     }
 
     // 加载统计信息
@@ -295,6 +373,9 @@ import AppLayout from '@/layouts/AppLayout.astro';
         const data = await resp.json();
         if (data.success) {
           renderStats(data);
+          if (totalCountEl) {
+            totalCountEl.textContent = String(data.totalArticles || 0);
+          }
         }
       } catch (e) {
         console.error('Failed to load stats:', e);
@@ -305,26 +386,32 @@ import AppLayout from '@/layouts/AppLayout.astro';
     function renderStats(data: any) {
       if (!statsPanel) return;
 
-      const totalHtml = `
-        <div class="stat-item">
-          <span>总计</span>
-          <span class="count">${data.totalArticles || 0}</span>
-        </div>
-      `;
+      const html = (data.bySource || []).map((s: any) => {
+        const sourceKey = s.source;
+        const colorClass = getSourceClass(sourceKey);
+        return `
+          <div class="titan-stat-item" data-source="${escapeHtml(sourceKey)}">
+            <div class="titan-stat-value">${s.count}</div>
+            <div class="titan-stat-label">${escapeHtml(s.source)}</div>
+          </div>
+        `;
+      }).join('');
 
-      const sourceHtml = (data.bySource || []).map((s: any) => `
-        <div class="stat-item">
-          <span>${escapeHtml(s.source)}</span>
-          <span class="count">${s.count}</span>
-        </div>
-      `).join('');
+      statsPanel.innerHTML = html;
 
-      statsPanel.innerHTML = totalHtml + sourceHtml;
+      // 统计卡片点击筛选
+      statsPanel.querySelectorAll('.titan-stat-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const source = item.getAttribute('data-source') || 'all';
+          selectSource(source);
+        });
+        item.style.cursor = 'pointer';
+      });
     }
 
     // 加载新闻
     async function loadNews(append = false) {
-      if (isLoading || !hasMore) return;
+      if (isLoading) return;
 
       isLoading = true;
       updateLoadMoreUI();
@@ -338,22 +425,19 @@ import AppLayout from '@/layouts/AppLayout.astro';
         const data = await resp.json();
 
         if (data.success) {
-          if (append) {
-            renderNews(data.data, true);
-          } else {
-            renderNews(data.data, false);
+          if (!append) {
+            allArticles = [];
           }
+          allArticles.push(...(data.data || []));
+
+          renderNews();
           hasMore = data.hasMore;
           currentPage++;
-
-          if (!hasMore) {
-            showNoMore();
-          }
         }
       } catch (e) {
         console.error('Failed to load news:', e);
         if (!append && newsList) {
-          newsList.innerHTML = '<div class="loading">加载失败，请刷新重试</div>';
+          newsList.innerHTML = '<div class="titan-loading">加载失败，请刷新重试</div>';
         }
       } finally {
         isLoading = false;
@@ -362,86 +446,92 @@ import AppLayout from '@/layouts/AppLayout.astro';
     }
 
     // 渲染新闻列表
-    function renderNews(articles: any[], append: boolean) {
+    function renderNews() {
       if (!newsList) return;
 
-      const html = articles.map(article => {
+      let displayArticles = allArticles;
+
+      // 前端筛选
+      if (currentSource !== 'all') {
+        displayArticles = allArticles.filter(a => a.source === currentSource);
+      }
+
+      if (displayArticles.length === 0) {
+        newsList.innerHTML = '<div class="titan-loading">暂无数据</div>';
+        loadMoreContainer?.classList.add('hidden');
+        return;
+      }
+
+      const html = displayArticles.map(article => {
         const sourceClass = getSourceClass(article.source);
         const timeStr = formatTime(article.created_at);
         const summary = article.summary ? escapeHtml(article.summary) : '';
 
         return `
-          <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" class="news-card">
-            <div class="news-card-header">
-              <h3 class="news-title-text">${escapeHtml(article.title)}</h3>
-              <span class="news-source ${sourceClass}">${escapeHtml(article.source)}</span>
+          <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" class="titan-news-item">
+            <div class="titan-news-header">
+              <h3 class="titan-news-title">${escapeHtml(article.title)}</h3>
+              <span class="titan-news-source ${sourceClass}">${escapeHtml(article.source)}</span>
             </div>
-            ${summary ? `<p class="news-summary">${summary}</p>` : ''}
-            <div class="news-meta">
-              <span class="news-time">${timeStr}</span>
-              <span class="news-link-icon">→</span>
+            ${summary ? `<p class="titan-news-summary">${summary}</p>` : ''}
+            <div class="titan-news-meta">
+              <span class="titan-news-time">${timeStr}</span>
+              <span class="titan-news-link">→</span>
             </div>
           </a>
         `;
       }).join('');
 
-      if (append) {
-        newsList.insertAdjacentHTML('beforeend', html);
-      } else {
-        newsList.innerHTML = html;
-      }
+      newsList.innerHTML = html;
     }
 
-    // 更新加载更多按钮状态
+    // 更新加载更多按钮
     function updateLoadMoreUI() {
-      if (loadMoreBtn) loadMoreBtn.style.display = isLoading || !hasMore ? 'none' : 'inline-block';
-      if (loadingMore) loadingMore.style.display = isLoading ? 'block' : 'none';
-      if (noMoreData) noMoreData.style.display = !hasMore && !isLoading ? 'block' : 'none';
+      if (!loadMoreContainer || !loadMoreBtn) return;
 
-      if (loadMoreBtn) {
+      if (!hasMore) {
+        loadMoreContainer.classList.add('hidden');
+      } else {
+        loadMoreContainer.classList.remove('hidden');
+        loadMoreBtn.textContent = isLoading ? '加载中...' : '加载更多';
         loadMoreBtn.disabled = isLoading;
-        loadMoreBtn.textContent = '加载更多';
       }
     }
 
-    // 显示没有更多数据
-    function showNoMore() {
-      if (noMoreData) noMoreData.style.display = 'block';
-      if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-    }
+    // 选择来源
+    function selectSource(source: string) {
+      currentSource = source;
 
-    // 重置列表
-    function resetList() {
-      currentPage = 1;
-      hasMore = true;
-      isLoading = false;
-      if (newsList) newsList.innerHTML = '<div class="loading">加载中...</div>';
-      if (noMoreData) noMoreData.style.display = 'none';
+      // 更新 Tab 样式
+      document.querySelectorAll('.titan-tab').forEach(tab => {
+        const tabSource = tab.getAttribute('data-source') || 'all';
+        tab.classList.toggle('active', tabSource === source);
+      });
+
+      // 重新渲染列表（前端筛选）
+      renderNews();
+
+      // 如果是切换到新来源且数据不足，加载更多
+      if (source !== 'all') {
+        const filtered = allArticles.filter(a => a.source === source);
+        if (filtered.length < PAGE_SIZE && hasMore) {
+          loadNews(true);
+        }
+      }
+
+      // 更新加载更多按钮
       updateLoadMoreUI();
     }
 
-    // 筛选按钮事件
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const source = btn.getAttribute('data-source') || 'all';
-
-        // 更新按钮状态
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        // 如果筛选源改变，重新加载
-        if (source !== currentSource) {
-          currentSource = source;
-          resetList();
-
-          // TODO: 后端暂不支持筛选，这里先加载全部
-          // 后续可以在前端实现筛选
-          loadNews(false);
-        }
+    // Tab 点击事件
+    document.querySelectorAll('.titan-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const source = tab.getAttribute('data-source') || 'all';
+        selectSource(source);
       });
     });
 
-    // 加载更多按钮事件
+    // 加载更多按钮
     loadMoreBtn?.addEventListener('click', () => {
       loadNews(true);
     });
