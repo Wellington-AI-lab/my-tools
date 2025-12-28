@@ -26,7 +26,9 @@ export function randomHex(byteLength: number): string {
 
 // PBKDF2 密码哈希（安全存储密码）
 // 格式: pbkdf2:iterations:salt_hex:hash_hex
-const PBKDF2_ITERATIONS = 100000;
+// 在 Apple Silicon M 系列芯片上，100k 迭代仅需 ~8ms
+// 为确保抗暴力破解时间 ≥50ms，设置为 650k
+const PBKDF2_ITERATIONS = 650000;
 const PBKDF2_SALT_BYTES = 16;
 const PBKDF2_HASH_BYTES = 32;
 

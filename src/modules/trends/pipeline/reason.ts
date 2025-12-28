@@ -112,18 +112,30 @@ export async function reasonTrends(opts: {
     JSON.stringify({ themes: groups }),
   ].join('\n');
 
-  const content = await openAICompatibleChatCompletion({
-    baseUrl,
-    apiKey,
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.2,
-    maxTokens: 900,
-    timeoutMs: 20000,
-  });
+  let content: string;
+  try {
+    content = await openAICompatibleChatCompletion({
+      baseUrl,
+      apiKey,
+      model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.2,
+      maxTokens: 900,
+      timeoutMs: 20000,
+    });
+  } catch (llmError) {
+    // LLM call failed (network error, timeout, etc.) - fall back to mock mode
+    const themeCards = groups.map((g) => {
+      const cards = (opts.byTheme.get(g.theme) ?? []).slice(0, 10);
+      const keywords = mockKeywords(cards).slice(0, 3);
+      byThemeKeywords.set(g.theme, keywords);
+      return { theme: g.theme, cards, keywords };
+    });
+    return { used: 'mock', byThemeKeywords, insight: mockInsight(themeCards) };
+  }
 
   const parsed = safeJsonParse<LlmOut>(content);
   if (!parsed || !Array.isArray(parsed.by_theme) || typeof parsed.insight_markdown !== 'string') {

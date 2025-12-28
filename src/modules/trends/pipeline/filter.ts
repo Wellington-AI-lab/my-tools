@@ -18,13 +18,20 @@ export type TrendsFilterResult = {
 };
 
 export function filterAndGroupTrends(raw: TrendRawItem[], cfg: TrendsFilterConfig): TrendsFilterResult {
-  const scanned = Array.isArray(raw) ? raw.length : 0;
-  const minScore = Number.isFinite(cfg.minScore) ? cfg.minScore : 50;
-  const dedup = Number.isFinite(cfg.dedupTitleSimilarity) ? cfg.dedupTitleSimilarity : 0.66;
-  const maxPerTheme = Math.max(3, Math.min(30, Math.floor(cfg.maxPerTheme || 12)));
-  const maxTotal = Math.max(20, Math.min(200, Math.floor(cfg.maxTotal || 120)));
+  // Handle non-array input gracefully
+  const inputArray = Array.isArray(raw) ? raw : [];
+  const scanned = inputArray.length;
 
-  const mapped = (raw || []).map(mapRawToCard);
+  const minScore = Number.isFinite(cfg?.minScore) ? cfg.minScore : 50;
+  const dedup = Number.isFinite(cfg?.dedupTitleSimilarity) ? cfg.dedupTitleSimilarity : 0.66;
+  const maxPerTheme = Math.max(3, Math.min(30, Math.floor(cfg?.maxPerTheme || 12)));
+  const maxTotal = Math.max(20, Math.min(200, Math.floor(cfg?.maxTotal || 120)));
+
+  // Filter out null/undefined elements before mapping
+  const mapped = inputArray
+    .filter((item): item is TrendRawItem => item != null && typeof item === 'object')
+    .map(mapRawToCard)
+    .filter((card): card is TrendCard => card != null && typeof card.title === 'string' && card.title.length > 0);
 
   const scoreFiltered = mapped.filter((c) => (c.signals?.score ?? 0) >= minScore && c.title);
   scoreFiltered.sort((a, b) => (b.signals?.score ?? 0) - (a.signals?.score ?? 0));

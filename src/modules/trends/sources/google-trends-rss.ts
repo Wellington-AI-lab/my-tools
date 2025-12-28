@@ -20,7 +20,7 @@ function extractTag(block: string, tag: string): string | null {
   return decodeXmlEntities(stripCdata(m[1].trim()));
 }
 
-function parseRss(xml: string): Array<{ title: string; url?: string; publishedAt?: string }> {
+export function parseRss(xml: string): Array<{ title: string; url?: string; publishedAt?: string }> {
   const items: Array<{ title: string; url?: string; publishedAt?: string }> = [];
   const re = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
   let m: RegExpExecArray | null;

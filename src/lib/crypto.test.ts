@@ -237,7 +237,7 @@ describe('hashPasswordPbkdf2', () => {
       expect(result).toMatch(/^pbkdf2:\d+:[0-9a-f]+:[0-9a-f]+$/);
     });
 
-    it('should_contain_100000_iterations', async () => {
+    it('should_contain_650000_iterations', async () => {
       // Arrange
       const password = 'test-password';
 
@@ -247,7 +247,7 @@ describe('hashPasswordPbkdf2', () => {
 
       // Assert
       expect(parts[0]).toBe('pbkdf2');
-      expect(parts[1]).toBe('100000');
+      expect(parts[1]).toBe('650000');
     });
 
     it('should_have_32_byte_salt_as_64_hex_chars', async () => {
