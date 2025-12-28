@@ -1,98 +1,125 @@
+/*
+ * Titan UI Design System
+ * Soft-Tech Industrialism - Derived from OneKey Visual DNA
+ *
+ * Design Philosophy:
+ * 1. Paper White Strategy - Pure white surfaces, zero ambiguity
+ * 2. Physical Tangibility - Large radius, clear borders = hardware precision
+ * 3. Order as Beauty - Bento grids, strict alignment
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Platform theme tokens (OneKey-inspired, platformized) */
+/* ========================================
+   PHASE 1: TOKEN MAP
+   ======================================== */
+
 :root {
+  /* --- COLOR PHYSICS --- */
+
+  /* Surface (基底) - Paper White Strategy */
+  --titan-surface-base: #FFFFFF;
+  --titan-surface-subtle: #FAFAFA;
+  --titan-surface-tertiary: #F5F5F5;
+
+  /* Ink (墨水) - High Contrast Readability */
+  --titan-ink-primary: #1F2937;    /* Gray-900 */
+  --titan-ink-secondary: #6B7280;  /* Gray-500 */
+  --titan-ink-tertiary: #9CA3AF;   /* Gray-400 */
+  --titan-ink-inverse: #FFFFFF;
+
+  /* Signal (信号) - The ONE Action Color */
+  --titan-action-primary: #00B812;
+  --titan-action-hover: #00A50F;
+  --titan-action-subtle: #E8F5E9;
+
+  /* Stroke (骨架) - Structural Borders */
+  --titan-border-subtle: #E5E7EB;
+  --titan-border-default: #D1D5DB;
+  --titan-border-strong: #9CA3AF;
+  --titan-border-focus: #00B812;
+
+  /* Status Colors */
+  --titan-status-success: #059669;
+  --titan-status-warning: #D97706;
+  --titan-status-error: #DC2626;
+  --titan-status-info: #0891B2;
+
+  /* --- GEOMETRY --- */
+  --titan-radius-sm: 8px;
+  --titan-radius-md: 16px;
+  --titan-radius-lg: 24px;
+  --titan-radius-xl: 9999px;
+
+  /* --- SPACING --- */
+  --titan-space-1: 4px;
+  --titan-space-2: 8px;
+  --titan-space-3: 12px;
+  --titan-space-4: 16px;
+  --titan-space-6: 24px;
+  --titan-space-8: 32px;
+  --titan-space-12: 48px;
+
+  /* --- TYPOGRAPHY --- */
+  --titan-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --titan-font-medium: 500;
+  --titan-font-semibold: 600;
+  --titan-font-bold: 700;
+  --titan-text-xs: 0.75rem;
+  --titan-text-sm: 0.875rem;
+  --titan-text-base: 1rem;
+  --titan-text-lg: 1.125rem;
+  --titan-text-xl: 1.25rem;
+  --titan-text-2xl: 1.5rem;
+  --titan-text-3xl: 1.875rem;
+
+  /* --- PHYSICS --- */
+  --titan-duration-fast: 150ms;
+  --titan-duration-normal: 250ms;
+  --titan-ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --titan-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --titan-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --titan-max-width: 1400px;
+  --titan-z-sticky: 200;
+
+  /* --- LEGACY TOKENS (Backward Compatibility) --- */
   --onekey-dark-primary: #F5F5F5;
   --onekey-dark-secondary: #FFFFFF;
-  --onekey-dark-tertiary: #E5E5E5;
-
-  --onekey-accent-green: #00FF88;
-  --onekey-accent-green-light: #00FFAA;
-  --onekey-accent-green-dark: #00CC6A;
-  --onekey-accent-blue: #3B82F6;
-  --onekey-accent-purple: #8B5CF6;
-  --onekey-accent-neon: #00FF88;
-
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 1.875rem;
-  --font-size-4xl: 2.25rem;
-  --font-size-5xl: 3rem;
+  --onekey-accent-green: #00B812;
+  --onekey-text-primary: #1F2937;
+  --onekey-text-secondary: #6B7280;
 }
 
-* {
+/* ========================================
+   BASE RESET
+   ======================================== */
+
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: Georgia, 'FangSong', 'STFangSong', 'FangSong_GB2312', 'STFangsong', 'SimSun', serif;
-  background: var(--onekey-dark-primary);
-  color: #1A1A1A;
-  min-height: 100vh;
-  font-size: var(--font-size-base);
-  line-height: 1.6;
-  font-feature-settings: 'kern' 1;
-  text-rendering: optimizeLegibility;
+html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
-input,
-button,
-select,
-textarea {
-  font-family: inherit;
-}
-
-/* 数字和英文专用样式：Georgia 衬线字体（强制） */
-.number,
-.english,
-.font-mono {
-  font-family: Georgia, 'Times New Roman', serif !important;
-  font-variant-numeric: lining-nums;
-}
-
-/* 确保所有数字输入框也使用 Georgia */
-input[type="number"],
-input.number {
-  font-family: Georgia, 'Times New Roman', serif !important;
-}
-
-.chinese {
-  font-family: 'FangSong', 'STFangSong', 'FangSong_GB2312', 'STFangsong', 'SimSun', serif;
-}
-
-.glass-effect {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-}
-
-.neon-text {
-  background: linear-gradient(135deg, #00FF88 0%, #00CC6A 50%, #00FFAA 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.card-hover {
-  transition: all 0.25s ease;
-}
-
-.card-hover:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 36px rgba(0, 255, 136, 0.25);
-  border-color: rgba(0, 255, 136, 0.25);
+body {
+  font-family: var(--titan-font-sans);
+  background-color: var(--titan-surface-base);
+  color: var(--titan-ink-primary);
+  font-size: var(--titan-text-base);
+  line-height: 1.6;
+  min-height: 100vh;
 }
 
 a {
@@ -100,4 +127,275 @@ a {
   text-decoration: none;
 }
 
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
 
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ========================================
+   PHASE 2: TITAN COMPONENTS
+   ======================================== */
+
+/* --- BUTTONS --- */
+.titan-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--titan-space-2);
+  min-height: var(--titan-space-12);
+  padding: 0 var(--titan-space-6);
+  font-size: var(--titan-text-base);
+  font-weight: 600;
+  border-radius: var(--titan-radius-xl);
+  transition: all var(--titan-duration-normal) var(--titan-ease-out);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.titan-btn-primary {
+  background-color: var(--titan-action-primary);
+  color: var(--titan-ink-inverse);
+  border: 1px solid var(--titan-action-primary);
+}
+
+.titan-btn-primary:hover {
+  background-color: var(--titan-action-hover);
+  border-color: var(--titan-action-hover);
+}
+
+.titan-btn-secondary {
+  background-color: var(--titan-surface-base);
+  color: var(--titan-ink-primary);
+  border: 1px solid var(--titan-border-subtle);
+}
+
+.titan-btn-secondary:hover {
+  border-color: var(--titan-border-default);
+  background-color: var(--titan-surface-subtle);
+}
+
+.titan-btn-ghost {
+  background-color: transparent;
+  color: var(--titan-ink-secondary);
+  border: 1px solid transparent;
+}
+
+.titan-btn-ghost:hover {
+  color: var(--titan-ink-primary);
+  background-color: var(--titan-surface-subtle);
+}
+
+.titan-btn-sm {
+  min-height: var(--titan-space-8);
+  padding: 0 var(--titan-space-4);
+  font-size: var(--titan-text-sm);
+}
+
+.titan-btn-lg {
+  min-height: var(--titan-space-16);
+  padding: 0 var(--titan-space-8);
+  font-size: var(--titan-text-lg);
+}
+
+/* --- CARDS --- */
+.titan-card {
+  background-color: var(--titan-surface-base);
+  border: 1px solid var(--titan-border-subtle);
+  border-radius: var(--titan-radius-lg);
+  padding: var(--titan-space-6);
+  transition: all var(--titan-duration-normal) var(--titan-ease-out);
+}
+
+.titan-card:hover {
+  border-color: var(--titan-border-default);
+  box-shadow: var(--titan-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.titan-card-compact {
+  padding: var(--titan-space-4);
+}
+
+.titan-card-spacious {
+  padding: var(--titan-space-8);
+}
+
+/* --- INPUTS --- */
+.titan-input {
+  display: block;
+  width: 100%;
+  min-height: var(--titan-space-12);
+  padding: 0 var(--titan-space-4);
+  font-size: var(--titan-text-base);
+  color: var(--titan-ink-primary);
+  background-color: var(--titan-surface-base);
+  border: 1px solid var(--titan-border-subtle);
+  border-radius: var(--titan-radius-md);
+  transition: border-color var(--titan-duration-fast) var(--titan-ease-out);
+}
+
+.titan-input::placeholder {
+  color: var(--titan-ink-tertiary);
+}
+
+.titan-input:focus {
+  outline: none;
+  border-color: var(--titan-border-focus);
+}
+
+.titan-input:disabled {
+  background-color: var(--titan-surface-subtle);
+  color: var(--titan-ink-tertiary);
+  cursor: not-allowed;
+}
+
+/* --- TYPOGRAPHY --- */
+.titan-heading {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--titan-ink-primary);
+}
+
+.titan-heading-1 { font-size: var(--titan-text-3xl); }
+.titan-heading-2 { font-size: var(--titan-text-2xl); }
+.titan-heading-3 { font-size: var(--titan-text-xl); }
+.titan-heading-4 { font-size: var(--titan-text-lg); }
+
+.titan-body-secondary {
+  color: var(--titan-ink-secondary);
+}
+
+.titan-body-small {
+  font-size: var(--titan-text-sm);
+  color: var(--titan-ink-secondary);
+}
+
+/* --- NUMBERS (Georgia) --- */
+.titan-number {
+  font-family: "Georgia", 'Times New Roman', serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Global number font - applies to all numeric text */
+.font-mono,
+.mono,
+.number,
+.metric-value {
+  font-family: "Georgia", 'Times New Roman', serif !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- UTILITY CLASSES --- */
+.titan-divider {
+  height: 1px;
+  background-color: var(--titan-border-subtle);
+  border: none;
+}
+
+.titan-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--titan-space-1) var(--titan-space-3);
+  font-size: var(--titan-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--titan-radius-sm);
+  background-color: var(--titan-surface-tertiary);
+  color: var(--titan-ink-secondary);
+}
+
+.titan-badge-success {
+  background-color: var(--titan-action-subtle);
+  color: var(--titan-action-primary);
+}
+
+.titan-badge-warning {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.titan-badge-error {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+/* --- BENTO GRID --- */
+.titan-bento {
+  display: grid;
+  gap: var(--titan-space-4);
+}
+
+.titan-bento-2 { grid-template-columns: repeat(2, 1fr); }
+.titan-bento-3 { grid-template-columns: repeat(3, 1fr); }
+.titan-bento-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 768px) {
+  .titan-bento-2,
+  .titan-bento-3,
+  .titan-bento-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
+   LEGACY CLASSES (Deprecated)
+   ======================================== */
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--titan-border-subtle);
+}
+
+.neon-text {
+  color: var(--titan-action-primary);
+}
+
+.card-hover {
+  transition: all var(--titan-duration-normal) var(--titan-ease-out);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--titan-shadow-hover);
+  border-color: var(--titan-border-default);
+}
+
+/* Font aliases for backward compatibility */
+.chinese {
+  font-family: var(--titan-font-sans);
+}
+
+.number,
+.english {
+  font-family: "Georgia", 'Times New Roman', serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.font-mono {
+  font-family: "Georgia", 'Times New Roman', serif;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="number"],
+input.number {
+  font-family: "Georgia", 'Times New Roman', serif;
+}

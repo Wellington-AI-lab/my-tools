@@ -2,112 +2,273 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 ---
 
-<AppLayout title="社会热点扫描">
-  <div class="max-w-5xl mx-auto space-y-4">
+<AppLayout title="基于AI对热搜进行标注的社会热点">
+  <div class="titan-content">
     <!-- 标题区域 -->
-    <div class="glass-effect rounded-xl p-6">
-      <h1 class="text-2xl font-bold text-onekey-text-primary text-center mb-4">社会热点扫描</h1>
-      <div class="flex items-center justify-center gap-2 flex-wrap">
-        <a href="https://newsbim.pages.dev" target="_blank" rel="noreferrer" class="text-sm px-4 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors">
+    <div class="titan-card">
+      <h1 class="titan-heading titan-heading-2 titan-text-center">基于AI对热搜进行标注的社会热点</h1>
+      <div class="titan-actions">
+        <a href="https://newsbim.pages.dev" target="_blank" rel="noreferrer" class="titan-btn titan-btn-secondary titan-btn-sm">
           查看数据源
         </a>
-        <button id="scanBtn" class="text-sm px-4 py-2 rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/30 transition-colors" type="button">
+        <button id="scanBtn" class="titan-btn titan-btn-secondary titan-btn-sm" type="button">
           人工刷新
         </button>
       </div>
-      <div id="metaInfo" class="mt-3 text-center text-xs text-onekey-text-muted font-mono"></div>
+      <div id="metaInfo" class="titan-meta-info"></div>
     </div>
 
     <!-- 维度切换 Tabs -->
-    <div class="glass-effect rounded-xl p-4">
-      <div class="flex items-center gap-1 overflow-x-auto" id="tabContainer">
-        <button data-tab="hot" class="tab-btn active flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
-          <div class="flex items-center justify-center gap-1">
-            <span class="text-lg">🔥</span>
-            <span>实时热搜</span>
-          </div>
-          <div class="text-xs text-onekey-text-secondary mt-1">最近4小时</div>
+    <div class="titan-tabs-container">
+      <div class="titan-tabs" id="tabContainer">
+        <button data-tab="hot" class="titan-tab active" data-active-color="#ef4444">
+          <div class="titan-tab-icon">🔥</div>
+          <div class="titan-tab-label">实时热搜</div>
+          <div class="titan-tab-desc">最近4小时</div>
         </button>
-        <button data-tab="velocity24h" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
-          <div class="flex items-center justify-center gap-1">
-            <span class="text-lg">⚡</span>
-            <span>8小时异动</span>
-          </div>
-          <div class="text-xs text-onekey-text-secondary mt-1">较前4小时涨幅</div>
+        <button data-tab="velocity24h" class="titan-tab" data-active-color="#f97316">
+          <div class="titan-tab-icon">⚡</div>
+          <div class="titan-tab-label">8小时异动</div>
+          <div class="titan-tab-desc">较前4小时涨幅</div>
         </button>
-        <button data-tab="weekly" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
-          <div class="flex items-center justify-center gap-1">
-            <span class="text-lg">📈</span>
-            <span>稳定热点</span>
-          </div>
-          <div class="text-xs text-onekey-text-secondary mt-1">近3天持续上榜</div>
+        <button data-tab="weekly" class="titan-tab" data-active-color="#22c55e">
+          <div class="titan-tab-icon">📈</div>
+          <div class="titan-tab-label">稳定热点</div>
+          <div class="titan-tab-desc">近3天持续上榜</div>
         </button>
-        <button data-tab="persistent" class="tab-btn flex-1 min-w-[100px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all">
-          <div class="flex items-center justify-center gap-1">
-            <span class="text-lg">🕐</span>
-            <span>持续热点</span>
-          </div>
-          <div class="text-xs text-onekey-text-secondary mt-1">7日稳定榜</div>
+        <button data-tab="persistent" class="titan-tab" data-active-color="#3b82f6">
+          <div class="titan-tab-icon">🕐</div>
+          <div class="titan-tab-label">持续热点</div>
+          <div class="titan-tab-desc">7日稳定榜</div>
         </button>
       </div>
     </div>
 
     <!-- 榜单主体 -->
-    <div class="glass-effect rounded-xl overflow-hidden">
+    <div class="titan-card titan-card-list">
       <div id="rankingList">
-        <div class="p-8 text-center text-onekey-text-secondary">加载中...</div>
+        <div class="titan-loading">加载中...</div>
       </div>
       <!-- 加载更多 -->
-      <div id="loadMoreContainer" class="hidden border-t border-black/5">
-        <button id="loadMoreBtn" class="w-full py-3 text-sm text-onekey-text-secondary hover:bg-black/5 transition-colors">
+      <div id="loadMoreContainer" class="titan-load-more hidden">
+        <button id="loadMoreBtn" class="titan-load-more-btn">
           加载更多
         </button>
       </div>
     </div>
 
     <!-- 话题详情弹窗 -->
-    <div id="detailModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
-        <div class="p-4 border-b border-black/10 flex items-center justify-between">
-          <h2 id="detailTitle" class="text-lg font-bold text-onekey-text-primary"></h2>
-          <button id="closeDetail" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">✕</button>
+    <div id="detailModal" class="titan-modal hidden">
+      <div class="titan-modal-content">
+        <div class="titan-modal-header">
+          <h2 id="detailTitle" class="titan-modal-title"></h2>
+          <button id="closeDetail" class="titan-modal-close">✕</button>
         </div>
-        <div id="detailContent" class="p-4 overflow-y-auto flex-1"></div>
+        <div id="detailContent" class="titan-modal-body"></div>
       </div>
     </div>
   </div>
 
-  <style>
-    .tab-btn {
-      color: #666;
+  <style is:global>
+    /* Titan Trends Page Styles */
+
+    .titan-content {
+      max-width: 80rem;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .titan-text-center {
+      text-align: center;
+    }
+
+    .titan-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .titan-meta-info {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #6B7280;
+      font-family: "Georgia", 'Times New Roman', serif;
+    }
+
+    /* Tabs */
+    .titan-tabs-container {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 24px;
+      padding: 16px;
+    }
+
+    .titan-tabs {
+      display: flex;
+      align-items: stretch;
+      gap: 4px;
+      overflow-x: auto;
+    }
+
+    .titan-tab {
+      flex: 1;
+      min-width: 100px;
+      padding: 16px;
+      border-radius: 16px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #6B7280;
       background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 150ms cubic-bezier(0.33, 1, 0.68, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
     }
-    .tab-btn:hover {
-      background: rgba(0, 0, 0, 0.04);
+
+    .titan-tab:hover {
+      color: #1F2937;
+      background: #FAFAFA;
     }
-    .tab-btn.active {
-      background: white;
-      color: #111;
+
+    .titan-tab.active {
+      background: #FFFFFF;
+      color: #1F2937;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-bottom-width: 2px;
+      border-bottom-style: solid;
     }
-    .tab-btn[data-tab="hot"].active {
-      border-bottom: 2px solid #ef4444;
+
+    .titan-tab[data-active-color="#ef4444"].active { border-bottom-color: #ef4444; }
+    .titan-tab[data-active-color="#f97316"].active { border-bottom-color: #f97316; }
+    .titan-tab[data-active-color="#22c55e"].active { border-bottom-color: #22c55e; }
+    .titan-tab[data-active-color="#3b82f6"].active { border-bottom-color: #3b82f6; }
+
+    .titan-tab-icon {
+      font-size: 1.125rem;
     }
-    .tab-btn[data-tab="velocity24h"].active {
-      border-bottom: 2px solid #f97316;
+
+    .titan-tab-label {
+      font-weight: 600;
     }
-    .tab-btn[data-tab="weekly"].active {
-      border-bottom: 2px solid #22c55e;
+
+    .titan-tab-desc {
+      font-size: 0.75rem;
+      color: #6B7280;
     }
-    .tab-btn[data-tab="persistent"].active {
-      border-bottom: 2px solid #3b82f6;
+
+    /* Card List */
+    .titan-card-list {
+      overflow: hidden;
     }
+
+    .titan-loading {
+      padding: 32px;
+      text-align: center;
+      color: #6B7280;
+    }
+
+    /* Load More */
+    .titan-load-more {
+      border-top: 1px solid #E5E7EB;
+    }
+
+    .titan-load-more-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 0.875rem;
+      color: #6B7280;
+      background: transparent;
+      cursor: pointer;
+      transition: background 150ms;
+    }
+
+    .titan-load-more-btn:hover {
+      background: #FAFAFA;
+    }
+
+    /* Modal */
+    .titan-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .titan-modal.hidden {
+      display: none;
+    }
+
+    .titan-modal-content {
+      background: #FFFFFF;
+      border-radius: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      max-width: 32rem;
+      width: 100%;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .titan-modal-header {
+      padding: 16px;
+      border-bottom: 1px solid #E5E7EB;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .titan-modal-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #1F2937;
+      letter-spacing: -0.02em;
+    }
+
+    .titan-modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9CA3AF;
+      background: transparent;
+      cursor: pointer;
+      transition: all 150ms;
+    }
+
+    .titan-modal-close:hover {
+      background: #F3F4F6;
+      color: #6B7280;
+    }
+
+    .titan-modal-body {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Rank Cards (Grid) */
     .rank-card {
-      transition: all 0.15s ease;
+      transition: all 150ms cubic-bezier(0.33, 1, 0.68, 1);
     }
+
     .rank-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     }
   </style>
 
@@ -467,38 +628,45 @@ import AppLayout from '@/layouts/AppLayout.astro';
       detailContentEl.innerHTML = '<div class="text-center py-8 text-onekey-text-secondary">加载中...</div>';
       detailModalEl.classList.remove('hidden');
 
-      // 先从当前扫描报告中查找相关新闻
+      // 根据当前 Tab 确定查询时间范围
+      const tabTimeParams: Record<string, { hours?: number; days?: number; desc: string }> = {
+        hot: { hours: 4, desc: '最近4小时' },
+        velocity24h: { hours: 8, desc: '最近8小时' },
+        weekly: { days: 3, desc: '最近3天' },
+        persistent: { days: 7, desc: '最近7天' }
+      };
+
+      const timeParam = tabTimeParams[currentTab] || { hours: 4, desc: '最近4小时' };
+
+      // 从历史数据中查询相关新闻（带时间范围过滤）
       let relatedNews: NewsItemWithTags[] = [];
-      if (!currentReport) {
-        try {
-          const resp = await fetch('/api/trends/scan', { credentials: 'include' });
-          currentReport = await resp.json() as TrendReport;
-        } catch (e) {
-          // ignore
-        }
-      }
+      let actualCount = 0;
+      let periodInfo = '';
 
-      if (currentReport) {
-        relatedNews = currentReport.recentNews.filter(item => item.tags.includes(tagName));
-      }
+      try {
+        const queryParams = new URLSearchParams({
+          tag: tagName,
+          limit: '50',
+          ...(timeParam.hours ? { hours: String(timeParam.hours) } : {}),
+          ...(timeParam.days ? { days: String(timeParam.days) } : {})
+        });
 
-      // 如果当前扫描没有相关新闻，从历史数据中查询
-      if (relatedNews.length === 0) {
-        try {
-          const resp = await fetch(`/api/trends/news?tag=${encodeURIComponent(tagName)}&limit=6`);
-          const data = await resp.json();
-          if (data.items && data.items.length > 0) {
-            relatedNews = data.items.map((item: any) => ({
-              id: item.id,
-              title: item.title,
-              url: item.url,
-              tags: item.tags || [],
-              tagScore: 50,
-            }));
-          }
-        } catch (e) {
-          console.error('Failed to fetch historical news:', e);
+        const resp = await fetch(`/api/trends/news?${queryParams.toString()}`);
+        const data = await resp.json();
+
+        if (data.success && data.items && data.items.length > 0) {
+          relatedNews = data.items.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            url: item.url,
+            tags: item.tags || [],
+            tagScore: 50,
+          }));
+          actualCount = data.count;
+          periodInfo = timeParam.desc;
         }
+      } catch (e) {
+        console.error('Failed to fetch news by tag:', e);
       }
 
       // 生成维度描述
@@ -518,16 +686,19 @@ import AppLayout from '@/layouts/AppLayout.astro';
         contentHtml = `
           <div class="space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-black/10">
-              <span class="text-sm text-onekey-text-secondary">${dimensionDesc}</span>
+              <div class="flex flex-col">
+                <span class="text-sm text-onekey-text-secondary">${dimensionDesc}</span>
+                <span class="text-xs text-onekey-text-muted mt-0.5">找到 ${actualCount} 条相关新闻 (${periodInfo})</span>
+              </div>
               <a href="https://www.google.com/search?q=${encodeURIComponent(tagName)}" target="_blank" rel="noreferrer"
                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 text-sm font-medium rounded-lg hover:bg-green-100 transition-colors">
                 🔍 Google 搜索
               </a>
             </div>
-            <div class="space-y-1">
-              ${relatedNews.slice(0, 6).map((item, idx) => `
+            <div class="space-y-1 max-h-[50vh] overflow-y-auto">
+              ${relatedNews.slice(0, 50).map((item, idx) => `
                 <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer"
-                   class="block py-3 ${idx < relatedNews.slice(0, 6).length - 1 ? 'border-b border-black/5' : ''} hover:bg-black/5 rounded-lg px-2 -mx-2 transition-colors group">
+                   class="block py-3 ${idx < relatedNews.slice(0, 50).length - 1 ? 'border-b border-black/5' : ''} hover:bg-black/5 rounded-lg px-2 -mx-2 transition-colors group">
                   <div class="flex items-start gap-3">
                     <span class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-xs font-medium text-onekey-text-muted group-hover:text-green-600">
                       ${idx + 1}
@@ -544,6 +715,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       } else {
         contentHtml = `
           <div class="text-center py-8">
+            <p class="text-onekey-text-secondary mb-4">该时间段内暂无相关新闻</p>
             <a href="https://www.google.com/search?q=${encodeURIComponent(tagName)}" target="_blank" rel="noreferrer"
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-600 font-medium rounded-lg hover:bg-green-100 transition-colors">
               🔍 在 Google 搜索"${escapeHtml(tagName)}"
@@ -593,7 +765,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
     // ========== 事件绑定 ==========
 
     // Tab 切换
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.titan-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         const tab = btn.getAttribute('data-tab') as 'hot' | 'velocity24h' | 'weekly' | 'persistent';
         if (tab) switchTab(tab);

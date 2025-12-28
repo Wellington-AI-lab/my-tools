@@ -17,11 +17,8 @@ function decodeHtmlEntities(s: string): string {
  * This endpoint can be rate-limited / blocked; caller should fallback to mock or Apify.
  */
 export async function fetchWeiboHotSummary(opts?: { timeoutMs?: number }): Promise<{ items: TrendRawItem[]; error?: string }> {
-  // If Apify is available, return empty items to let the agent use Apify instead
-  if (process.env.APIFY_TOKEN) {
-    console.log('[weibo-hot] Apify token detected, skipping regex parser (letting agent use Apify)');
-    return { items: [] };
-  }
+  // Note: If Apify is available, the agent will prefer it. This parser runs as fallback.
+  // No need to check APIFY_TOKEN here - agent handles source selection.
 
   const url = 'https://s.weibo.com/top/summary';
   const controller = new AbortController();

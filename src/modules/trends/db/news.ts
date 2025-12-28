@@ -20,7 +20,7 @@ export async function saveNewsHistory(
     for (let i = 0; i < newsWithTags.length; i += batchSize) {
       const batch = newsWithTags.slice(i, i + batchSize);
       const stmt = d1.prepare(
-        'INSERT OR REPLACE INTO news_history (id, url, title, tags, scan_time) VALUES (?, ?, ?, ?, ?)'
+        'INSERT OR REPLACE INTO news_history (id, url, title, tags, scan_time, source) VALUES (?, ?, ?, ?, ?, ?)'
       );
 
       const statements = batch.map(item =>
@@ -29,7 +29,8 @@ export async function saveNewsHistory(
           item.url,
           item.title,
           JSON.stringify(item.tags),
-          scanTime
+          scanTime,
+          item.source || null
         )
       );
 
@@ -45,18 +46,20 @@ export async function saveNewsHistory(
 }
 
 /**
- * Query news by tag
+ * Query news by tag with optional time range filter
  */
 export async function queryNewsByTag(
   d1: D1Database,
   tag: string,
-  limit: number = 10
+  limit: number = 10,
+  options?: { startTime?: string; endTime?: string }
 ): Promise<{ items: Array<{
   id: string;
   url: string;
   title: string;
   tags: string[];
   scan_time: string;
+  source?: string;
 }>; count: number }> {
   // Validate input
   const sanitizedTag = tag.trim().slice(0, CONFIG.MAX_TAG_LENGTH);
@@ -66,16 +69,31 @@ export async function queryNewsByTag(
 
   try {
     const tagPattern = `"${sanitizedTag.replace(/"/g, '')}"`;
+    const conditions: string[] = ['tags LIKE ?'];
+    const params: (string | number)[] = [`%${tagPattern}%`];
+
+    // Add time range filter if provided
+    if (options?.startTime) {
+      conditions.push('scan_time >= ?');
+      params.push(options.startTime);
+    }
+    if (options?.endTime) {
+      conditions.push('scan_time <= ?');
+      params.push(options.endTime);
+    }
+
     const query = `
-      SELECT id, url, title, tags, scan_time
+      SELECT id, url, title, tags, scan_time, source
       FROM news_history
-      WHERE tags LIKE ?
+      WHERE ${conditions.join(' AND ')}
       ORDER BY scan_time DESC
       LIMIT ?
     `;
 
+    params.push(Math.min(limit, 500));
+
     const stmt = d1.prepare(query);
-    const results = await stmt.bind(`%${tagPattern}%`, Math.min(limit, 100)).raw();
+    const results = await stmt.bind(...params).all();
 
     const items = (results.results || []).map((row: any) => ({
       id: row.id,
@@ -83,6 +101,7 @@ export async function queryNewsByTag(
       title: row.title,
       tags: JSON.parse(row.tags || '[]'),
       scan_time: row.scan_time,
+      source: row.source || undefined,
     }));
 
     return { items, count: items.length };

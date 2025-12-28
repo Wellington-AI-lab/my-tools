@@ -4,11 +4,7 @@ import { MODULES } from '@/config/modules';
 import ModuleCard from '@/components/ModuleCard.astro';
 ---
 
-<AppLayout title="My Tools">
-  <div class="mb-6">
-    <h1 class="text-5xl font-bold text-onekey-text-primary font-english text-center">My Tools</h1>
-  </div>
-
+<AppLayout>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     {MODULES.map((m) => <ModuleCard module={m} />)}
   </div>

@@ -3,53 +3,51 @@ import AppLayout from '@/layouts/AppLayout.astro';
 ---
 
 <AppLayout title="股票组合模拟收益率回测">
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    <div class="lg:col-span-2">
-      <div class="glass-effect rounded-xl p-6">
-        <h1 class="text-2xl font-bold text-onekey-text-primary text-center mb-4">股票组合模拟收益率回测</h1>
+  <div class="titan-stocks-grid">
+    <div class="titan-stocks-main">
+      <div class="titan-card">
+        <h1 class="titan-heading titan-heading-2 titan-text-center">股票组合模拟收益率回测</h1>
 
-        <div class="mt-5 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm text-onekey-text-secondary mb-1">开始日期</label>
-              <input id="startDate" type="date" min="2000-01-01" class="w-full px-4 py-2 bg-white border border-black/10 rounded-lg" />
+        <div class="titan-form">
+          <div class="titan-date-inputs">
+            <div class="titan-input-group">
+              <label class="titan-label">开始日期</label>
+              <input id="startDate" type="date" min="2000-01-01" class="titan-input" />
             </div>
-            <div>
-              <label class="block text-sm text-onekey-text-secondary mb-1">结束日期</label>
-              <input id="endDate" type="date" min="2000-01-01" class="w-full px-4 py-2 bg-white border border-black/10 rounded-lg" />
+            <div class="titan-input-group">
+              <label class="titan-label">结束日期</label>
+              <input id="endDate" type="date" min="2000-01-01" class="titan-input" />
             </div>
           </div>
 
-          <div class="border border-black/10 rounded-lg overflow-hidden">
-            <div class="bg-white/60 px-4 py-2 flex items-center justify-between">
-              <div class="text-sm font-semibold text-onekey-text-primary">资产组合及权重</div>
-              <div class="flex items-center gap-2">
-                <button id="addRowBtn" class="text-sm px-3 py-1.5 rounded-full border border-black/10 bg-white hover:border-onekey-accent-green/30" type="button">
-                  + 添加一行
-                </button>
-              </div>
+          <div class="titan-portfolio-input">
+            <div class="titan-portfolio-header">
+              <div class="titan-portfolio-title">资产组合及权重</div>
+              <button id="addRowBtn" class="titan-btn titan-btn-ghost titan-btn-sm" type="button">
+                + 添加一行
+              </button>
             </div>
 
-            <div class="p-4 bg-white">
-              <div id="rows" class="flex flex-wrap gap-2"></div>
-              <div class="mt-3 text-xs text-onekey-text-secondary">
+            <div class="titan-portfolio-body">
+              <div id="rows" class="titan-rows"></div>
+              <div class="titan-hint">
                 提示：权重会自动归一化（不要求总和=100）。建议常用 ≤10 只。
               </div>
             </div>
           </div>
 
-          <div id="errorBox" class="hidden text-sm text-red-600"></div>
-          <button id="calcBtn" class="w-full py-2.5 px-4 bg-gradient-neon text-white font-bold rounded-lg hover:opacity-90 transition-opacity" type="button">
+          <div id="errorBox" class="titan-error hidden"></div>
+          <button id="calcBtn" class="titan-btn titan-btn-primary" type="button">
             计算（CAGR / 总收益 / 最大回撤 / 夏普）
           </button>
         </div>
       </div>
     </div>
 
-    <div class="lg:col-span-1">
-      <div class="glass-effect rounded-xl p-6">
-        <h2 class="text-lg font-bold text-onekey-text-primary">美股市值前二十（截至2025年末）</h2>
-        <div id="watchlistBox" class="mt-4 flex flex-wrap gap-2">
+    <div class="titan-stocks-sidebar">
+      <div class="titan-card">
+        <h2 class="titan-heading titan-heading-3">美股市值前二十（截至2025年末）</h2>
+        <div id="watchlistBox" class="titan-watchlist">
           加载中...
         </div>
       </div>
@@ -57,39 +55,286 @@ import AppLayout from '@/layouts/AppLayout.astro';
   </div>
 
   <!-- 回测结果与净值走势图并排 -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 items-start">
-    <div class="glass-effect rounded-xl p-6" id="resultSection">
-      <h2 class="text-xl font-bold text-onekey-text-primary text-center mb-4">回测结果</h2>
-      <div id="resultBox">
-        <div class="text-sm text-onekey-text-secondary">尚未计算。点击上方按钮开始回测。</div>
+  <div class="titan-results-grid">
+    <div class="titan-card" id="resultSection">
+      <h2 class="titan-heading titan-heading-3 titan-text-center">回测结果</h2>
+      <div id="resultBox" class="titan-result-placeholder">
+        尚未计算。点击上方按钮开始回测。
       </div>
     </div>
 
     <!-- 净值走势图 -->
-    <div class="glass-effect rounded-xl p-6 h-fit" id="chartSection" style="display: none;">
-      <h2 class="text-xl font-bold text-onekey-text-primary text-center mb-4">净值走势图</h2>
-      <div class="flex items-center justify-center gap-6 text-xs mb-4">
-        <div class="flex items-center gap-1.5">
-          <div class="w-3 h-0.5 bg-green-500 rounded"></div>
-          <span class="text-onekey-text-secondary">组合</span>
+    <div class="titan-card titan-chart-card" id="chartSection" style="display: none;">
+      <h2 class="titan-heading titan-heading-3 titan-text-center">净值走势图</h2>
+      <div class="titan-legend">
+        <div class="titan-legend-item">
+          <div class="titan-legend-line titan-legend-portfolio"></div>
+          <span>组合</span>
         </div>
-        <div class="flex items-center gap-1.5">
-          <div class="w-3 h-0.5 bg-blue-400 rounded"></div>
-          <span class="text-onekey-text-secondary">QQQ 基准</span>
+        <div class="titan-legend-item">
+          <div class="titan-legend-line titan-legend-benchmark"></div>
+          <span>QQQ 基准</span>
         </div>
-        <div class="flex items-center gap-1.5">
-          <div class="w-3 h-3 bg-red-100 border border-red-300 rounded-sm"></div>
-          <span class="text-onekey-text-secondary">最大回撤区间</span>
+        <div class="titan-legend-item">
+          <div class="titan-legend-box"></div>
+          <span>最大回撤区间</span>
         </div>
       </div>
-      <div id="chartContainer" style="height: 350px; width: 100%;"></div>
-      <div id="chartInfo" class="mt-3 text-xs text-onekey-text-muted text-center"></div>
+      <div id="chartContainer" class="titan-chart"></div>
+      <div id="chartInfo" class="titan-chart-info"></div>
     </div>
   </div>
 
+  <style is:global>
+    /* Titan Stocks Page Styles */
+    .titan-stocks-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 1024px) {
+      .titan-stocks-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    .titan-stocks-main {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .titan-stocks-sidebar {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .titan-text-center {
+      text-align: center;
+    }
+
+    .titan-form {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .titan-date-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .titan-date-inputs {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .titan-input-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .titan-label {
+      font-size: 0.875rem;
+      color: #6B7280;
+      margin-bottom: 4px;
+    }
+
+    .titan-input {
+      padding: 8px 12px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: #FFFFFF;
+    }
+
+    .titan-portfolio-input {
+      border: 1px solid #E5E7EB;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .titan-portfolio-header {
+      background: #FAFAFA;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .titan-portfolio-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .titan-portfolio-body {
+      padding: 16px;
+      background: #FFFFFF;
+    }
+
+    .titan-rows {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .titan-hint {
+      margin-top: 12px;
+      font-size: 0.75rem;
+      color: #6B7280;
+    }
+
+    .titan-error {
+      font-size: 0.875rem;
+      color: #DC2626;
+    }
+
+    .titan-watchlist {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Buttons */
+    .titan-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 150ms;
+      border: none;
+    }
+
+    .titan-btn-sm {
+      padding: 4px 12px;
+      font-size: 0.75rem;
+    }
+
+    .titan-btn-primary {
+      background: #10B981;
+      color: white;
+    }
+
+    .titan-btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .titan-btn-ghost {
+      background: white;
+      border: 1px solid #E5E7EB;
+      color: #374151;
+    }
+
+    .titan-btn-ghost:hover {
+      background: #FAFAFA;
+    }
+
+    /* Results */
+    .titan-results-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (min-width: 1024px) {
+      .titan-results-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .titan-result-placeholder {
+      font-size: 0.875rem;
+      color: #6B7280;
+    }
+
+    /* Chart */
+    .titan-chart-card {
+      height: fit-content;
+    }
+
+    .titan-legend {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      font-size: 0.75rem;
+      margin-bottom: 16px;
+    }
+
+    .titan-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .titan-legend-line {
+      width: 12px;
+      height: 2px;
+      border-radius: 1px;
+    }
+
+    .titan-legend-portfolio {
+      background: #22c55e;
+    }
+
+    .titan-legend-benchmark {
+      background: #60a5fa;
+    }
+
+    .titan-legend-box {
+      width: 12px;
+      height: 12px;
+      background: #FEE2E2;
+      border: 1px solid #FCA5A5;
+      border-radius: 4px;
+    }
+
+    .titan-chart {
+      height: 350px;
+      width: 100%;
+    }
+
+    .titan-chart-info {
+      margin-top: 12px;
+      font-size: 0.75rem;
+      color: #6B7280;
+      text-align: center;
+    }
+
+    /* Card */
+    .titan-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid #E5E7EB;
+    }
+
+    .titan-heading {
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .titan-heading-2 {
+      font-size: 1.5rem;
+    }
+
+    .titan-heading-3 {
+      font-size: 1.125rem;
+    }
+  </style>
+
   <script>
     import { createChart, LineSeries, createSeriesMarkers } from 'lightweight-charts';
-    
+
     const rowsEl = document.getElementById('rows') as HTMLElement | null;
     const addRowBtn = document.getElementById('addRowBtn') as HTMLButtonElement | null;
     const calcBtn = document.getElementById('calcBtn') as HTMLButtonElement | null;
@@ -101,7 +346,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
     const chartSection = document.getElementById('chartSection') as HTMLElement | null;
     const chartContainer = document.getElementById('chartContainer') as HTMLElement | null;
     const chartInfo = document.getElementById('chartInfo') as HTMLElement | null;
-    
+
     let chartInstance: ReturnType<typeof createChart> | null = null;
     let chartResizeObserver: ResizeObserver | null = null;
 
@@ -113,7 +358,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       div.textContent = str;
       return div.innerHTML;
     }
-    
+
     function todayIso() {
       return new Date().toISOString().slice(0, 10);
     }
@@ -201,12 +446,12 @@ import AppLayout from '@/layouts/AppLayout.astro';
     // 数字格式化：千分位 + 两位小数
     function formatNumber(n: number, decimals = 2): string {
       if (!Number.isFinite(n)) return '0.00';
-      return n.toLocaleString('en-US', { 
-        minimumFractionDigits: decimals, 
-        maximumFractionDigits: decimals 
+      return n.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
       });
     }
-    
+
     function renderResults(data: any, weights: Array<{ symbol: string; weight: number }>) {
       const fmt = (n: number, decimals = 2) => formatNumber(n, decimals);
       const fmtPct = (n: number) => {
@@ -214,34 +459,34 @@ import AppLayout from '@/layouts/AppLayout.astro';
         const sign = val >= 0 ? '+' : '';
         return `${sign}${fmt(val, 0)}%`;
       };
-      
+
       const cagr = data.cagr || 0;
       const totalReturn = data.totalReturn || 0;
       const maxDrawdown = data.maxDrawdown || 0;
       const sharpe = data.sharpeRatio || 0;
-      
+
       const cagrColor = cagr >= 0 ? 'text-green-600' : 'text-red-500';
       const returnColor = totalReturn >= 0 ? 'text-green-600' : 'text-red-500';
-      
+
       // 计算年数
       const startTs = Date.parse(data.actualStartDate);
       const endTs = Date.parse(data.actualEndDate);
       const years = ((endTs - startTs) / (365.25 * 24 * 60 * 60 * 1000)).toFixed(1);
-      
+
       // 计算总权重用于显示占比
       const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
-      
+
       // 生成组合成分（包含入场日期）
       const entryEvents = data.entryEvents || [];
       const entryDateBySymbol: Record<string, string> = {};
       for (const e of entryEvents) {
         entryDateBySymbol[e.symbol] = e.date;
       }
-      
+
       // 检查是否有动态入场（不同入场日期）
       const uniqueEntryDates = new Set(entryEvents.map((e: any) => e.date));
       const hasDynamicEntry = uniqueEntryDates.size > 1;
-      
+
       const holdingsHtml = weights.map(w => {
         const pct = totalWeight > 0 ? ((w.weight / totalWeight) * 100).toFixed(1) : '0';
         const provider = data.providerBySymbol?.[w.symbol] || 'unknown';
@@ -261,28 +506,28 @@ import AppLayout from '@/layouts/AppLayout.astro';
           </div>
         `;
       }).join('');
-      
+
       return `
         <!-- 核心指标卡片 -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 items-end">
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
-            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">年化收益 CAGR</div>
-            <div class="metric-value text-2xl font-bold font-mono ${cagrColor}">${fmtPct(cagr)}</div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 mb-6">
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-2 text-center h-4">年化收益 CAGR</div>
+            <div class="metric-value text-2xl font-bold font-mono ${cagrColor} text-center">${fmtPct(cagr)}</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
-            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">总收益</div>
-            <div class="metric-value text-4xl font-bold font-mono ${returnColor}">${fmtPct(totalReturn)}</div>
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-2 text-center h-4">总收益</div>
+            <div class="metric-value text-4xl font-bold font-mono ${returnColor} text-center">${fmtPct(totalReturn)}</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
-            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">最大回撤</div>
-            <div class="metric-value text-2xl font-bold font-mono text-red-500">-${fmt(maxDrawdown, 0)}%</div>
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-2 text-center h-4">最大回撤</div>
+            <div class="metric-value text-2xl font-bold font-mono text-red-500 text-center">-${fmt(maxDrawdown, 0)}%</div>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm min-w-0 flex flex-col justify-end">
-            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-1">夏普比率</div>
-            <div class="metric-value text-2xl font-bold font-mono text-onekey-text-primary">${fmt(sharpe, 3)}</div>
+          <div class="bg-white rounded-xl p-4 border border-black/5 shadow-sm">
+            <div class="text-xs text-onekey-text-muted uppercase tracking-wide mb-2 text-center h-4">夏普比率</div>
+            <div class="metric-value text-2xl font-bold font-mono text-onekey-text-primary text-center">${fmt(sharpe, 3)}</div>
           </div>
         </div>
-        
+
         <!-- 详细信息 -->
         <div class="space-y-4">
           <!-- 回测区间 -->
@@ -312,7 +557,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
             </div>
           </div>
         </div>
-        
+
         <!-- 动态入场提示 -->
         ${hasDynamicEntry ? `
         <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -328,7 +573,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
           </div>
         </div>
         ` : ''}
-        
+
         <!-- 备注信息 -->
         <div class="mt-4 text-xs text-onekey-text-muted">
           <div class="flex items-center gap-1">
@@ -341,12 +586,12 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     function createRow(symbol = '', weight = '') {
       const row = document.createElement('div');
-      row.className = 'inline-flex items-center gap-1 px-2 py-1 bg-gray-50 border border-black/10 rounded-lg';
+      row.className = 'inline-flex items-center justify-center gap-1 px-3 py-2 bg-gray-50 border border-black/10 rounded-lg min-w-[120px]';
       row.innerHTML = `
-        <input class="w-16 px-2 py-1 bg-white border border-black/10 rounded text-sm font-mono text-center" placeholder="代码" value="${escapeHtml(symbol)}" />
+        <input class="w-20 px-2 py-1 bg-white border border-black/5 rounded text-sm font-mono text-center min-w-[80px]" placeholder="代码" value="${escapeHtml(symbol)}" />
         <span class="text-gray-400 text-xs">:</span>
-        <input class="w-10 px-1 py-1 bg-white border border-black/10 rounded text-sm text-center" placeholder="1" value="${escapeHtml(weight)}" />
-        <button class="ml-1 text-gray-400 hover:text-red-500 text-sm leading-none" type="button">×</button>
+        <input class="w-12 px-1 py-1 bg-white border border-black/5 rounded text-sm text-center" placeholder="1" value="${escapeHtml(weight)}" />
+        <button class="ml-1 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-500 text-sm leading-none" type="button">×</button>
       `;
       const [symEl, , weightEl, delBtn] = Array.from(row.children) as [
         HTMLInputElement,
@@ -451,7 +696,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       for (const symbol of DEFAULT_WATCHLIST) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'px-3 py-1.5 text-sm font-mono font-medium rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/50 hover:bg-green-50 transition-colors';
+        btn.className = 'min-w-[60px] h-9 px-3 py-1.5 text-sm font-mono font-medium rounded-lg border border-black/10 bg-white hover:border-onekey-accent-green/50 hover:bg-green-50 transition-colors flex items-center justify-center text-center';
         btn.textContent = symbol;
         btn.addEventListener('click', () => {
           if (!rowsEl) return;
@@ -579,28 +824,28 @@ import AppLayout from '@/layouts/AppLayout.astro';
         }
       }
     }
-    
+
     function renderChart(data: any) {
       if (!chartContainer || !chartSection) return;
-      
+
       const valueSeries = data.valueSeries;
       const benchmarkSeries = data.benchmarkSeries;
       const maxDrawdownInfo = data.maxDrawdownInfo;
-      
+
       if (!valueSeries || valueSeries.length < 2) {
         chartSection.style.display = 'none';
         return;
       }
-      
+
       // 显示图表区域
       chartSection.style.display = 'block';
-      
+
       // 销毁旧图表
       if (chartInstance) {
         chartInstance.remove();
         chartInstance = null;
       }
-      
+
       // 创建新图表
       chartInstance = createChart(chartContainer, {
         width: chartContainer.clientWidth,
@@ -631,22 +876,22 @@ import AppLayout from '@/layouts/AppLayout.astro';
           vertLine: { labelBackgroundColor: '#10b981' },
         },
       });
-      
+
       // 转换日期格式为 Lightweight Charts 需要的格式
-      const toChartData = (series: Array<{ date: string; value: number }>) => 
+      const toChartData = (series: Array<{ date: string; value: number }>) =>
         series.map(p => ({ time: p.date, value: p.value }));
-      
+
       // 组合净值曲线（绿色线，支持 markers）
       // 图表数字格式化函数
       const chartFormatter = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      
+
       const portfolioSeries = chartInstance.addSeries(LineSeries, {
         color: '#10b981',
         lineWidth: 2,
         priceFormat: { type: 'custom', formatter: chartFormatter },
       });
       portfolioSeries.setData(toChartData(valueSeries));
-      
+
       // QQQ 基准曲线（蓝色虚线）
       if (benchmarkSeries && benchmarkSeries.length > 0) {
         const benchmarkLine = chartInstance.addSeries(LineSeries, {
@@ -657,12 +902,12 @@ import AppLayout from '@/layouts/AppLayout.astro';
         });
         benchmarkLine.setData(toChartData(benchmarkSeries));
       }
-      
+
       // 最大回撤标注（使用 v5 API: createSeriesMarkers）
       if (maxDrawdownInfo && maxDrawdownInfo.drawdownPct > 0) {
         const peakIdx = valueSeries.findIndex((p: any) => p.date === maxDrawdownInfo.peakDate);
         const troughIdx = valueSeries.findIndex((p: any) => p.date === maxDrawdownInfo.troughDate);
-        
+
         if (peakIdx >= 0 && troughIdx >= 0) {
           createSeriesMarkers(portfolioSeries, [
             {
@@ -681,19 +926,19 @@ import AppLayout from '@/layouts/AppLayout.astro';
             },
           ]);
         }
-        
+
         if (chartInfo) {
-          const recoveryText = maxDrawdownInfo.recoveryDate 
-            ? `恢复日期: <span class="font-mono">${maxDrawdownInfo.recoveryDate}</span>` 
+          const recoveryText = maxDrawdownInfo.recoveryDate
+            ? `恢复日期: <span class="font-mono">${maxDrawdownInfo.recoveryDate}</span>`
             : '尚未恢复至峰值';
           chartInfo.innerHTML = `
-            <span class="text-red-500 font-medium">最大回撤区间:</span> 
-            <span class="font-mono">${maxDrawdownInfo.peakDate}</span> → <span class="font-mono">${maxDrawdownInfo.troughDate}</span> 
+            <span class="text-red-500 font-medium">最大回撤区间:</span>
+            <span class="font-mono">${maxDrawdownInfo.peakDate}</span> → <span class="font-mono">${maxDrawdownInfo.troughDate}</span>
             <span class="text-onekey-text-muted">(${recoveryText})</span>
           `;
         }
       }
-      
+
       // 自适应时间轴到回测区间
       requestAnimationFrame(() => {
         if (chartInstance) {
@@ -722,5 +967,3 @@ import AppLayout from '@/layouts/AppLayout.astro';
     loadWatchlist();
   </script>
 </AppLayout>
-
-

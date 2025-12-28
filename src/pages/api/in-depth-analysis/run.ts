@@ -23,10 +23,10 @@ export const POST: APIRoute = async (context) => {
     const env = getEnv(context.locals) as any;
     const res = await runRednoteAgent({
       env: {
-        LLM_BASE_URL: env.LLM_BASE_URL ?? process.env.LLM_BASE_URL,
-        LLM_API_KEY: env.LLM_API_KEY ?? process.env.LLM_API_KEY,
-        LLM_MODEL: env.LLM_MODEL ?? process.env.LLM_MODEL,
-        APIFY_TOKEN: env.APIFY_TOKEN ?? process.env.APIFY_TOKEN,
+        LLM_BASE_URL: env.LLM_BASE_URL,
+        LLM_API_KEY: env.LLM_API_KEY,
+        LLM_MODEL: env.LLM_MODEL,
+        APIFY_TOKEN: env.APIFY_TOKEN,
       },
       req: {
         keyword: parsed.data.keyword,

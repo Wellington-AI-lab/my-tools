@@ -35,14 +35,23 @@ export const GET: APIRoute = async (context) => {
     }
 
     const env = getEnv(context.locals) as any;
-    const withImpact = await assessTrendEventImpact({
-      env: {
-        LLM_BASE_URL: env.LLM_BASE_URL ?? process.env.LLM_BASE_URL,
-        LLM_API_KEY: env.LLM_API_KEY ?? process.env.LLM_API_KEY,
-        LLM_MODEL: env.LLM_MODEL ?? process.env.LLM_MODEL,
-      },
-      clusters: cmp.clusters,
-    });
+
+    // Wrap LLM call with timeout to prevent worker CPU limit exceeded
+    const LLM_TIMEOUT_MS = 10000;
+    const withImpact = await Promise.race([
+      assessTrendEventImpact({
+        env: {
+          LLM_BASE_URL: env.LLM_BASE_URL,
+          LLM_API_KEY: env.LLM_API_KEY,
+          LLM_MODEL: env.LLM_MODEL,
+        },
+        clusters: cmp.clusters,
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('LLM request timeout')), LLM_TIMEOUT_MS)
+      ),
+    ]) as Awaited<ReturnType<typeof assessTrendEventImpact>>;
+
     cmp.clusters = withImpact;
 
     return new Response(JSON.stringify(cmp), {

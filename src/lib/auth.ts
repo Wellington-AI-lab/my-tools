@@ -50,7 +50,7 @@ export async function createSessionCookies(opts: {
   const secure =
     typeof opts.secure === 'boolean'
       ? opts.secure
-      : (env as any).NODE_ENV === 'production' || process.env.NODE_ENV === 'production';
+      : (env as any).NODE_ENV === 'production';
 
   cookies.set('auth_session', sessionToken, {
     httpOnly: true,

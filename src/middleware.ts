@@ -35,12 +35,6 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
     context.locals = {} as any;
   }
 
-  // 开发环境跳过登录验证
-  if (process.env.NODE_ENV === 'development') {
-    context.locals.user = { role: 'user' };
-    return next();
-  }
-
   // 如果是允许 API Key 认证的路径，且带有 X-Admin-Key header，则放行（由 API 自行验证）
   if (allowsApiKeyAuth(pathname) && context.request.headers.has('X-Admin-Key')) {
     return next();
@@ -53,8 +47,11 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   }
 
   const env = getEnv(context.locals) as { SESSION_SECRET?: string };
-  const secret = env.SESSION_SECRET ?? process.env.SESSION_SECRET;
-  if (!secret) return context.redirect(`/login?redirect=${encodeURIComponent(pathname)}`);
+  const secret = env.SESSION_SECRET;
+  if (!secret) {
+    // Session secret not configured - this is a configuration error
+    throw new Error('SESSION_SECRET is not configured in Cloudflare environment variables.');
+  }
 
   const payload = await decodeSession(signed, secret);
   if (!payload) return context.redirect(`/login?redirect=${encodeURIComponent(pathname)}`);

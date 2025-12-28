@@ -7,6 +7,8 @@ type Env = {
   KV: KVNamespace;
   // D1 绑定（虽然 cron worker 不直接使用，但保持配置一致）
   TRENDS_DB?: D1Database;
+  // API 基础 URL（可通过 wrangler.toml 或 Dashboard 配置）
+  API_BASE_URL?: string;
 };
 
 export default {
@@ -18,9 +20,8 @@ export default {
 
         try {
           // 调用 scan API（使用 force=true 确保 AI 处理）
-          // 注意：需要在 Worker 环境中部署，不能直接 fetch 本地路径
-          // 这里我们使用环境变量或默认的部署 URL
-          const apiBaseUrl = 'https://my-tools-bim.pages.dev'; // 替换为你的实际域名
+          // API_BASE_URL 通过环境变量配置，或使用默认值
+          const apiBaseUrl = env.API_BASE_URL ?? 'https://my-tools-bim.pages.dev';
           const scanUrl = `${apiBaseUrl}/api/trends/scan?force=true`;
 
           const response = await fetch(scanUrl, {

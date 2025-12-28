@@ -1,11 +1,9 @@
 /**
- * Session cookie signing / verification (Edge + Node compatible).
+ * Session cookie signing / verification (Edge Runtime).
  *
  * Format: base64url(json) + "." + base64url(hmac_sha256(json))
  *
- * Rationale:
- * - Middleware runs on Edge runtime: cannot rely on Node's `crypto` module.
- * - Use WebCrypto (`globalThis.crypto.subtle`) which is available in Edge and modern Node.
+ * Uses WebCrypto (`crypto.subtle`) available in Cloudflare Workers.
  */
 
 export type SessionPayload = {
@@ -15,37 +13,18 @@ export type SessionPayload = {
 };
 
 function toBase64Url(bytes: Uint8Array): string {
-  // Prefer Buffer in Node, otherwise fall back to btoa (Edge).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const BufferAny = (globalThis as any).Buffer as
-    | typeof Buffer
-    | undefined;
-  if (BufferAny) {
-    return BufferAny.from(bytes)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/g, '');
-  }
-
-  let binary = '';
-  bytes.forEach((b) => (binary += String.fromCharCode(b)));
-  // btoa expects binary string
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  // Edge Runtime: use btoa directly (no Buffer polyfill needed)
+  const binary = String.fromCodePoint(...bytes);
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
 }
 
 function fromBase64UrlToBytes(s: string): Uint8Array {
   const base64 = s.replace(/-/g, '+').replace(/_/g, '/');
   // pad
   const padded = base64 + '==='.slice((base64.length + 3) % 4);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const BufferAny = (globalThis as any).Buffer as
-    | typeof Buffer
-    | undefined;
-  if (BufferAny) {
-    return new Uint8Array(BufferAny.from(padded, 'base64'));
-  }
 
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);

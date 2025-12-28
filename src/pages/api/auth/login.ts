@@ -81,7 +81,6 @@ export const POST: APIRoute = async (context) => {
     return new Response(
       JSON.stringify({
         error: '登录失败',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
       }),
       {
         status: 500,

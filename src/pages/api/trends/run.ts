@@ -11,20 +11,27 @@ const schema = z.object({
 
 /**
  * 验证 API 密钥（用于 Cron/自动化触发）
+ * 使用恒定时间比较防止时序攻击
  */
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length === 0 || b.length === 0) return false;
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const ca = i < a.length ? a.charCodeAt(i) : 0;
+    const cb = i < b.length ? b.charCodeAt(i) : 0;
+    diff |= ca ^ cb;
+  }
+  return diff === 0;
+}
+
 function verifyAdminKey(request: Request, env: any): boolean {
   const adminKey = request.headers.get('X-Admin-Key');
   if (!adminKey) return false;
 
-  const expectedKey = env.ADMIN_KEY ?? process.env.ADMIN_KEY;
+  const expectedKey = env.ADMIN_KEY;
   if (!expectedKey) return false;
 
-  if (adminKey.length !== expectedKey.length) return false;
-  let result = 0;
-  for (let i = 0; i < adminKey.length; i++) {
-    result |= adminKey.charCodeAt(i) ^ expectedKey.charCodeAt(i);
-  }
-  return result === 0;
+  return constantTimeEqual(adminKey, expectedKey);
 }
 
 export const POST: APIRoute = async (context) => {
@@ -58,9 +65,9 @@ export const POST: APIRoute = async (context) => {
     const env = getEnv(context.locals) as any;
     const report = await runTrendsAgent({
       env: {
-        LLM_BASE_URL: env.LLM_BASE_URL ?? process.env.LLM_BASE_URL,
-        LLM_API_KEY: env.LLM_API_KEY ?? process.env.LLM_API_KEY,
-        LLM_MODEL: env.LLM_MODEL ?? process.env.LLM_MODEL,
+        LLM_BASE_URL: env.LLM_BASE_URL,
+        LLM_API_KEY: env.LLM_API_KEY,
+        LLM_MODEL: env.LLM_MODEL,
       },
       minScore: parsed.data.minScore,
       dedupSimilarity: parsed.data.dedupSimilarity,

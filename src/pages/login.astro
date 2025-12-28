@@ -13,39 +13,94 @@ const redirect = safeRedirectPath(Astro.url.searchParams.get('redirect'));
     <title>登录 · My Tools</title>
   </head>
   <body>
-    <div class="max-w-md mx-auto px-4 py-16">
-      <div class="glass-effect rounded-xl p-6">
-        <h1 class="text-xl font-bold text-onekey-text-primary">登录</h1>
-        <p class="mt-2 text-sm text-onekey-text-secondary">
+    <div class="titan-login-page">
+      <div class="titan-login-card">
+        <h1 class="titan-login-heading">登录</h1>
+        <p class="titan-login-subtitle">
           请输入站点密码。
         </p>
 
-        <form id="loginForm" class="mt-5 space-y-3">
+        <form id="loginForm" class="titan-login-form">
           <input type="hidden" name="redirect" value={redirect} />
 
-          <div>
-            <label class="block text-sm text-onekey-text-secondary mb-1" for="password">密码</label>
+          <div class="titan-login-field">
+            <label class="titan-label" for="password">密码</label>
             <input
               id="password"
               name="password"
               type="password"
-              class="w-full px-4 py-2 bg-white border border-black/10 rounded-lg focus:outline-none focus:border-onekey-accent-green"
+              class="titan-input"
               autocomplete="current-password"
               required
             />
           </div>
 
-          <div id="errorBox" class="hidden text-sm text-red-600"></div>
+          <div id="errorBox" class="titan-error hidden"></div>
 
-          <button
-            type="submit"
-            class="w-full py-2 px-4 bg-gradient-neon text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
-          >
+          <button type="submit" class="titan-btn titan-btn-primary">
             登录
           </button>
         </form>
       </div>
     </div>
+
+    <style>
+      /* Titan Login Page Styles */
+      .titan-login-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: #FAFAFA;
+      }
+
+      .titan-login-card {
+        width: 100%;
+        max-width: 400px;
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 24px;
+        padding: 32px;
+      }
+
+      .titan-login-heading {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #1F2937;
+      }
+
+      .titan-login-subtitle {
+        margin-top: 8px;
+        margin-bottom: 24px;
+        font-size: 0.875rem;
+        color: #6B7280;
+      }
+
+      .titan-login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .titan-login-field {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .titan-error {
+        padding: 12px;
+        font-size: 0.875rem;
+        color: #DC2626;
+        background: #FEE2E2;
+        border-radius: 8px;
+      }
+
+      .titan-error.hidden {
+        display: none;
+      }
+    </style>
 
     <script>
       const form = document.getElementById('loginForm') as HTMLFormElement | null;
@@ -87,5 +142,3 @@ const redirect = safeRedirectPath(Astro.url.searchParams.get('redirect'));
     </script>
   </body>
 </html>
-
-

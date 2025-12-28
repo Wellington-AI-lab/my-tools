@@ -10,17 +10,17 @@ export type ModuleDef = {
 
 export const MODULES: ModuleDef[] = [
   {
-    id: 'trends',
-    name: '社会热点扫描',
-    description: '扫描社会热点，用AI标注新闻',
-    href: '/tools/trends',
-    status: 'stable',
-  },
-  {
     id: 'stocks',
     name: '股票组合模拟收益率回测',
     description: '',
     href: '/tools/stocks',
+    status: 'stable',
+  },
+  {
+    id: 'trends',
+    name: '基于AI对热搜进行标注的社会热点',
+    description: '扫描社会热点，用AI标注新闻',
+    href: '/tools/trends',
     status: 'stable',
   },
   {
