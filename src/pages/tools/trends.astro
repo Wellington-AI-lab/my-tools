@@ -98,6 +98,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       recentNews: NewsItemWithTags[];
       aiQuotaExceeded?: boolean;
       aiApiCalls?: number;
+      cached?: boolean;
     };
 
     const metaInfoEl = document.getElementById('metaInfo');
@@ -198,7 +199,71 @@ import AppLayout from '@/layouts/AppLayout.astro';
       });
     }
 
-    // 扫描并加载趋势数据
+    // 加载趋势数据（使用缓存，不触发 AI）
+    async function loadTrends() {
+      if (chartContainerEl) {
+        chartContainerEl.innerHTML = '<div class="text-sm text-onekey-text-secondary">加载中...</div>';
+      }
+
+      try {
+        const resp = await fetch('/api/trends/scan', { credentials: 'include' });
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok) {
+          throw new Error(data?.error || `HTTP ${resp.status}`);
+        }
+
+        currentReport = data as TrendReport;
+        displayReport(data);
+      } catch (error: any) {
+        console.error('Load error:', error);
+        if (chartContainerEl) {
+          chartContainerEl.innerHTML = `<div class="text-sm text-red-500">加载失败: ${escapeHtml(error.message || '未知错误')}</div>`;
+        }
+      }
+    }
+
+    // 显示报告数据
+    function displayReport(data: TrendReport) {
+      currentReport = data;
+
+      // 更新元信息
+      if (metaInfoEl) {
+        const date = new Date(data.generatedAt);
+        const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        const isCached = (data as any).cached === true;
+        let metaText = isCached
+          ? `缓存数据 (更新于 ${timeStr}) | 每4小时自动刷新`
+          : `每4小时自动更新，最近更新 ${timeStr}`;
+        if (data.aiApiCalls !== undefined) {
+          metaText += ` | AI 调用: ${data.aiApiCalls} 次`;
+        }
+        metaInfoEl.textContent = metaText;
+      }
+
+      // 渲染柱状图
+      renderChart(data.topTags);
+
+      // 配额超限警告
+      if (data.aiQuotaExceeded && chartContainerEl) {
+        const warningHtml = `
+          <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4">
+            <div class="flex items-start gap-3">
+              <span class="text-yellow-600 text-xl">⚠️</span>
+              <div>
+                <div class="font-medium text-yellow-800">AI 配额已超限</div>
+                <div class="text-sm text-yellow-700 mt-1">
+                  本次使用了 ${data.aiApiCalls || 0} 次 AI 调用。已自动回退到关键词匹配模式。
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        chartContainerEl.insertAdjacentHTML('afterbegin', warningHtml);
+      }
+    }
+
+    // 强制刷新并使用 AI 重新扫描
     async function scanTrends() {
       if (scanBtn) {
         scanBtn.disabled = true;
@@ -209,7 +274,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       }
 
       try {
-        const resp = await fetch('/api/trends/scan?ai=true', { credentials: 'include' });
+        const resp = await fetch('/api/trends/scan?force=true', { credentials: 'include' });
         const data = await resp.json().catch(() => ({}));
 
         if (!resp.ok) {
@@ -217,41 +282,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
         }
 
         currentReport = data as TrendReport;
-
-        // 更新元信息
-        if (metaInfoEl) {
-          const date = new Date(currentReport.generatedAt);
-          const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-          let metaText = `每4小时自动更新一次，最近更新时间为${timeStr}`;
-          if (currentReport.aiApiCalls !== undefined) {
-            metaText += ` | AI 调用: ${currentReport.aiApiCalls} 次`;
-          }
-          metaInfoEl.textContent = metaText;
-        }
-
-        // 渲染柱状图
-        renderChart(currentReport.topTags);
-
-        // 配额超限警告（插入到图表之前）
-        if (currentReport.aiQuotaExceeded && chartContainerEl) {
-          const warningHtml = `
-            <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4">
-              <div class="flex items-start gap-3">
-                <span class="text-yellow-600 text-xl">⚠️</span>
-                <div>
-                  <div class="font-medium text-yellow-800">AI 配额已超限</div>
-                  <div class="text-sm text-yellow-700 mt-1">
-                    本次使用了 ${currentReport.aiApiCalls || 0} 次 AI 调用。已自动回退到关键词匹配模式。
-                  </div>
-                  <div class="text-sm text-yellow-700 mt-1">
-                    建议：1) 降低刷新频率 2) 减少数据源数量
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-          chartContainerEl.insertAdjacentHTML('afterbegin', warningHtml);
-        }
+        displayReport(data);
 
       } catch (error: any) {
         console.error('Scan error:', error);
@@ -275,8 +306,8 @@ import AppLayout from '@/layouts/AppLayout.astro';
       });
     }
 
-    // 页面加载时自动扫描
-    scanTrends();
+    // 页面加载时使用缓存数据
+    loadTrends();
 
     // ========== 趋势分析功能 ==========
 

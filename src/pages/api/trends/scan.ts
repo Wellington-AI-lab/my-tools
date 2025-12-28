@@ -6,8 +6,16 @@
 import { requireKV, requireD1, getEnv } from '@/lib/env';
 
 const NEWSNOW_API_URL = "https://newsbim.pages.dev/api/trends/aggregate";
-const CACHE_KEY_PREFIX = "trends:";
-const CACHE_TTL = 60 * 60; // 1小时缓存
+const CACHE_KEY_PREFIX = "trends:scan:";
+const CACHE_TTL = 4 * 60 * 60; // 4小时缓存
+
+// 获取当前4小时时间窗口的缓存键
+function getCacheKey(): string {
+  const now = Date.now();
+  const windowMs = 4 * 60 * 60 * 1000; // 4小时窗口
+  const windowIndex = Math.floor(now / windowMs);
+  return `${CACHE_KEY_PREFIX}${windowIndex}`;
+}
 
 // 内联关键词词典，避免导入问题
 const KEYWORD_DICT = [
@@ -363,14 +371,16 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
   const d1 = requireD1(locals);
   const env = getEnv(locals) as any;
   const forceRefresh = url.searchParams.get('force') === 'true';
-  const useAI = url.searchParams.get('ai') === 'true'; // AI 模式开关
 
   try {
-    // 检查缓存
-    const cacheKey = `${CACHE_KEY_PREFIX}${new Date().toISOString().slice(0, 10)}`;
+    // 检查缓存（4小时窗口）
+    const cacheKey = getCacheKey();
     const cached = await kv.get(cacheKey);
     if (cached && !forceRefresh) {
-      return Response.json(JSON.parse(cached));
+      const data = JSON.parse(cached);
+      // 标记为缓存数据
+      data.cached = true;
+      return Response.json(data);
     }
 
     // 从 newsnow 获取数据
@@ -390,7 +400,7 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
       throw new Error("Invalid newsnow response");
     }
 
-    console.log(`[trends/scan] Processing ${data.items.length} news items, AI mode: ${useAI}`);
+    console.log(`[trends/scan] Processing ${data.items.length} news items`);
 
     // 处理新闻：提取关键词
     let newsWithTags: NewsItemWithTags[];
@@ -401,7 +411,8 @@ export async function GET({ locals, url }: { locals: App.Locals; url: URL }) {
     let aiQuotaExceeded = false;
     let aiApiCalls = 0;
 
-    if (useAI && accountId && apiToken) {
+    // 优先使用 AI 模式（如果有配置）
+    if (accountId && apiToken) {
       // AI 模式：使用 REST API 批量处理
       console.log(`[trends/scan] Using AI mode with ${data.items.length} items`);
       const aiResult = await extractTagsWithAI(data.items, accountId, apiToken);
