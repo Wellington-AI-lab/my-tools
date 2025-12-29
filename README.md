@@ -1,89 +1,122 @@
-# my tools
+# my-tools
 
-这是一个部署在 **Cloudflare Pages（免费版）** 上的工具平台。
-每个小工具模块彼此独立，但通过 `/api/*` 与 **Cloudflare KV/D1** 共享核心数据（例如：**标的池/标签**）。
+一个**模块化工具平台**，支持 **Vercel** 和 **Cloudflare Pages** 双平台部署。
 
-## 📦 已上线模块
+每个工具模块彼此独立，通过 `/api/*` 与 **KV 数据库** 共享核心数据（如标的池、标签、用户配置等）。
+
+## 已上线模块
 
 | 模块 | 路由 | 状态 | 说明 |
 |------|------|------|------|
-| 股票组合回测 | `/tools/stocks` | stable | 日线回测、CAGR/夏普等指标 |
+| 股票组合回测 | `/tools/stocks` | stable | 日线回测、CAGR/夏普比率、最大回撤分析 |
 | 新闻聚合 | `/tools/news` | stable | 聚合 V2EX、HackerNews、36氪等科技资讯 |
-| 关注重点 | `/tools/rednote-agent` | beta | 小红书信息流分析 |
-| Telegram 信号 | `/tools/telegram` | todo | 待开发 |
+| 数据源管理 | `/tools/admin` | stable | 管理 RSS/RSSHub 数据源（管理员） |
+| 深度分析 | `/tools/deep-analysis` | beta | 信息流内容分析与趋势检测 |
+| Telegram 信号 | `/tools/telegram` | todo | 信号归档与标签化（待开发） |
 
----
+## API 端点
 
-## 🚀 本地开发
+| 端点 | 说明 |
+|------|------|
+| `/api/auth/login` | 用户登录 |
+| `/api/auth/logout` | 用户登出 |
+| `/api/stocks/calculate` | 股票组合回测计算 |
+| `/api/profile/watchlist` | 用户自选股管理 |
+| `/api/profile/preferences` | 用户偏好设置 |
+| `/api/profile/tags` | 标签管理 |
+| `/api/intelligence/scan` | 智能内容抓取 |
+| `/api/intelligence/sources` | 数据源管理 |
+| `/api/in-depth-analysis/run` | 深度分析执行 |
+
+## 技术栈
+
+### 前端
+- **框架**: Astro 5
+- **样式**: Tailwind CSS
+- **图表**: Lightweight Charts, Recharts
+- **语言**: TypeScript
+
+### 后端
+- **运行时**: Astro SSR (支持 Vercel Edge / Cloudflare Workers)
+- **认证**: Cookie Session + PBKDF2 密码哈希
+
+### 数据存储
+| 平台 | KV 存储 | 数据库 |
+|------|---------|--------|
+| Vercel | Vercel KV (Redis) | Vercel Postgres |
+| Cloudflare | Cloudflare KV | Cloudflare D1 |
+
+### 外部服务
+- **行情数据**: Finnhub（主）, FMP, Polygon（备）
+- **AI/LLM**: OpenAI 兼容接口
+
+## 本地开发
 
 ```bash
 npm install
 npm run dev
 ```
 
-然后访问 `http://localhost:4321`
+访问 `http://localhost:4321`
 
-> 本地开发默认跳过登录验证。
+> 本地开发默认跳过登录验证
 
----
+## 环境变量 / Secrets
 
-## 🔐 环境变量 / Secrets
+### 站点鉴权
+- `SESSION_SECRET` - 会话签名密钥
+- `SITE_PASSWORD_HASH` - 普通用户密码的 SHA-256 hex
+- `ADMIN_PASSWORD_HASH` - 管理员密码的 SHA-256 hex
 
-**站点鉴权**
-- `SESSION_SECRET`：会话签名密钥
-- `SITE_PASSWORD_HASH`：普通登录密码的 SHA-256 hex
-- `ADMIN_PASSWORD_HASH`：管理员登录密码的 SHA-256 hex
+### 行情数据
+- `FINNHUB_API_KEY` - Finnhub API 密钥
+- `FMP_API_KEY` - FMP API 密钥（可选）
+- `POLYGON_API_KEY` - Polygon API 密钥（可选）
 
-**行情数据**
-- `FINNHUB_API_KEY`
-- `FMP_API_KEY`（可选）
-- `POLYGON_API_KEY`（可选）
+### AI 服务
+- `OPENAI_API_KEY` - OpenAI API 密钥
+- `OPENAI_BASE_URL` - API 基础 URL（可选）
 
-**定时任务 + AI**
-- `CRON_SECRET`：Cron 刷新认证密钥
-- `CLOUDFLARE_ACCOUNT_ID`：Cloudflare 账户 ID
-- `CLOUDFLARE_API_TOKEN`：Workers AI API Token
+### Vercel 部署
+在 Vercel 项目设置中配置环境变量，或通过 CLI：
+```bash
+vercel env add SESSION_SECRET
+```
 
----
+### Cloudflare 部署
+在 `wrangler.toml` 中配置或通过 Workers dashboard 设置
 
-## 📝 部署
+## 部署
 
-### my-tools 部署
+### Vercel 部署（推荐）
+
+```bash
+npm run build
+vercel --prod
+```
+
+### Cloudflare Pages 部署
+
 ```bash
 npm run build
 npx wrangler pages deploy dist --project-name=my-tools
 ```
 
-### newsnow 部署
+## 测试
+
 ```bash
-cd /Users/wellington/newsnow
-pnpm run deploy
-# 或手动：
-npx wrangler pages deploy dist/output/public --project-name=newsbim
+npm run test           # 运行测试
+npm run test:watch     # 监听模式
+npm run test:coverage  # 覆盖率报告
 ```
 
-**⚠️ 重要**: newsnow 是 fork 的项目，上游更新不会自动同步。
-- 推荐每月同步一次上游代码
-- 同步步骤见 `/Users/wellington/newsnow/MODIFICATIONS.md`
+## 开发笔记
 
----
+- 项目设计为**平台无关**，通过抽象层 (`src/lib/storage/`) 实现多平台支持
+- 每个模块独立实现，便于维护和扩展
+- 采用**测试驱动**开发方式，核心 API 均有测试覆盖
 
-## 🛠️ 技术栈
-
-- **前端**：Astro + Tailwind CSS
-- **后端**：Cloudflare Pages Functions + Workers (Cron)
-- **存储**：Cloudflare KV + D1
-- **部署**：Cloudflare Pages + Workers
-
----
-
-## 📋 开发笔记
-
----
-
-## 🔗 相关链接
+## 相关链接
 
 - **生产地址**: https://my-tools-bim.pages.dev
-- **newsnow 地址**: https://newsbim.pages.dev
 - **GitHub**: https://github.com/Wellington-AI-lab/my-tools
-- **newsnow 源项目**: https://github.com/ourongxing/newsnow
