@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Vibe Tech News - 全球科技前沿 | AI 智能摘要</title>
+    <meta name="description" content="每日聚合 HackerNews、V2EX、36氪、少数派等全球科技资讯，AI 智能生成摘要，助你高效获取前沿科技信息。">
+    <meta name="keywords" content="科技新闻,HackerNews,V2EX,36氪,少数派,AI,人工智能,编程,技术资讯">
+    <meta name="author" content="Vibe Tech News">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://news-api.zhusen-wang.workers.dev">
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Vibe Tech News - 全球科技前沿">
+    <meta property="og:description" content="每日聚合全球科技资讯，AI 智能生成摘要，助你高效获取前沿科技信息。">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&h=630&fit=crop">
+    <meta property="og:url" content="https://news-api.zhusen-wang.workers.dev">
+    <meta property="og:site_name" content="Vibe Tech News">
+    <meta property="og:locale" content="zh_CN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Vibe Tech News - 全球科技前沿">
+    <meta name="twitter:description" content="每日聚合全球科技资讯，AI 智能生成摘要，助你高效获取前沿科技信息。">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&h=630&fit=crop">
+
+    <!-- Favicon (SVG Data URI with Emoji) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>" media="(prefers-color-scheme: light)">
+
+    <!-- Apple Touch Icon (Add to Home Screen) -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230071e3' width='100' height='100' rx='20'/><text y='.9em' font-size='60' x='50' text-anchor='middle'>⚡</text></svg>">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Vibe Tech">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0071e3">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================
+           CSS 变量定义 - 支持深色/浅色模式
+           ============================================ */
+        :root {
+            /* 浅色模式 (默认) */
+            --bg-color: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-main: #1d1d1f;
+            --text-sub: #86868b;
+            --accent-color: #0071e3;
+            --accent-hover: #0077ed;
+            --border-color: #e5e5e7;
+            --input-bg: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.04);
+            --shadow-hover: rgba(0, 0, 0, 0.12);
+            --skeleton-start: #f5f5f7;
+            --skeleton-end: #e5e5e7;
+
+            /* 来源标签颜色 - 浅色 */
+            --badge-hn-bg: #fff3e6;
+            --badge-hn-text: #e67e22;
+            --badge-v2ex-bg: #f3e5f5;
+            --badge-v2ex-text: #9b59b6;
+            --badge-tc-bg: #e8f5e9;
+            --badge-tc-text: #27ae60;
+            --badge-36kr-bg: #fce4ec;
+            --badge-36kr-text: #e91e63;
+            --badge-sspai-bg: #fff8e1;
+            --badge-sspai-text: #f39c12;
+            --badge-default-bg: #f0f0f5;
+            --badge-default-text: #666666;
+
+            /* 按钮颜色 */
+            --btn-bg: #ffffff;
+            --btn-text: #6e6e73;
+            --btn-hover-bg: #f5f5f7;
+            --btn-active-bg: #1d1d1f;
+            --btn-active-text: #ffffff;
+            --btn-border: #e5e5e7;
+
+            /* 其他 */
+            --control-bar-bg: rgba(245, 245, 247, 0.85);
+            --scrollbar-track: #f1f1f1;
+            --scrollbar-thumb: #c1c1c1;
+            --backtotop-bg: rgba(255, 255, 255, 0.8);
+            --backtotop-hover: rgba(240, 240, 240, 0.9);
+            --footer-bg: transparent;
+            --footer-border: rgba(0, 0, 0, 0.06);
+        }
+
+        /* 深色模式 */
+        body.dark {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e8e8ed;
+            --text-sub: #9a9a9f;
+            --accent-color: #4a9eff;
+            --accent-hover: #5aadff;
+            --border-color: #2a2a2a;
+            --input-bg: #1e1e1e;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --shadow-hover: rgba(0, 0, 0, 0.5);
+            --skeleton-start: #2a2a2a;
+            --skeleton-end: #1a1a1a;
+
+            /* 来源标签颜色 - 深色 */
+            --badge-hn-bg: #3d2a1a;
+            --badge-hn-text: #f0a860;
+            --badge-v2ex-bg: #3a2a3d;
+            --badge-v2ex-text: #c484d4;
+            --badge-tc-bg: #1a3d2a;
+            --badge-tc-text: #5acd7a;
+            --badge-36kr-bg: #3d1a2a;
+            --badge-36kr-text: #f0608a;
+            --badge-sspai-bg: #3d351a;
+            --badge-sspai-text: #f0b860;
+            --badge-default-bg: #2a2a2a;
+            --badge-default-text: #999999;
+
+            /* 按钮颜色 - 深色 */
+            --btn-bg: #2a2a2a;
+            --btn-text: #a0a0a5;
+            --btn-hover-bg: #333333;
+            --btn-active-bg: #e8e8ed;
+            --btn-active-text: #1d1d1f;
+            --btn-border: #3a3a3a;
+
+            /* 其他 - 深色 */
+            --control-bar-bg: rgba(18, 18, 18, 0.85);
+            --scrollbar-track: #1a1a1a;
+            --scrollbar-thumb: #4a4a4a;
+            --backtotop-bg: rgba(40, 40, 40, 0.8);
+            --backtotop-hover: rgba(60, 60, 60, 0.9);
+            --footer-border: rgba(255, 255, 255, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-main);
+            line-height: 1.5;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部样式 */
+        header {
+            text-align: center;
+            padding: 40px 20px 20px;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+            transition: color 0.3s ease;
+        }
+
+        header p {
+            color: var(--text-sub);
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        /* 控制栏 - Sticky Header */
+        .control-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--control-bar-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 16px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .control-bar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 顶部操作行 - 包含搜索和主题切换 */
+        .top-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            outline: none;
+            color: var(--text-main);
+            transition: all 0.2s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-sub);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--text-sub);
+            pointer-events: none;
+            transition: color 0.3s ease;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: var(--border-color);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .search-clear:hover {
+            background: var(--text-sub);
+        }
+
+        .search-clear.show {
+            display: flex;
+        }
+
+        /* 主题切换按钮 */
+        .theme-toggle {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
+            color: var(--text-main);
+        }
+
+        .theme-toggle:hover {
+            background: var(--btn-hover-bg);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .theme-toggle:active {
+            transform: translateY(0);
+        }
+
+        .theme-toggle svg {
+            width: 22px;
+            height: 22px;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .theme-toggle .moon-icon {
+            display: block;
+        }
+
+        .theme-toggle .sun-icon {
+            display: none;
+        }
+
+        body.dark .theme-toggle .moon-icon {
+            display: none;
+        }
+
+        body.dark .theme-toggle .sun-icon {
+            display: block;
+        }
+
+        /* 来源筛选栏 */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 4px;
+        }
+
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-btn {
+            flex-shrink: 0;
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            font-family: inherit;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 20px;
+            color: var(--btn-text);
+            cursor: pointer;
+            transition: all 0.2s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: var(--btn-hover-bg);
+            border-color: var(--border-color);
+        }
+
+        .filter-btn.active {
+            background: var(--btn-active-bg);
+            border-color: var(--btn-active-bg);
+            color: var(--btn-active-text);
+        }
+
+        .filter-count {
+            display: inline-block;
+            min-width: 20px;
+            padding: 2px 6px;
+            margin-left: 4px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-size: 0.75rem;
+            transition: background-color 0.3s ease;
+        }
+
+        body.dark .filter-count {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .filter-btn.active .filter-count {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        body.dark .filter-btn.active .filter-count {
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        /* 骨架屏 */
+        .skeleton {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .skeleton { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+            .skeleton { grid-template-columns: 1fr; }
+        }
+
+        .skeleton-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            height: 220px;
+            transition: background-color 0.3s ease;
+        }
+
+        .skeleton-badge {
+            width: 80px;
+            height: 24px;
+            background: linear-gradient(90deg, var(--skeleton-start) 25%, var(--skeleton-end) 50%, var(--skeleton-start) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-title {
+            height: 48px;
+            background: linear-gradient(90deg, var(--skeleton-start) 25%, var(--skeleton-end) 50%, var(--skeleton-start) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-summary {
+            height: 60px;
+            background: linear-gradient(90deg, var(--skeleton-start) 25%, var(--skeleton-end) 50%, var(--skeleton-start) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-footer {
+            height: 16px;
+            width: 100px;
+            background: linear-gradient(90deg, var(--skeleton-start) 25%, var(--skeleton-end) 50%, var(--skeleton-start) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* 新闻网格 */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .news-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+            header h1 {
+                font-size: 1.75rem;
+            }
+            .top-actions {
+                flex-wrap: wrap;
+            }
+            .theme-toggle {
+                width: 44px;
+                height: 44px;
+            }
+            .theme-toggle svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* 新闻卡片 */
+        .news-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            border: 1px solid var(--shadow-color);
+            position: relative;
+        }
+
+        .news-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px var(--shadow-hover);
+        }
+
+        .news-card.hidden {
+            display: none;
+        }
+
+        /* 来源标签 */
+        .source-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            letter-spacing: 0.02em;
+        }
+
+        /* 来源标签配色 */
+        .badge-hn { background: var(--badge-hn-bg); color: var(--badge-hn-text); }
+        .badge-v2ex { background: var(--badge-v2ex-bg); color: var(--badge-v2ex-text); }
+        .badge-techcrunch { background: var(--badge-tc-bg); color: var(--badge-tc-text); }
+        .badge-36kr { background: var(--badge-36kr-bg); color: var(--badge-36kr-text); }
+        .badge-sspai { background: var(--badge-sspai-bg); color: var(--badge-sspai-text); }
+        .badge-default { background: var(--badge-default-bg); color: var(--badge-default-text); }
+
+        /* 标题 */
+        .news-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.4;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            transition: color 0.3s ease;
+        }
+
+        /* 摘要 */
+        .news-summary {
+            font-size: 0.875rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin-bottom: 16px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+            transition: color 0.3s ease;
+        }
+
+        /* 底部信息 */
+        .news-footer {
+            display: flex;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            transition: border-color 0.3s ease;
+        }
+
+        .news-time {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            transition: color 0.3s ease;
+        }
+
+        .external-icon {
+            margin-left: auto;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            color: var(--text-sub);
+        }
+
+        .news-card:hover .external-icon {
+            opacity: 1;
+        }
+
+        /* 加载更多按钮 */
+        .load-more-container {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .load-more-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        .load-more-btn:hover:not(:disabled) {
+            background: var(--btn-hover-bg);
+            border-color: var(--border-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .load-more-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .load-more-btn .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 加载更多时的骨架屏 */
+        .load-more-skeleton {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 0 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .load-more-skeleton { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+            .load-more-skeleton { grid-template-columns: 1fr; }
+        }
+
+        /* 没有更多内容提示 */
+        .no-more {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        /* 错误状态 */
+        .error-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .error-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            color: var(--text-sub);
+            transition: color 0.3s ease;
+        }
+
+        .error-state h3 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .error-state p {
+            color: var(--text-sub);
+            margin-bottom: 20px;
+            transition: color 0.3s ease;
+        }
+
+        .retry-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .retry-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .retry-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-sub);
+            display: none;
+            transition: color 0.3s ease;
+        }
+
+        .empty-state.show {
+            display: block;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .empty-state small {
+            font-size: 0.875rem;
+            color: var(--text-sub);
+            opacity: 0.7;
+        }
+
+        /* 结果计数 */
+        .result-count {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .result-count strong {
+            color: var(--text-main);
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        /* 回到顶部按钮 */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--backtotop-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 99;
+            color: var(--text-main);
+            box-shadow: 0 4px 20px var(--shadow-color);
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .back-to-top:hover {
+            background: var(--backtotop-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px var(--shadow-hover);
+        }
+
+        .back-to-top:active {
+            transform: translateY(-1px);
+        }
+
+        .back-to-top svg {
+            width: 24px;
+            height: 24px;
+            transition: transform 0.3s ease;
+        }
+
+        .back-to-top:hover svg {
+            transform: translateY(-2px);
+        }
+
+        /* 页脚 */
+        footer {
+            text-align: center;
+            padding: 40px 20px 30px;
+            border-top: 1px solid var(--footer-border);
+            margin-top: 40px;
+        }
+
+        footer p {
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            transition: color 0.3s ease;
+        }
+
+        footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        footer a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Vibe Tech News</h1>
+            <p>每日聚合 HackerNews、V2EX、36氪 等全球科技资讯，AI 智能摘要</p>
+        </header>
+
+        <!-- 控制栏 -->
+        <div class="control-bar" id="controlBar" style="display: none;">
+            <div class="control-bar-inner">
+                <!-- 顶部操作行：搜索 + 主题切换 -->
+                <div class="top-actions">
+                    <!-- 搜索框 -->
+                    <div class="search-box">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" class="search-input" id="searchInput" placeholder="搜索新闻标题或摘要...">
+                        <button class="search-clear" id="searchClear">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- 主题切换按钮 -->
+                    <button class="theme-toggle" id="themeToggle" title="切换深色/浅色模式">
+                        <!-- 月亮图标 (浅色模式显示) -->
+                        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                        <!-- 太阳图标 (深色模式显示) -->
+                        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 来源筛选栏 -->
+                <div class="filter-bar" id="filterBar">
+                    <!-- 动态生成筛选按钮 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果计数 -->
+        <div class="result-count" id="resultCount" style="display: none;"></div>
+
+        <!-- Loading 骨架屏 -->
+        <div class="skeleton" id="skeleton">
+            <div class="skeleton-card">
+                <div class="skeleton-badge"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-summary"></div>
+                <div class="skeleton-footer"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton-badge"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-summary"></div>
+                <div class="skeleton-footer"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton-badge"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-summary"></div>
+                <div class="skeleton-footer"></div>
+            </div>
+        </div>
+
+        <!-- 加载失败状态 -->
+        <div class="error-state" id="errorState" style="display: none;">
+            <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h3>加载失败</h3>
+            <p>无法获取新闻数据，请检查网络连接</p>
+            <button class="retry-btn" onclick="loadNews(1)">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                重试
+            </button>
+        </div>
+
+        <!-- 新闻网格 -->
+        <div class="news-grid" id="newsGrid" style="display: none;"></div>
+
+        <!-- 加载更多按钮 -->
+        <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+            <button class="load-more-btn" id="loadMoreBtn">
+                加载更多
+            </button>
+        </div>
+
+        <!-- 加载更多时的骨架屏 -->
+        <div class="load-more-skeleton" id="loadMoreSkeleton" style="display: none;">
+            <div class="skeleton-card">
+                <div class="skeleton-badge"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-summary"></div>
+                <div class="skeleton-footer"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton-badge"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-summary"></div>
+                <div class="skeleton-footer"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton-badge"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-summary"></div>
+                <div class="skeleton-footer"></div>
+            </div>
+        </div>
+
+        <!-- 没有更多内容提示 -->
+        <div class="no-more" id="noMore" style="display: none;">
+            没有更多内容了
+        </div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" id="emptyState">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p id="emptyStateText">暂无新闻数据</p>
+            <small id="emptyStateHint">试试切换筛选条件或清除搜索</small>
+        </div>
+
+        <!-- 页脚 -->
+        <footer>
+            <p>&copy; 2025 Vibe Tech News. Built with <a href="https://cloudflare.com" target="_blank" rel="noopener">Cloudflare</a> & <a href="https://groq.com" target="_blank" rel="noopener">AI</a>.</p>
+        </footer>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="back-to-top" id="backToTop" title="回到顶部">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </button>
+
+    <script>
+        // ============================================
+        // 主题管理模块
+        // ============================================
+
+        const THEME_KEY = 'vibe-tech-news-theme';
+
+        // 检查本地存储的主题偏好
+        function getSavedTheme() {
+            const saved = localStorage.getItem(THEME_KEY);
+            if (saved) {
+                return saved;
+            }
+            // 首次访问，检查系统偏好
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+            return 'light';
+        }
+
+        // 应用主题
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark');
+            } else {
+                document.body.classList.remove('dark');
+            }
+            localStorage.setItem(THEME_KEY, theme);
+        }
+
+        // 切换主题
+        function toggleTheme() {
+            const isDark = document.body.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            applyTheme(newTheme);
+        }
+
+        // 初始化主题
+        function initTheme() {
+            const theme = getSavedTheme();
+            applyTheme(theme);
+
+            // 绑定切换按钮事件
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+            // 监听系统主题变化
+            if (window.matchMedia) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    // 只有在用户没有手动设置过偏好时才跟随系统
+                    if (!localStorage.getItem(THEME_KEY)) {
+                        applyTheme(e.matches ? 'dark' : 'light');
+                    }
+                });
+            }
+        }
+
+        // ============================================
+        // 回到顶部功能
+        // ============================================
+
+        function initBackToTop() {
+            const backToTopBtn = document.getElementById('backToTop');
+            const SCROLL_THRESHOLD = 300;
+
+            // 监听滚动事件
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > SCROLL_THRESHOLD) {
+                    backToTopBtn.classList.add('visible');
+                } else {
+                    backToTopBtn.classList.remove('visible');
+                }
+            });
+
+            // 点击回到顶部
+            backToTopBtn.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        }
+
+        // ============================================
+        // API 配置
+        // ============================================
+        const API_URL = 'https://news-api.zhusen-wang.workers.dev/latest';
+        // ============================================
+
+        // 全局数据存储
+        let allArticles = [];
+        let currentPage = 1;
+        let hasMoreData = true;
+        let isLoadingMore = false;
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        // 来源标签样式映射
+        const sourceBadgeMap = {
+            'Hacker News': 'badge-hn',
+            'HackerNews': 'badge-hn',
+            'V2EX': 'badge-v2ex',
+            'TechCrunch': 'badge-techcrunch',
+            '36氪': 'badge-36kr',
+            '少数派': 'badge-sspai'
+        };
+
+        // 获取来源标签的 CSS 类名
+        function getSourceBadgeClass(source) {
+            return sourceBadgeMap[source] || 'badge-default';
+        }
+
+        // 格式化时间（相对时间）
+        function formatRelativeTime(timestamp) {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = now - timestamp;
+
+            const minute = 60;
+            const hour = 3600;
+            const day = 86400;
+
+            if (diff < minute) {
+                return '刚刚';
+            } else if (diff < hour) {
+                return Math.floor(diff / minute) + '分钟前';
+            } else if (diff < day) {
+                return Math.floor(diff / hour) + '小时前';
+            } else if (diff < day * 7) {
+                return Math.floor(diff / day) + '天前';
+            } else {
+                const date = new Date(timestamp * 1000);
+                return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+            }
+        }
+
+        // 创建新闻卡片 HTML
+        function createNewsCard(article) {
+            return `
+                <a href="${article.url}" target="_blank" rel="noopener" class="news-card"
+                   data-source="${article.source}"
+                   data-title="${(article.title || '').toLowerCase()}"
+                   data-summary="${(article.summary || '').toLowerCase()}">
+                    <span class="source-badge ${getSourceBadgeClass(article.source)}">${article.source}</span>
+                    <h2 class="news-title">${article.title}</h2>
+                    <p class="news-summary">${article.summary || '暂无摘要'}</p>
+                    <div class="news-footer">
+                        <span class="news-time">${formatRelativeTime(article.created_at)}</span>
+                        <svg class="external-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </div>
+                </a>
+            `;
+        }
+
+        // 提取所有唯一的来源
+        function extractSources(articles) {
+            const sources = new Set();
+            articles.forEach(article => {
+                if (article.source) {
+                    sources.add(article.source);
+                }
+            });
+            return Array.from(sources).sort();
+        }
+
+        // 创建筛选按钮
+        function createFilterButtons(sources) {
+            const filterBar = document.getElementById('filterBar');
+            const sourceCounts = {};
+
+            // 统计每个来源的数量
+            sources.forEach(source => {
+                sourceCounts[source] = allArticles.filter(a => a.source === source).length;
+            });
+
+            let html = `<button class="filter-btn active" data-filter="all">全部<span class="filter-count">${allArticles.length}</span></button>`;
+
+            sources.forEach(source => {
+                html += `<button class="filter-btn" data-filter="${source}">${source}<span class="filter-count">${sourceCounts[source]}</span></button>`;
+            });
+
+            filterBar.innerHTML = html;
+
+            // 绑定筛选按钮事件
+            filterBar.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    applyFilters();
+                });
+            });
+        }
+
+        // 应用筛选和搜索
+        function applyFilters() {
+            const cards = document.querySelectorAll('.news-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const source = card.dataset.source;
+                const title = card.dataset.title;
+                const summary = card.dataset.summary;
+                const searchLower = currentSearch.toLowerCase();
+
+                // 来源筛选
+                const matchFilter = currentFilter === 'all' || source === currentFilter;
+
+                // 搜索筛选
+                const matchSearch = !currentSearch ||
+                    title.includes(searchLower) ||
+                    summary.includes(searchLower);
+
+                if (matchFilter && matchSearch) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            // 更新结果计数
+            updateResultCount(visibleCount);
+
+            // 搜索时隐藏"加载更多"按钮
+            updateLoadMoreVisibility();
+
+            // 显示/隐藏空状态
+            const emptyState = document.getElementById('emptyState');
+            const newsGrid = document.getElementById('newsGrid');
+
+            if (visibleCount === 0) {
+                emptyState.classList.add('show');
+                newsGrid.style.display = 'none';
+                updateEmptyStateText();
+            } else {
+                emptyState.classList.remove('show');
+                newsGrid.style.display = 'grid';
+            }
+        }
+
+        // 更新"加载更多"按钮的可见性
+        function updateLoadMoreVisibility() {
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            const noMore = document.getElementById('noMore');
+
+            // 搜索时隐藏加载更多
+            if (currentSearch) {
+                loadMoreContainer.style.display = 'none';
+                noMore.style.display = 'none';
+                return;
+            }
+
+            // 来源筛选时也隐藏加载更多
+            if (currentFilter !== 'all') {
+                loadMoreContainer.style.display = 'none';
+                noMore.style.display = 'none';
+                return;
+            }
+
+            // 正常状态
+            if (hasMoreData && !isLoadingMore) {
+                loadMoreContainer.style.display = 'block';
+                noMore.style.display = 'none';
+            } else if (!hasMoreData) {
+                loadMoreContainer.style.display = 'none';
+                noMore.style.display = 'block';
+            } else {
+                loadMoreContainer.style.display = 'none';
+                noMore.style.display = 'none';
+            }
+        }
+
+        // 更新结果计数
+        function updateResultCount(count) {
+            const resultCountEl = document.getElementById('resultCount');
+            const hasFilter = currentFilter !== 'all' || currentSearch;
+
+            if (hasFilter) {
+                resultCountEl.style.display = 'block';
+                resultCountEl.innerHTML = `找到 <strong>${count}</strong> 条结果`;
+            } else {
+                resultCountEl.style.display = 'none';
+            }
+        }
+
+        // 更新空状态文本
+        function updateEmptyStateText() {
+            const textEl = document.getElementById('emptyStateText');
+            const hintEl = document.getElementById('emptyStateHint');
+
+            if (currentSearch && currentFilter !== 'all') {
+                textEl.textContent = `在 "${currentFilter}" 中没有找到 "${currentSearch}"`;
+                hintEl.textContent = '试试减少搜索词或切换到其他来源';
+            } else if (currentSearch) {
+                textEl.textContent = `没有找到 "${currentSearch}"`;
+                hintEl.textContent = '试试用其他关键词搜索';
+            } else if (currentFilter !== 'all') {
+                textEl.textContent = `"${currentFilter}" 暂时没有新闻`;
+                hintEl.textContent = '试试切换到其他来源';
+            } else {
+                textEl.textContent = '暂无新闻数据';
+                hintEl.textContent = '';
+            }
+        }
+
+        // 搜索输入事件
+        const searchInput = document.getElementById('searchInput');
+        const searchClear = document.getElementById('searchClear');
+
+        searchInput.addEventListener('input', (e) => {
+            currentSearch = e.target.value.trim();
+            searchClear.classList.toggle('show', currentSearch.length > 0);
+            applyFilters();
+        });
+
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            currentSearch = '';
+            searchClear.classList.remove('show');
+            applyFilters();
+        });
+
+        // 加载新闻数据
+        async function loadNews(page = 1, append = false) {
+            const skeletonEl = document.getElementById('skeleton');
+            const loadMoreSkeleton = document.getElementById('loadMoreSkeleton');
+            const newsGridEl = document.getElementById('newsGrid');
+            const errorStateEl = document.getElementById('errorState');
+            const emptyStateEl = document.getElementById('emptyState');
+            const controlBarEl = document.getElementById('controlBar');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+            // 首次加载时显示骨架屏
+            if (!append) {
+                skeletonEl.style.display = 'grid';
+                newsGridEl.style.display = 'none';
+                errorStateEl.style.display = 'none';
+                emptyStateEl.classList.remove('show');
+                controlBarEl.style.display = 'none';
+                document.getElementById('resultCount').style.display = 'none';
+                document.getElementById('loadMoreContainer').style.display = 'none';
+                document.getElementById('noMore').style.display = 'none';
+            } else {
+                // 加载更多时显示骨架屏
+                loadMoreSkeleton.style.display = 'grid';
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.innerHTML = '<div class="spinner"></div>';
+            }
+
+            try {
+                const url = `${API_URL}?page=${page}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // 隐藏骨架屏
+                skeletonEl.style.display = 'none';
+                loadMoreSkeleton.style.display = 'none';
+
+                // 处理数据
+                if (data.success && data.data && data.data.length > 0) {
+                    // 更新分页状态
+                    hasMoreData = data.hasMore;
+                    currentPage = page;
+
+                    if (append) {
+                        // 追加数据
+                        data.data.forEach(article => {
+                            allArticles.push(article);
+                            // 追加卡片到 DOM
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = createNewsCard(article);
+                            newsGridEl.appendChild(tempDiv.firstElementChild);
+                        });
+
+                        // 更新筛选按钮（只保留全部按钮，因为分页后数据不完整）
+                        updateFilterButtonCounts();
+
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.textContent = '加载更多';
+                    } else {
+                        // 首次加载，替换数据
+                        allArticles = data.data;
+                        newsGridEl.innerHTML = data.data.map(article => createNewsCard(article)).join('');
+                        newsGridEl.style.display = 'grid';
+
+                        // 创建筛选按钮
+                        const sources = extractSources(data.data);
+                        createFilterButtons(sources);
+
+                        // 显示控制栏
+                        controlBarEl.style.display = 'block';
+                    }
+
+                    // 更新"加载更多"按钮状态
+                    updateLoadMoreVisibility();
+                } else {
+                    // 没有更多数据
+                    hasMoreData = false;
+                    if (append) {
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.textContent = '加载更多';
+                    }
+                    updateLoadMoreVisibility();
+
+                    if (!append) {
+                        emptyStateEl.classList.add('show');
+                    }
+                }
+
+            } catch (error) {
+                console.error('加载失败:', error);
+                skeletonEl.style.display = 'none';
+                loadMoreSkeleton.style.display = 'none';
+
+                if (append) {
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.textContent = '加载失败，重试';
+                } else {
+                    errorStateEl.style.display = 'block';
+                }
+            }
+        }
+
+        // 更新筛选按钮的计数（仅更新全部按钮）
+        function updateFilterButtonCounts() {
+            const allBtn = document.querySelector('.filter-btn[data-filter="all"]');
+            if (allBtn) {
+                const countSpan = allBtn.querySelector('.filter-count');
+                if (countSpan) {
+                    countSpan.textContent = allArticles.length;
+                }
+            }
+        }
+
+        // 加载更多按钮事件
+        document.getElementById('loadMoreBtn').addEventListener('click', () => {
+            if (!isLoadingMore && hasMoreData && !currentSearch && currentFilter === 'all') {
+                isLoadingMore = true;
+                loadNews(currentPage + 1, true).finally(() => {
+                    isLoadingMore = false;
+                });
+            }
+        });
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化主题
+            initTheme();
+            // 初始化回到顶部
+            initBackToTop();
+            // 加载新闻
+            loadNews(1);
+        });
+    </script>
+</body>
+</html>
