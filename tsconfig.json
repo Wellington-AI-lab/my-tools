@@ -12,29 +12,25 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
+    "jsxImportSource": "react",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "paths": {
       "@/*": ["./src/*"],
       "@/modules/*": ["./src/modules/*"]
     }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
+    "**/*.astro",
     "src/pages/**/*",
     "src/components/**/*",
     "src/config/**/*",
     "src/styles/**/*",
     "src/lib/**/*",
     "src/modules/**/*",
-    "src/app/**"
+    "src/layouts/**/*",
+    "src/middleware.ts"
   ],
   "exclude": [
     "node_modules",

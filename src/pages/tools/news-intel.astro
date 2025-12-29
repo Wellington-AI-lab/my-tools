@@ -539,12 +539,26 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     const API_BASE = '/api/news';
 
+    // Types
+    type Article = {
+      ai_enriched?: boolean;
+      ai_signal_score?: number;
+      ai_category?: string;
+      ai_bottom_line?: string;
+      ai_key_insights?: string[];
+      published_at?: number;
+      title?: string;
+      url?: string;
+      source?: string;
+      [key: string]: unknown;
+    };
+
     // State
-    let allArticles = [];
-    let filteredArticles = [];
+    let allArticles: Article[] = [];
+    let filteredArticles: Article[] = [];
     let minSignal = 0;
     let categoryFilter = 'all';
-    let lastUpdate = null;
+    let lastUpdate: Date | null = null;
 
     // Category config
     const CATEGORY_CONFIG = {
@@ -561,11 +575,11 @@ import AppLayout from '@/layouts/AppLayout.astro';
     // DOM Elements
     const els = {
       stats: document.getElementById('intelStats'),
-      refresh: document.getElementById('intelRefresh'),
+      refresh: document.getElementById('intelRefresh') as HTMLButtonElement | null,
       briefing: document.getElementById('intelBriefing'),
       briefingMeta: document.getElementById('briefingMeta'),
       briefingContent: document.getElementById('briefingContent'),
-      signalSlider: document.getElementById('signalSlider'),
+      signalSlider: document.getElementById('signalSlider') as HTMLInputElement | null,
       filterCount: document.getElementById('filterCount'),
       categoryFilter: document.getElementById('categoryFilter'),
       articlesList: document.getElementById('articlesList'),
@@ -574,19 +588,19 @@ import AppLayout from '@/layouts/AppLayout.astro';
     };
 
     // Helpers
-    function isEnriched(article) {
+    function isEnriched(article: Article): boolean {
       return article.ai_enriched === true;
     }
 
-    function getSignalScore(article) {
-      return isEnriched(article) ? article.ai_signal_score : 0;
+    function getSignalScore(article: Article): number {
+      return isEnriched(article) ? (article.ai_signal_score ?? 0) : 0;
     }
 
-    function getCategory(article) {
-      return isEnriched(article) ? article.ai_category : 'noise';
+    function getCategory(article: Article): string {
+      return isEnriched(article) ? (article.ai_category ?? 'noise') : 'noise';
     }
 
-    function formatTimeAgo(timestamp) {
+    function formatTimeAgo(timestamp: number): string {
       const now = Date.now() / 1000;
       const diff = now - timestamp;
       const minutes = Math.floor(diff / 60);
@@ -599,13 +613,13 @@ import AppLayout from '@/layouts/AppLayout.astro';
       return new Date(timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
-    function escapeHtml(str) {
+    function escapeHtml(str: string): string {
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
     }
 
-    function getScoreClass(score) {
+    function getScoreClass(score: number): string {
       if (score >= 9) return 'high';
       if (score >= 7) return 'medium';
       if (score >= 5) return 'low';
@@ -614,37 +628,39 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     // Render category filter pills
     function renderCategoryFilter() {
-      const counts = {};
+      const counts: Record<string, number> = {};
       counts.all = allArticles.filter(isEnriched).length;
 
       for (const article of allArticles.filter(isEnriched)) {
-        const cat = article.ai_category;
+        const cat = article.ai_category || 'noise';
         counts[cat] = (counts[cat] || 0) + 1;
       }
 
-      const categories = ['all', 'ai', 'engineering', 'business', 'product', 'science', 'opinion'];
+      const categories = ['all', 'ai', 'engineering', 'business', 'product', 'science', 'opinion'] as const;
 
-      els.categoryFilter.innerHTML = categories.map(cat => {
+      els.categoryFilter!.innerHTML = categories.map(cat => {
         const count = counts[cat] || 0;
         const isActive = categoryFilter === cat;
         const isEmpty = count === 0 && cat !== 'all';
+        const config = CATEGORY_CONFIG[cat as keyof typeof CATEGORY_CONFIG];
         return `
           <button
             class="intel-category-pill ${isActive ? 'active' : ''} ${isEmpty ? 'empty' : ''}"
             data-category="${cat}"
             ${isEmpty ? 'disabled' : ''}
           >
-            <span>${CATEGORY_CONFIG[cat].label}</span>
+            <span>${config.label}</span>
             ${count > 0 ? `<span class="intel-category-count">${count}</span>` : ''}
           </button>
         `;
       }).join('');
 
       // Add click handlers
-      els.categoryFilter.querySelectorAll('.intel-category-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (btn.classList.contains('empty')) return;
-          categoryFilter = btn.dataset.category;
+      els.categoryFilter!.querySelectorAll('.intel-category-pill').forEach(btn => {
+        const btnEl = btn as HTMLElement;
+        btnEl.addEventListener('click', () => {
+          if (btnEl.classList.contains('empty')) return;
+          categoryFilter = btnEl.dataset.category || 'all';
           applyFilters();
           renderCategoryFilter();
         });
@@ -657,7 +673,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       // Signal filter
       if (minSignal > 0) {
-        filteredArticles = filteredArticles.filter(a => a.ai_signal_score >= minSignal);
+        filteredArticles = filteredArticles.filter(a => (a.ai_signal_score ?? 0) >= minSignal);
       }
 
       // Category filter
@@ -666,7 +682,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       }
 
       // Sort by signal score (descending)
-      filteredArticles.sort((a, b) => b.ai_signal_score - a.ai_signal_score);
+      filteredArticles.sort((a, b) => (b.ai_signal_score ?? 0) - (a.ai_signal_score ?? 0));
 
       // Update UI
       renderArticles();
@@ -679,35 +695,40 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       if (filteredArticles.length === 0) {
         if (enrichedCount === 0) {
-          els.articlesList.innerHTML = '<div class="intel-empty">暂无AI分析数据，请等待后台处理完成</div>';
+          els.articlesList!.innerHTML = '<div class="intel-empty">暂无AI分析数据，请等待后台处理完成</div>';
         } else {
-          els.articlesList.innerHTML = '<div class="intel-empty">暂无符合条件的文章</div>';
+          els.articlesList!.innerHTML = '<div class="intel-empty">暂无符合条件的文章</div>';
         }
-        els.filterCount.textContent = `0/${enrichedCount}`;
+        els.filterCount!.textContent = `0/${enrichedCount}`;
         return;
       }
 
-      els.filterCount.textContent = `${filteredArticles.length}/${enrichedCount}`;
+      els.filterCount!.textContent = `${filteredArticles.length}/${enrichedCount}`;
 
-      els.articlesList.innerHTML = filteredArticles.map((article, index) => {
-        const score = article.ai_signal_score;
+      els.articlesList!.innerHTML = filteredArticles.map((article) => {
+        const score = article.ai_signal_score ?? 0;
         const scoreClass = getScoreClass(score);
-        const category = article.ai_category;
-        const timeAgo = formatTimeAgo(article.published_at);
+        const category = article.ai_category ?? 'noise';
+        const timeAgo = formatTimeAgo(article.published_at ?? Date.now() / 1000);
+        const title = article.title ?? '无标题';
+        const url = article.url ?? '#';
+        const source = article.source ?? '未知';
+        const bottomLine = article.ai_bottom_line;
+        const keyInsights = article.ai_key_insights as string[] | undefined;
 
         let detailsHtml = '';
-        if (article.ai_bottom_line) {
+        if (bottomLine) {
           detailsHtml = `
             <div class="intel-article-details">
               <div class="intel-article-bottom-line">
                 <span class="intel-bottom-line-icon">→</span>
-                ${escapeHtml(article.ai_bottom_line)}
+                ${escapeHtml(bottomLine)}
               </div>
             `;
-          if (article.ai_key_insights && article.ai_key_insights.length > 0) {
+          if (keyInsights && keyInsights.length > 0) {
             detailsHtml += `
               <ul class="intel-article-insights">
-                ${article.ai_key_insights.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+                ${keyInsights.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
               </ul>
             `;
           }
@@ -715,15 +736,15 @@ import AppLayout from '@/layouts/AppLayout.astro';
         }
 
         return `
-          <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer"
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"
              class="intel-article" data-signal="${Math.floor(score)}">
             <div class="intel-article-score ${scoreClass}">${score.toFixed(1)}</div>
             <div class="intel-article-main">
               <div class="intel-article-header">
-                <h3 class="intel-article-title">${escapeHtml(article.title)}</h3>
+                <h3 class="intel-article-title">${escapeHtml(title)}</h3>
                 <div class="intel-article-meta">
-                  <span class="intel-meta-category ${category}">${CATEGORY_CONFIG[category]?.label || '??'}</span>
-                  <span class="intel-meta-source">${escapeHtml(article.source)}</span>
+                  <span class="intel-meta-category ${category}">${CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG]?.label || '??'}</span>
+                  <span class="intel-meta-source">${escapeHtml(source)}</span>
                   <span class="intel-meta-time">${timeAgo}</span>
                 </div>
               </div>
@@ -738,23 +759,25 @@ import AppLayout from '@/layouts/AppLayout.astro';
     function renderBriefing() {
       const enriched = allArticles.filter(isEnriched);
       const topSignals = enriched
-        .sort((a, b) => b.ai_signal_score - a.ai_signal_score)
+        .sort((a, b) => (b.ai_signal_score ?? 0) - (a.ai_signal_score ?? 0))
         .slice(0, 5);
 
       if (topSignals.length === 0) {
-        els.briefingMeta.textContent = '暂无数据';
-        els.briefingContent.innerHTML = '<p class="intel-loading">等待AI分析完成...</p>';
+        els.briefingMeta!.textContent = '暂无数据';
+        els.briefingContent!.innerHTML = '<p class="intel-loading">等待AI分析完成...</p>';
         return;
       }
 
-      els.briefingMeta.textContent = `${topSignals.length} 条高信号`;
+      els.briefingMeta!.textContent = `${topSignals.length} 条高信号`;
 
-      els.briefingContent.innerHTML = topSignals.map(article => {
-        const scoreClass = getScoreClass(article.ai_signal_score);
+      els.briefingContent!.innerHTML = topSignals.map(article => {
+        const score = article.ai_signal_score ?? 0;
+        const scoreClass = getScoreClass(score);
+        const bottomLine = article.ai_bottom_line ?? '无摘要';
         return `
           <div class="intel-briefing-item">
-            <span class="intel-briefing-score ${scoreClass}">${article.ai_signal_score.toFixed(1)}</span>
-            <span>${escapeHtml(article.ai_bottom_line)}</span>
+            <span class="intel-briefing-score ${scoreClass}">${score.toFixed(1)}</span>
+            <span>${escapeHtml(bottomLine)}</span>
           </div>
         `;
       }).join('');
@@ -763,10 +786,10 @@ import AppLayout from '@/layouts/AppLayout.astro';
     // Update footer
     function updateFooter() {
       const enrichedCount = allArticles.filter(isEnriched).length;
-      els.footerStats.textContent = `显示 ${filteredArticles.length} / ${enrichedCount} 条已分析`;
+      els.footerStats!.textContent = `显示 ${filteredArticles.length} / ${enrichedCount} 条已分析`;
 
       if (lastUpdate) {
-        els.lastUpdate.textContent = `更新于 ${lastUpdate.toLocaleTimeString('zh-CN', {
+        els.lastUpdate!.textContent = `更新于 ${lastUpdate.toLocaleTimeString('zh-CN', {
           hour: '2-digit',
           minute: '2-digit'
         })}`;
@@ -775,8 +798,8 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     // Fetch data
     async function fetchData() {
-      els.refresh.disabled = true;
-      els.refresh.textContent = '刷新中...';
+      els.refresh!.disabled = true;
+      els.refresh!.textContent = '刷新中...';
 
       try {
         const params = new URLSearchParams();
@@ -794,7 +817,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
         // Update stats
         const enrichedCount = allArticles.filter(isEnriched).length;
-        els.stats.textContent = `${allArticles.length} 篇 · ${enrichedCount} 已分析`;
+        els.stats!.textContent = `${allArticles.length} 篇 · ${enrichedCount} 已分析`;
 
         // Render
         renderBriefing();
@@ -803,38 +826,43 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       } catch (error) {
         console.error('Failed to fetch:', error);
-        els.articlesList.innerHTML = `<div class="intel-error">加载失败: ${error.message}</div>`;
-        els.stats.textContent = '加载失败';
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        els.articlesList!.innerHTML = `<div class="intel-error">加载失败: ${errorMessage}</div>`;
+        els.stats!.textContent = '加载失败';
       } finally {
-        els.refresh.disabled = false;
-        els.refresh.textContent = '刷新';
+        els.refresh!.disabled = false;
+        els.refresh!.textContent = '刷新';
       }
     }
 
     // Signal slider handlers
-    els.signalSlider.addEventListener('input', (e) => {
-      minSignal = parseInt(e.target.value);
+    els.signalSlider!.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      minSignal = parseInt(target.value);
       // Update preset buttons
       document.querySelectorAll('.intel-filter-preset').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.value) === minSignal);
+        const btnEl = btn as HTMLElement;
+        btnEl.classList.toggle('active', parseInt(btnEl.dataset.value || '0') === minSignal);
       });
       applyFilters();
     });
 
     // Preset button handlers
     document.querySelectorAll('.intel-filter-preset').forEach(btn => {
-      btn.addEventListener('click', () => {
-        minSignal = parseInt(btn.dataset.value);
-        els.signalSlider.value = minSignal;
+      const btnEl = btn as HTMLElement;
+      btnEl.addEventListener('click', () => {
+        minSignal = parseInt(btnEl.dataset.value || '0');
+        els.signalSlider!.value = String(minSignal);
         document.querySelectorAll('.intel-filter-preset').forEach(b => {
-          b.classList.toggle('active', b === btn);
+          const bEl = b as HTMLElement;
+          bEl.classList.toggle('active', b === btn);
         });
         applyFilters();
       });
     });
 
     // Refresh button
-    els.refresh.addEventListener('click', fetchData);
+    els.refresh!.addEventListener('click', fetchData);
 
     // Initial fetch
     fetchData();

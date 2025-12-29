@@ -180,7 +180,7 @@ describe('runBacktest - Happy Path', () => {
 
     // Assert
     expect(result.maxDrawdown).toBeGreaterThan(15); // ~25% drawdown from 120 to 90
-    expect(result.maxDrawdownInfo.peakDate).toBe('2024-01-05');
+    expect(result.maxDrawdownInfo?.peakDate).toBe('2024-01-05');
   });
 
   it('should_handle_multiple_symbols', () => {
@@ -209,7 +209,7 @@ describe('runBacktest - Happy Path', () => {
 
     // Assert
     expect(result.totalReturn).toBeGreaterThan(0);
-    expect(result.valueSeries.length).toBeGreaterThan(20);
+    expect(result.valueSeries?.length).toBeGreaterThan(20);
   });
 });
 
@@ -315,7 +315,7 @@ describe('runBacktest - Drawdown Recovery', () => {
     });
 
     // Assert - Should find recovery since value exceeds the peak value after trough
-    expect(result.maxDrawdownInfo.recoveryDate).not.toBeNull();
+    expect(result.maxDrawdownInfo?.recoveryDate).not.toBeNull();
   });
 
   it('should_have_null_recovery_if_not_recovered', () => {
@@ -344,7 +344,7 @@ describe('runBacktest - Drawdown Recovery', () => {
     });
 
     // Assert
-    expect(result.maxDrawdownInfo.recoveryDate).toBeNull();
+    expect(result.maxDrawdownInfo?.recoveryDate).toBeNull();
   });
 });
 
@@ -540,7 +540,7 @@ describe('runBacktest - Edge Cases', () => {
 
     // Assert - Should handle gracefully
     expect(result.valueSeries).toBeDefined();
-    expect(result.valueSeries.length).toBeGreaterThan(0);
+    expect(result.valueSeries?.length).toBeGreaterThan(0);
   });
 
   it('should_handle_negative_return', () => {

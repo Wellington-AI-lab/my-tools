@@ -286,7 +286,7 @@ describe('createSessionCookies', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (mockedRandomHex as any).mockReturnValue('x'.repeat(64));
-    (mockedEncodeSession as any).mockImplementation(async (payload, secret) => {
+    (mockedEncodeSession as any).mockImplementation(async (payload: unknown, secret: string) => {
       const jsonB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
       const sigB64 = Buffer.from(`${secret}-${JSON.stringify(payload)}`).toString('base64url');
       return `${jsonB64}.${sigB64}`;

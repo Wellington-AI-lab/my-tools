@@ -8,21 +8,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchDailySeriesWithCache } from './providers';
 import type { PricePoint } from './types';
+import type { KVStorage } from '@/lib/storage/kv';
 
 // ============================================================================
 // Mock Helpers
 // ============================================================================
 
-interface MockKV {
-  get: ReturnType<typeof vi.fn>;
-  put: ReturnType<typeof vi.fn>;
-}
+interface MockKV extends KVStorage {}
 
 function createMockKV(): MockKV {
   return {
     get: vi.fn(),
     put: vi.fn(),
-  };
+    delete: vi.fn(),
+  } as unknown as MockKV;
 }
 
 function createMockPricePoints(): PricePoint[] {

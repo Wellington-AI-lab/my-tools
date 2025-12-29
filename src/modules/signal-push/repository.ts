@@ -177,7 +177,7 @@ export async function getLastPushTime(
 ): Promise<number> {
   try {
     const result = await kv.get(KEYS.LAST_PUSH, { type: 'text' });
-    return result ? parseInt(result, 10) : 0;
+    return typeof result === 'string' ? parseInt(result, 10) : 0;
   } catch (error) {
     return 0;
   }

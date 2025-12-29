@@ -10,7 +10,7 @@
  * 使用轻量级设计，不增加额外加载负担
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ============================================================================
 // Types
@@ -185,7 +185,7 @@ export function CostDashboard({
 }: Props) {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, set.Error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<'24h' | '7d' | '30d' | 'total'>('24h');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -211,12 +211,13 @@ export function CostDashboard({
       const data: MetricsResponse = await response.json();
       if (data.success && data.data) {
         setMetrics(data.data);
-        set.Error(null);
+        setError(null);
       } else {
-        throw new Error(data.error || 'Failed to load metrics');
+        const errorMsg = typeof data.error === 'string' ? data.error : 'Failed to load metrics';
+        throw new Error(errorMsg);
       }
     } catch (err) {
-      set.Error(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
       setRefreshing(false);

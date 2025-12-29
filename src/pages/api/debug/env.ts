@@ -12,7 +12,14 @@ export const GET: APIRoute = async (context) => {
 
   // Check what getEnv returns
   const env = getEnv(context.locals);
-  const envFromGetEnv = {
+  const envFromGetEnv: {
+    hasSessionSecret: boolean;
+    hasPasswordHash: boolean;
+    hasAdminHash: boolean;
+    passwordHashPrefix: string;
+    storedHashPrefix?: string;
+    error?: string;
+  } = {
     hasSessionSecret: !!env.SESSION_SECRET,
     hasPasswordHash: !!env.SITE_PASSWORD_HASH,
     hasAdminHash: !!env.ADMIN_PASSWORD_HASH,
@@ -22,9 +29,9 @@ export const GET: APIRoute = async (context) => {
   // Try to get password hash through the function
   try {
     const storedHash = getStoredPasswordHash(env);
-    envFromGetEnv['storedHashPrefix'] = storedHash.substring(0, 20);
-  } catch (e: any) {
-    envFromGetEnv['error'] = e.message;
+    envFromGetEnv.storedHashPrefix = storedHash.substring(0, 20);
+  } catch (e) {
+    envFromGetEnv.error = e instanceof Error ? e.message : 'Unknown error';
   }
 
   return new Response(JSON.stringify({

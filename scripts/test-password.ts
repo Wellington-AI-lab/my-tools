@@ -1,5 +1,5 @@
 // Test password verification
-import { verifyPasswordPbkdf2 } from '../src/lib/crypto.ts';
+import { verifyPasswordPbkdf2 } from '../src/lib/crypto';
 
 async function main() {
   const password = '8z_rNd8iDkns2tjc7oB-HCZuX';

@@ -766,7 +766,7 @@ describe('GET /api/cron/push - Push Flow', () => {
 
   it('should_limit_max_pushes_per_run', async () => {
     // Arrange
-    const manyArticles = Array.from({ length: 20 }, (_, i) => ({
+    const manyArticles: RefinedArticle[] = Array.from({ length: 20 }, (_, i) => ({
       id: `n_${i}`,
       url: `https://example.com/article${i}`,
       title: `Article ${i}`,
@@ -775,7 +775,7 @@ describe('GET /api/cron/push - Push Flow', () => {
       published_at: Math.floor(Date.now() / 1000) - 3600,
       refined_at: Math.floor(Date.now() / 1000),
       signal_score: 0.9,
-      language: 'en',
+      language: 'en' as const,
     }));
 
     vi.mocked(processRefinery).mockReturnValue({

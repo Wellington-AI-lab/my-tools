@@ -262,21 +262,37 @@ import AppLayout from '@/layouts/AppLayout.astro';
     // SWR 风格缓存配置
     const CACHE_TTL_MS = 5 * 60 * 1000;  // 5 分钟
     let cacheTimestamp = 0;
-    let cacheData: any = null;
+    let cacheData: { success: boolean; data?: unknown[]; hasMore?: boolean } | null = null;
+
+    // 类型定义
+    type Article = {
+      title?: string;
+      url?: string;
+      source?: string;
+      summary?: string;
+      signal_score?: number;
+      published_at?: number;
+      [key: string]: unknown;
+    };
+
+    type StatsItem = {
+      source: string;
+      count: number;
+    };
 
     // 状态
     let currentPage = 1;
     let currentSource = 'all';
     let hasMore = true;
     let isLoading = false;
-    let allArticles: any[] = [];
+    let allArticles: Article[] = [];
 
     // DOM 元素
     const totalCountEl = document.getElementById('totalCount');
     const statsPanel = document.getElementById('statsPanel');
     const newsList = document.getElementById('newsList');
     const loadMoreContainer = document.getElementById('loadMoreContainer');
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const loadMoreBtn = document.getElementById('loadMoreBtn') as HTMLButtonElement | null;
 
     // 来源颜色映射
     const sourceClassMap: Record<string, string> = {
@@ -332,10 +348,10 @@ import AppLayout from '@/layouts/AppLayout.astro';
     }
 
     // 渲染统计信息
-    function renderStats(data: any) {
+    function renderStats(data: { bySource?: StatsItem[] }) {
       if (!statsPanel) return;
 
-      const html = (data.bySource || []).map((s: any) => {
+      const html = (data.bySource || []).map((s: StatsItem) => {
         const sourceKey = s.source;
         const colorClass = getSourceClass(sourceKey);
         return `
@@ -354,7 +370,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
           const source = item.getAttribute('data-source') || 'all';
           selectSource(source);
         });
-        item.style.cursor = 'pointer';
+        (item as HTMLElement).style.cursor = 'pointer';
       });
     }
 
@@ -443,8 +459,9 @@ import AppLayout from '@/layouts/AppLayout.astro';
       }
 
       const html = displayArticles.map(article => {
-        const sourceClass = getSourceClass(article.source);
-        const timeStr = formatTime(article.published_at);  // 使用 published_at
+        const source = article.source ?? '未知';
+        const sourceClass = getSourceClass(source);
+        const timeStr = formatTime(article.published_at ?? Date.now() / 1000);
         const summary = article.summary ? escapeHtml(article.summary) : '';
 
         // 显示信号评分指示器
@@ -453,10 +470,10 @@ import AppLayout from '@/layouts/AppLayout.astro';
           : '';
 
         return `
-          <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" class="titan-news-item">
+          <a href="${escapeHtml(article.url ?? '#')}" target="_blank" rel="noopener noreferrer" class="titan-news-item">
             <div class="titan-news-header">
-              <h3 class="titan-news-title">${escapeHtml(article.title)}</h3>
-              <span class="titan-news-source ${sourceClass}">${escapeHtml(article.source)}</span>
+              <h3 class="titan-news-title">${escapeHtml(article.title ?? '无标题')}</h3>
+              <span class="titan-news-source ${sourceClass}">${escapeHtml(source)}</span>
             </div>
             ${summary ? `<p class="titan-news-summary">${summary}</p>` : ''}
             <div class="titan-news-meta">

@@ -19,9 +19,10 @@ import type { KVStorage } from '@/lib/storage/kv';
 // ============================================================================
 
 export interface MockKV {
-  get: ReturnType<typeof vi.fn<ReturnType<KVStorage['get']>>>;
-  put: ReturnType<typeof vi.fn<ReturnType<KVStorage['put']>>>;
-  delete: ReturnType<typeof vi.fn<ReturnType<KVStorage['delete']>>>;
+  get: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  list: ReturnType<typeof vi.fn>;
 }
 
 export function createMockKV(): MockKV {
@@ -29,6 +30,7 @@ export function createMockKV(): MockKV {
     get: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
+    list: vi.fn(),
   };
 }
 
@@ -79,7 +81,7 @@ export interface MockD1PreparedStatement {
 }
 
 export interface MockD1 {
-  prepare: ReturnType<typeof vi.fn<MockD1PreparedStatement>>;
+  prepare: ReturnType<typeof vi.fn>;
 }
 
 export function createMockD1(): MockD1 {
@@ -171,7 +173,7 @@ export interface MockLocalsOptions {
 }
 
 export function createMockLocals(options: MockLocalsOptions = {}): App.Locals {
-  const { kv = null, db = null, env = {} } = options;
+  const { db = null, env = {} } = options;
 
   return {
     runtime: {
@@ -182,13 +184,13 @@ export function createMockLocals(options: MockLocalsOptions = {}): App.Locals {
         // Vercel Postgres
         POSTGRES_URL: 'postgresql://mock:password@localhost:5432/test',
         DATABASE_URL: 'postgresql://mock:password@localhost:5432/test',
-        // Mock database (for tests that need direct DB access)
-        mockDb: db,
         NODE_ENV: 'test',
         SESSION_SECRET: 'test-session-secret',
         SITE_PASSWORD_HASH: 'test-user-hash',
         ADMIN_PASSWORD_HASH: 'test-admin-hash',
         ...env,
+        // @ts-ignore - mockDb is test-only property
+        mockDb: db,
       },
     },
   };
@@ -248,7 +250,7 @@ export function createMockCookies(): MockCookies {
       store.set(name, { value, options });
     }),
 
-    delete: vi.fn((name: string, options?: any) => {
+    delete: vi.fn((name: string) => {
       store.delete(name);
     }),
   };

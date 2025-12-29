@@ -1,5 +1,5 @@
 // Generate password hash and session secret for Vercel
-import { hashPasswordPbkdf2, randomHex } from '../src/lib/crypto.ts';
+import { hashPasswordPbkdf2, randomHex } from '../src/lib/crypto';
 
 async function main() {
   const password = '8z_rNd8iDkns2tjc7oB-HCZuX';

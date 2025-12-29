@@ -13,7 +13,7 @@
  *   <LazyNewsList summarizeMode="off" onSummarizeClick />
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 // ============================================================================
 // Types
@@ -233,8 +233,8 @@ function ArticleCard({ article, onSummarize, autoTrigger }: ArticleCardProps) {
         {/* Enrichment Status */}
         {isEnriched || enrichment ? (
           <CategoryBadge
-            category={(enrichment || (article as EnrichedArticle)).category}
-            score={(enrichment || (article as EnrichedArticle)).signal_score}
+            category={enrichment?.category ?? (article as EnrichedArticle).ai_category}
+            score={enrichment?.signal_score ?? (article as EnrichedArticle).ai_signal_score}
           />
         ) : loading ? (
           <div className="flex items-center gap-2">
@@ -271,7 +271,7 @@ function ArticleCard({ article, onSummarize, autoTrigger }: ArticleCardProps) {
       {enrichment || isEnriched ? (
         <div className="mb-3 p-3 bg-gray-900/50 rounded border-l-2 border-blue-500">
           <p className="text-sm text-gray-300">
-            {(enrichment || (article as EnrichedArticle)).bottom_line}
+            {enrichment?.bottom_line ?? (article as EnrichedArticle).ai_bottom_line}
           </p>
         </div>
       ) : null}

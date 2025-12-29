@@ -105,7 +105,7 @@ async function getSourcesConfig(
   // 回退到 KV 存储
   try {
     const cached = await kv.get(SOURCES_KEYS.CONFIG, { type: 'text' });
-    if (cached) {
+    if (typeof cached === 'string') {
       const config = JSON.parse(cached) as SourcesConfigFile;
       return config.sources;
     }

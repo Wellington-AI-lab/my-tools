@@ -362,7 +362,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
     function todayIso() {
       return new Date().toISOString().slice(0, 10);
     }
-    function yearsAgoIso(years: number) {
+    function _yearsAgoIso(years: number) {
       const d = new Date();
       d.setFullYear(d.getFullYear() - years);
       const dateStr = d.toISOString().slice(0, 10);
@@ -593,7 +593,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
         <input class="w-12 px-1 py-1 bg-white border border-black/5 rounded text-sm text-center" placeholder="1" value="${escapeHtml(weight)}" />
         <button class="ml-1 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-500 text-sm leading-none" type="button">×</button>
       `;
-      const [symEl, , weightEl, delBtn] = Array.from(row.children) as [
+      const [symEl, , _weightEl, delBtn] = Array.from(row.children) as [
         HTMLInputElement,
         HTMLSpanElement,
         HTMLInputElement,

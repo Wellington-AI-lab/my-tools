@@ -226,7 +226,7 @@ describe('kvGetJson', () => {
 
     it('should_handle_numeric_zero', async () => {
       // Arrange
-      vi.mocked(mockKV.get).mockResolvedValue(0);
+      (vi.mocked(mockKV.get) as any).mockResolvedValue(0);
 
       // Act
       const result = await kvGetJson(mockKV, 'test:zero', 42);
@@ -237,7 +237,7 @@ describe('kvGetJson', () => {
 
     it('should_handle_false_boolean', async () => {
       // Arrange
-      vi.mocked(mockKV.get).mockResolvedValue(false);
+      (vi.mocked(mockKV.get) as any).mockResolvedValue(false);
 
       // Act
       const result = await kvGetJson(mockKV, 'test:false', true);

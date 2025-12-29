@@ -10,7 +10,7 @@
  * @module components/news/SystemStatus
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ============================================================================
 // Types

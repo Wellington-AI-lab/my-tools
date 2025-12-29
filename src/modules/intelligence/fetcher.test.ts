@@ -5,7 +5,7 @@
  * 测试框架：vitest
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   fetchIntelligence,
   fetchMultipleSources,
@@ -59,7 +59,7 @@ function createMockSource(overrides: Partial<IntelligenceSource> = {}): Intellig
     url: 'https://example.com/feed',
     strategy: 'DIRECT',
     category: 'tech',
-    is_active: true,
+    is_active: 1,
     reliability_score: 1.0,
     weight: 1.0,
     rsshub_path: null,
@@ -75,11 +75,11 @@ function createMockD1(): Database {
     const isUpdate = sql.includes('UPDATE intelligence_sources');
 
     return {
-      bind: vi.fn(function(this: any, ...values: any[]) {
+      bind: vi.fn(function(this: any, ...values: unknown[]) {
         (this as any)._boundValues = values;
         return this;
       }),
-      first: vi.fn(function() {
+      first: vi.fn(function(this: any) {
         if (!isSelect) return Promise.resolve(null);
         const values = (this as any)._boundValues;
         const sourceId = values?.[0];
@@ -403,8 +403,9 @@ describe('fetchMultipleSources', () => {
         createMockSource({ id: 1, name: 'Source 1', reliability_score: 1.0 }),
         createMockSource({ id: 2, name: 'Source 2', reliability_score: 0.9 }),
       ];
-      fetchSpy.mockImplementation((url) => {
-        if (typeof url === 'string' && url.includes('source1')) {
+      fetchSpy.mockImplementation((url: string | Request) => {
+        const urlStr = typeof url === 'string' ? url : url.toString();
+        if (urlStr.includes('source1')) {
           return Promise.resolve(new Response(MOCK_RSS_XML, { status: 200 }));
         }
         return Promise.resolve(new Response(MOCK_RSS_XML, { status: 200 }));
@@ -439,8 +440,8 @@ describe('fetchMultipleSources', () => {
     it('should_prioritize_active_sources', async () => {
       // Arrange
       const sources = [
-        createMockSource({ id: 1, name: 'Inactive', is_active: false, reliability_score: 1.0 }),
-        createMockSource({ id: 2, name: 'Active', is_active: true, reliability_score: 0.5 }),
+        createMockSource({ id: 1, name: 'Inactive', is_active: 0, reliability_score: 1.0 }),
+        createMockSource({ id: 2, name: 'Active', is_active: 1, reliability_score: 0.5 }),
       ];
       fetchSpy.mockResolvedValue(new Response(MOCK_RSS_XML, { status: 200 }));
 

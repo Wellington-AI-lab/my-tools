@@ -24,12 +24,12 @@ vi.mock('@/modules/intelligence/repository', async () => {
   const actual = await vi.importActual<typeof import('@/modules/intelligence/repository')>('@/modules/intelligence/repository');
   return {
     ...actual,
-    getAllSources: vi.fn((...args: any[]) => actual.getAllSources(...args)),
-    getSourceById: vi.fn((...args: any[]) => actual.getSourceById(...args)),
-    createSource: vi.fn((...args: any[]) => actual.createSource(...args)),
-    updateSource: vi.fn((...args: any[]) => actual.updateSource(...args)),
-    deleteSource: vi.fn((...args: any[]) => actual.deleteSource(...args)),
-    getSourceStats: vi.fn((...args: any[]) => actual.getSourceStats(...args)),
+    getAllSources: vi.fn((...args: unknown[]) => actual.getAllSources(...(args as Parameters<typeof actual.getAllSources>))),
+    getSourceById: vi.fn((...args: unknown[]) => actual.getSourceById(...(args as Parameters<typeof actual.getSourceById>))),
+    createSource: vi.fn((...args: unknown[]) => actual.createSource(...(args as Parameters<typeof actual.createSource>))),
+    updateSource: vi.fn((...args: unknown[]) => actual.updateSource(...(args as Parameters<typeof actual.updateSource>))),
+    deleteSource: vi.fn((...args: unknown[]) => actual.deleteSource(...(args as Parameters<typeof actual.deleteSource>))),
+    getSourceStats: vi.fn((...args: unknown[]) => actual.getSourceStats(...(args as Parameters<typeof actual.getSourceStats>))),
   };
 });
 

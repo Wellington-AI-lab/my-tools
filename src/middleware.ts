@@ -45,7 +45,7 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   try {
     const { decodeSession } = await import('@/lib/session');
     const { getSessionSecret } = await import('@/lib/auth');
-    const secret = getSessionSecret(process.env);
+    const secret = getSessionSecret(process.env as Record<string, string | undefined>);
     const payload = await decodeSession(signed, secret);
 
     if (!payload || payload.token !== token) {

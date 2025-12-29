@@ -26,12 +26,15 @@ function createMockKV(): MockKV {
   };
 }
 
-function createMockLocals(kv: MockKV | null = null) {
+function createMockLocals(kv: MockKV | null = null): App.Locals {
   return {
     runtime: {
       env: {
+        KV_URL: 'https://mock-kv.com',
+        KV_REST_API_READ_WRITE_TOKEN: 'mock-token',
+        // @ts-ignore - KV is test-only property
         KV: kv,
-      },
+      } as VercelEnv & { KV?: MockKV | null },
     },
   };
 }

@@ -400,7 +400,7 @@ export async function getClusteredCache(
     const data = JSON.parse(result);
     const meta = await kv.get(`${cacheKey}:meta`, { type: 'text' });
 
-    if (meta) {
+    if (typeof meta === 'string') {
       const metaData = JSON.parse(meta);
       const now = Date.now();
       if (now > metaData.expires_at) {

@@ -13,7 +13,7 @@ export interface KVStorage {
  */
 export class VercelKV implements KVStorage {
   private kv: any;
-  private clientType: 'vercel' | 'ioredis';
+  private clientType!: 'vercel' | 'ioredis';
   private initialized = false;
 
   constructor() {
@@ -90,6 +90,7 @@ export class VercelKV implements KVStorage {
  */
 export function createKVStorage(locals: App.Locals): KVStorage {
   // Check for test mock KV in locals.runtime.env.KV first (for testing)
+  // @ts-ignore - KV is test-only property
   const runtimeKV = locals.runtime?.env?.KV as KVStorage | undefined;
   if (runtimeKV && typeof runtimeKV.get === 'function') {
     return runtimeKV;

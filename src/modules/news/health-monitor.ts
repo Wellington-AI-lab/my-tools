@@ -380,7 +380,7 @@ export async function checkSourceHealth(
         latency_ms: latency,
         items_count: 0,
         error: `HTTP ${response.status}`,
-        checked_at,
+        checked_at: checkedAt,
       };
     }
 
@@ -398,7 +398,7 @@ export async function checkSourceHealth(
         latency_ms: latency,
         items_count: 0,
         error: 'Invalid RSS content (no items)',
-        checked_at,
+        checked_at: checkedAt,
       };
     }
 
@@ -408,7 +408,7 @@ export async function checkSourceHealth(
       success: true,
       latency_ms: latency,
       items_count: itemCount,
-      checked_at,
+      checked_at: checkedAt,
     };
   } catch (error) {
     const latency = Date.now() - startTime;
@@ -421,7 +421,7 @@ export async function checkSourceHealth(
       latency_ms: latency,
       items_count: 0,
       error: message,
-      checked_at,
+      checked_at: checkedAt,
     };
   }
 }
@@ -531,7 +531,11 @@ export function buildSystemSummary(
       byCategory[cat] = { total: 0, healthy: 0, degraded: 0, down: 0 };
     }
     byCategory[cat].total++;
-    byCategory[cat][record.status]++;
+    const status = record.status as 'healthy' | 'degraded' | 'down' | 'unknown';
+    if (status === 'healthy') byCategory[cat].healthy++;
+    else if (status === 'degraded') byCategory[cat].degraded++;
+    else if (status === 'down') byCategory[cat].down++;
+    // 'unknown' status doesn't count towards health metrics
   }
 
   // 确定整体状态

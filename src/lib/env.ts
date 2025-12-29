@@ -1,6 +1,9 @@
 import { createKVStorage, createKVStorageOrNull, type KVStorage } from './storage/kv';
 import { createDatabase, createDatabaseOrNull, type Database } from './storage/db';
 
+// Re-export Database type for convenience
+export type { Database };
+
 /**
  * 获取环境变量（Vercel）
  */

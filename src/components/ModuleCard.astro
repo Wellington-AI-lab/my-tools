@@ -6,7 +6,8 @@ const { module } = Astro.props as { module: ModuleDef };
 // Safe access to user role - handle undefined locals in Vercel Edge Runtime
 let isAdmin = false;
 try {
-  isAdmin = (locals as any)?.user?.role === 'admin';
+  // @ts-ignore - locals is a global in Astro components
+  isAdmin = Astro.locals?.user?.role === 'admin';
 } catch {
   // locals might not be defined in some edge cases
   isAdmin = false;

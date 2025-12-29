@@ -16,11 +16,12 @@ export default defineConfig({
         'src/test-setup.ts',
         'src/styles.example.ts',
       ],
-      // Coverage thresholds
-      statements: 80,
-      branches: 80,
-      functions: 80,
-      lines: 80,
+      thresholds: {
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
+      },
     },
     // Setup files to run before each test file
     setupFiles: [],
@@ -30,8 +31,6 @@ export default defineConfig({
     isolate: true,
     // Show verbose output
     reporters: ['default'],
-    // Enable fake timers for date/time testing (disabled as it can interfere with Promise mocks)
-    useFakeTimers: false,
   },
   resolve: {
     alias: {

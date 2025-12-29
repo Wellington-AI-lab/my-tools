@@ -629,7 +629,7 @@ describe('createDatabaseOrNull', () => {
     const locals = createMockLocals();
 
     // Mock import to fail
-    vi.mocked(mockSql).mockImplementation(() => {
+    mockQueryResult.mockImplementation(() => {
       throw new Error('Import failed');
     });
 

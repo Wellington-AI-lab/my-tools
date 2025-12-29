@@ -232,7 +232,7 @@ async function handlePost(
 
   // 执行健康检查
   const rsshubBaseUrl = getRsshubBaseUrl(locals);
-  const records = await checkAllSourcesHealth(sources, kv, DEFAULT_HEALTH_CONFIG, rsshubBaseUrl);
+  const records = await checkAllSourcesHealth(sources as unknown as Parameters<typeof checkAllSourcesHealth>[0], kv, DEFAULT_HEALTH_CONFIG, rsshubBaseUrl);
 
   // 构建摘要
   const summary = buildSystemSummary(records);
