@@ -59,36 +59,36 @@ jobs:
 
   run-news:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     # 每天 22:00 UTC 触发，或手动选择 news/both
     if: |
       github.event.schedule == '0 22 * * *' ||
       github.event_name == 'workflow_dispatch' && (inputs.task == 'news' || inputs.task == 'both')
 
     steps:
-      - name: Trigger News Aggregation
-        env:
-          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
-          API_URL: ${{ vars.API_URL || 'https://my-tools-bim.pages.dev' }}
+      # 1. 检出代码 (包含 fetcher 目录)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 安装 Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 3. 安装依赖
+      - name: Install dependencies
+        working-directory: ./workers/news-api/fetcher
         run: |
-          echo "Triggering News Aggregation at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-          response=$(curl -s -w "\n%{http_code}" -X POST \
-            "${API_URL}/api/news/run" \
-            -H "Content-Type: application/json" \
-            -H "X-Admin-Key: ${ADMIN_KEY}" \
-            -d '{}')
-
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
-
-          echo "HTTP Status: $http_code"
-          echo "Response: $body"
-
-          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-            echo "Success!"
-            echo "$body" | jq -r '.meta | "Day: \(.day_key) | Fetched: \(.total_fetched) | Matched: \(.total_matched) | Time: \(.execution_time_ms)ms"' 2>/dev/null || true
-          else
-            echo "Failed with status $http_code"
-            exit 1
-          fi
+      # 4. 运行新闻抓取脚本
+      - name: Run news fetcher
+        working-directory: ./workers/news-api/fetcher
+        env:
+          API_URL: ${{ secrets.NEWS_API_URL || 'https://news-api.zhusen-wang.workers.dev/add' }}
+          API_KEY: ${{ secrets.NEWS_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ENABLE_AI_SUMMARY: "true"
+        run: python fetcher.py
