@@ -1,5 +1,7 @@
+import type { KVStorage } from './storage/kv';
+
 export async function kvGetJson<T>(
-  kv: KVNamespace,
+  kv: KVStorage,
   key: string,
   fallback: T
 ): Promise<T> {
@@ -16,7 +18,7 @@ export async function kvGetJson<T>(
 }
 
 export async function kvPutJson(
-  kv: KVNamespace,
+  kv: KVStorage,
   key: string,
   value: unknown,
   ttlSeconds?: number

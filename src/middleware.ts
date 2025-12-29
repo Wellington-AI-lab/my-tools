@@ -16,6 +16,7 @@ const PUBLIC_PREFIXES = [
   '/login',
   '/api/auth/login',
   '/api/auth/logout',
+  '/api/debug', // Debug endpoint for troubleshooting
   '/tools/news', // News page is public (SEO + social sharing)
 ];
 

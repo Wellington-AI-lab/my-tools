@@ -11,7 +11,7 @@ if (module.adminOnly && !isAdmin) {
 }
 ---
 
-<a href={module.href} class="block glass-effect rounded-xl p-5 card-hover">
+<a href={module.href} class="block glass-effect rounded-xl p-5 card-hover" target={module.external ? '_blank' : undefined} rel={module.external ? 'noopener noreferrer' : undefined}>
   <div class="flex items-start justify-between gap-3">
     <div>
       <div class="flex items-center gap-2">
@@ -37,7 +37,9 @@ if (module.adminOnly && !isAdmin) {
         </p>
       )}
     </div>
-    <div class="shrink-0 text-onekey-accent-green font-bold">→</div>
+    <div class="shrink-0 text-onekey-accent-green font-bold">
+      {module.external ? '↗' : '→'}
+    </div>
   </div>
 </a>
 

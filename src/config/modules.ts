@@ -1,4 +1,4 @@
-export type ModuleId = 'stocks' | 'telegram' | 'in-depth-analysis' | 'news' | 'admin';
+export type ModuleId = 'stocks' | 'telegram' | 'in-depth-analysis' | 'news' | 'admin' | 'rsshub';
 
 export type ModuleDef = {
   id: ModuleId;
@@ -7,6 +7,7 @@ export type ModuleDef = {
   href: string;
   status?: 'beta' | 'alpha' | 'stable';
   adminOnly?: boolean;
+  external?: boolean;
 };
 
 export const MODULES: ModuleDef[] = [
@@ -45,6 +46,14 @@ export const MODULES: ModuleDef[] = [
     href: '/tools/admin',
     status: 'stable',
     adminOnly: true,
+  },
+  {
+    id: 'rsshub',
+    name: 'RSSHub',
+    description: '万物皆可 RSS - 支持数千种网站的 RSS 订阅生成',
+    href: 'https://rsshub-fork-ai.vercel.app',
+    status: 'stable',
+    external: true,
   },
 ];
 
