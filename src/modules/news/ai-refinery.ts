@@ -7,7 +7,7 @@
 
 import type { RefinedArticle, AIEnrichment, EnrichedArticle, ArticleCategory } from './types';
 import type { KVStorage } from '@/lib/storage/kv';
-import { openAICompatibleChatCompletion } from '@/modules/in-depth-analysis/llm/openai-compatible-client';
+import { openAICompatibleChatCompletion } from '@/lib/llm/openai-client';
 
 // ============================================================================
 // Configuration
