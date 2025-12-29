@@ -3,5 +3,11 @@
   "outputDirectory": "dist",
   "framework": "astro",
   "devCommand": "npm run dev",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/push",
+      "schedule": "0 */4 * * *"
+    }
+  ]
 }
