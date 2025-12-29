@@ -65,7 +65,7 @@ REQUEST_TIMEOUT = 30
 
 def summarize_with_ai(title: str, raw_summary: str) -> str:
     """
-    使用 Groq API (Llama 3) 优化新闻摘要
+    使用 Groq API (Llama 3 70b) 优化新闻摘要
 
     Args:
         title: 新闻标题
@@ -82,28 +82,30 @@ def summarize_with_ai(title: str, raw_summary: str) -> str:
 
         client = Groq(api_key=GROQ_API_KEY)
 
-        # 清理原始摘要，去除 HTML 标签和过长内容
+        # 清理原始摘要，去除 HTML 标签
         clean_summary = raw_summary
         if "<" in clean_summary:
             clean_summary = re.sub(r'<[^>]+>', '', clean_summary)
-        clean_summary = clean_summary.strip()[:1000]  # 限制输入长度
+        clean_summary = clean_summary.strip()
 
-        # 构建提示词
-        prompt = f"""你是一个科技新闻编辑。请阅读以下新闻标题和原始摘要，用**中文**写一段简短的总结（不超过 100 字）。
+        # 构建输入文本（标题 + 摘要）
+        text = f"标题：{title}\n\n摘要：{clean_summary}"
+
+        # 截断以防 Token 溢出
+        user_content = f"原文内容：\n{text[:3000]}"
+
+        # 系统提示词
+        SYSTEM_PROMPT = """你是一个科技新闻编辑。请阅读以下新闻内容，用**中文**写一段简短的总结（不超过 100 字）。
 去除非核心信息，直击要点。如果原始内容已经是中文，则优化其表达。
-
-标题：{title}
-
-摘要：{clean_summary}
-
 请直接输出优化后的摘要，不要加任何前缀或解释。"""
 
         response = client.chat.completions.create(
-            model="llama-3.3-8b-instant",  # 或 "llama3-8b-8192"
+            model="llama-3.1-70b-versatile",  # 70b 模型，更强的逻辑分析能力
             messages=[
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_content}
             ],
-            temperature=0.3,
+            temperature=0.1,  # 降低温度，确保事实准确和格式稳定
             max_tokens=200,
         )
 
