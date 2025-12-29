@@ -54,7 +54,7 @@ export async function createSessionCookies(opts: {
 
   cookies.set('auth_session', sessionToken, {
     httpOnly: true,
-    secure: true,
+    secure,
     sameSite: 'lax',
     path: '/',
     maxAge: maxAgeSeconds,
@@ -62,7 +62,7 @@ export async function createSessionCookies(opts: {
 
   cookies.set('auth_session_data', signed, {
     httpOnly: true,
-    secure: true,
+    secure,
     sameSite: 'lax',
     path: '/',
     maxAge: maxAgeSeconds,

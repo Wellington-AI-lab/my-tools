@@ -68,7 +68,7 @@ export class VercelPostgres implements Database {
   }
 }
 
-class PostgresStatement implements Statement {
+export class PostgresStatement implements Statement {
   private params: (string | number | boolean | null)[] = [];
 
   constructor(private query: string, private db: VercelPostgres) {}

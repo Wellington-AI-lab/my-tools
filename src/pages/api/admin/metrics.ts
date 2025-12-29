@@ -18,6 +18,7 @@ import {
   getTelemetryStats,
   getRecentEvents,
   formatCost,
+  calculateCost,
 } from '@/modules/telemetry/wrapper';
 import type { TelemetryStats } from '@/modules/telemetry/wrapper';
 import type { KVStorage } from '@/lib/storage/kv';

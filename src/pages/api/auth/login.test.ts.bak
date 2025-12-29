@@ -103,28 +103,8 @@ function createMockContext(overrides: any = {}) {
   // Mock redirect function that returns a Response with JSON body
   // This allows testing the login flow without actual HTTP redirects
   const mockRedirect = vi.fn((path: string) => {
-    // Check if this is an error redirect
-    if (path.includes('/login?error=')) {
-      const errorParam = path.match(/error=([^&]+)/)?.[1];
-      if (errorParam === 'missing_password') {
-        return new Response(JSON.stringify({ error: '密码不能为空' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      return new Response(JSON.stringify({ error: '密码错误' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Determine role based on environment setup
-    // If ADMIN_PASSWORD_HASH is set and SITE_PASSWORD_HASH is also set, assume admin
-    const isAdmin = !!(process.env.ADMIN_PASSWORD_HASH && process.env.SITE_PASSWORD_HASH);
-    const isUserOnly = !!process.env.SITE_PASSWORD_HASH && !process.env.ADMIN_PASSWORD_HASH;
-    const role = isAdmin ? 'admin' : (isUserOnly ? 'user' : 'user');
-
-    return new Response(JSON.stringify({ success: true, role, redirected: true, path }), {
+    // Return a Response object that matches test expectations
+    return new Response(JSON.stringify({ success: true, redirected: true, path }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -208,8 +188,7 @@ describe('POST /api/auth/login - Happy Path', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -241,8 +220,7 @@ describe('POST /api/auth/login - Happy Path', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -250,7 +228,7 @@ describe('POST /api/auth/login - Happy Path', () => {
       'auth_session',
       expect.any(String),
       expect.objectContaining({
-        httpOnly: false,
+        httpOnly: true,
         secure: true,
         sameSite: 'lax',
         path: '/',
@@ -260,7 +238,7 @@ describe('POST /api/auth/login - Happy Path', () => {
       'auth_session_data',
       expect.any(String),
       expect.objectContaining({
-        httpOnly: false,
+        httpOnly: true,
         secure: true,
         sameSite: 'lax',
         path: '/',
@@ -268,7 +246,7 @@ describe('POST /api/auth/login - Happy Path', () => {
     );
   });
 
-  it.skip('should_clear_fail_counter_on_successful_login - Feature not implemented in current API', async () => {
+  it('should_clear_fail_counter_on_successful_login', async () => {
     // Arrange
     const password = 'test-password';
     const passwordHash = await hashPasswordPbkdf2(password);
@@ -292,15 +270,14 @@ describe('POST /api/auth/login - Happy Path', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
     expect(mockKV.delete).toHaveBeenCalled();
   });
 
-  it.skip('should_use_secure_false_for_http - Feature not implemented in current API', async () => {
+  it('should_use_secure_false_for_http', async () => {
     // Arrange
     const password = 'test-password';
     const passwordHash = await hashPasswordPbkdf2(password);
@@ -323,8 +300,7 @@ describe('POST /api/auth/login - Happy Path', () => {
     const url = createMockUrl('http:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -365,8 +341,7 @@ describe('POST /api/auth/login - Authentication Failures', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(401);
@@ -398,8 +373,7 @@ describe('POST /api/auth/login - Authentication Failures', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(400);
@@ -407,7 +381,7 @@ describe('POST /api/auth/login - Authentication Failures', () => {
     expect(json.error).toContain('密码不能为空');
   });
 
-  it.skip('should_increment_fail_counter_on_wrong_password - Feature not implemented in current API', async () => {
+  it('should_increment_fail_counter_on_wrong_password', async () => {
     // Arrange
     const correctPassword = 'correct-password';
     const passwordHash = await hashPasswordPbkdf2(correctPassword);
@@ -431,15 +405,14 @@ describe('POST /api/auth/login - Authentication Failures', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(401);
     expect(mockKV.put).toHaveBeenCalled();
   });
 
-  it.skip('should_return_remaining_attempts_in_error - Feature not implemented in current API', async () => {
+  it('should_return_remaining_attempts_in_error', async () => {
     // Arrange
     const correctPassword = 'correct-password';
     const passwordHash = await hashPasswordPbkdf2(correctPassword);
@@ -463,8 +436,7 @@ describe('POST /api/auth/login - Authentication Failures', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(401);
@@ -481,7 +453,7 @@ describe('POST /api/auth/login - Rate Limiting', () => {
     vi.clearAllMocks();
   });
 
-  it.skip('should_return_403_when_max_failures_exceeded - Feature not implemented in current API', async () => {
+  it('should_return_403_when_max_failures_exceeded', async () => {
     // Arrange
     const passwordHash = await hashPasswordPbkdf2('password');
 
@@ -504,8 +476,7 @@ describe('POST /api/auth/login - Rate Limiting', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(403);
@@ -513,7 +484,7 @@ describe('POST /api/auth/login - Rate Limiting', () => {
     expect(json.error).toContain('今日已锁定');
   });
 
-  it.skip('should_not_update_counter_when_already_locked - Feature not implemented in current API', async () => {
+  it('should_not_update_counter_when_already_locked', async () => {
     // Arrange
     const passwordHash = await hashPasswordPbkdf2('password');
 
@@ -535,8 +506,7 @@ describe('POST /api/auth/login - Rate Limiting', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(403);
@@ -577,8 +547,7 @@ describe('POST /api/auth/login - Legacy SHA-256 Format', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -610,8 +579,7 @@ describe('POST /api/auth/login - Legacy SHA-256 Format', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(401);
@@ -650,8 +618,7 @@ describe('POST /api/auth/login - Admin Password', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -684,8 +651,7 @@ describe('POST /api/auth/login - Admin Password', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -723,8 +689,7 @@ describe('POST /api/auth/login - Input Validation', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(400);
@@ -732,7 +697,7 @@ describe('POST /api/auth/login - Input Validation', () => {
     expect(json.error).toContain('密码不能为空');
   });
 
-  it.skip('should_handle_json_parse_error_gracefully - API uses formData not JSON', async () => {
+  it('should_handle_json_parse_error_gracefully', async () => {
     // Arrange
     const passwordHash = await hashPasswordPbkdf2('password');
 
@@ -755,8 +720,7 @@ describe('POST /api/auth/login - Input Validation', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     // JSON parse error goes to catch block, returns 500
@@ -765,7 +729,7 @@ describe('POST /api/auth/login - Input Validation', () => {
     expect(json.error).toBe('登录失败');
   });
 
-  it.skip('should_handle_non_string_password - Feature not implemented in current API', async () => {
+  it('should_handle_non_string_password', async () => {
     // Arrange
     const passwordHash = await hashPasswordPbkdf2('password');
 
@@ -787,8 +751,7 @@ describe('POST /api/auth/login - Input Validation', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     // Zod should handle this - password must be a string
@@ -824,8 +787,7 @@ describe('POST /api/auth/login - KV Unavailable', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -853,8 +815,7 @@ describe('POST /api/auth/login - KV Unavailable', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert - Should still return 401, not crash
     expect([401, 500]).toContain(response.status);
@@ -869,7 +830,7 @@ describe('POST /api/auth/login - Error Handling', () => {
     vi.clearAllMocks();
   });
 
-  it.skip('should_return_500_on_unexpected_error - Feature not implemented in current API', async () => {
+  it('should_return_500_on_unexpected_error', async () => {
     // Arrange
     const mockCookies = createMockCookies();
 
@@ -887,8 +848,7 @@ describe('POST /api/auth/login - Error Handling', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(500);
@@ -917,8 +877,7 @@ describe('POST /api/auth/login - Error Handling', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.headers.get('content-type')).toBe('application/json');
@@ -956,8 +915,7 @@ describe('POST /api/auth/login - Special Characters', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -986,8 +944,7 @@ describe('POST /api/auth/login - Special Characters', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
@@ -1016,8 +973,7 @@ describe('POST /api/auth/login - Special Characters', () => {
     const url = createMockUrl('https:');
 
     // Act
-    const context = createMockContext({ locals, request, cookies: mockCookies, url });
-    const response = await POST(context as any);
+    const response = await POST({ locals, request, cookies: mockCookies, url } as any);
 
     // Assert
     expect(response.status).toBe(200);
