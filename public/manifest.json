@@ -1,0 +1,27 @@
+{
+  "name": "Vibe Tech News",
+  "short_name": "VibeNews",
+  "description": "每日聚合 HackerNews、V2EX、36氪等全球科技资讯，AI 智能摘要",
+  "start_url": "/tools/news",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#f5f5f7",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["news", "technology"],
+  "lang": "zh-CN",
+  "scope": "/tools/news"
+}

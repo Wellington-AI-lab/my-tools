@@ -65,6 +65,11 @@ cp "$PROJECT_ROOT/deploy.sh" "$TEMP_BACKUP/" 2>/dev/null || true
 echo "  - Git 配置"
 cp "$PROJECT_ROOT/.gitignore" "$TEMP_BACKUP/" 2>/dev/null || true
 
+# 复制 workers 目录
+echo "  - Workers 目录"
+cp -r "$PROJECT_ROOT/workers" "$TEMP_BACKUP/" 2>/dev/null || true
+cp -r "$PROJECT_ROOT/cron-worker" "$TEMP_BACKUP/" 2>/dev/null || true
+
 # 创建备份信息文件
 echo "  - 备份信息"
 cat > "$TEMP_BACKUP/BACKUP_INFO.txt" <<EOF

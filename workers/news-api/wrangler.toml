@@ -1,0 +1,19 @@
+# Cloudflare Worker 配置文件
+# 用于新闻聚合 API
+
+name = "news-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-28"
+
+# 环境变量 (通过 wrangler secret 设置敏感变量)
+# API_SECRET: 通过 `wrangler secret put API_SECRET` 设置
+# ALLOWED_ORIGINS: 通过 `wrangler secret put ALLOWED_ORIGINS` 设置
+#   格式: "https://example.com,https://app.example.com"
+#   开发环境可设置为 "*"
+
+# D1 数据库绑定
+# 注意: database_id 需要在创建数据库后填入
+[[d1_databases]]
+binding = "DB"
+database_name = "news-db"
+database_id = "56e4016b-3b64-4e09-8010-c10ff0d4cf12"
