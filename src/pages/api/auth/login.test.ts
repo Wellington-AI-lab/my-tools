@@ -5,7 +5,7 @@
  * 测试框架：vitest
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { hashPasswordPbkdf2, sha256Hex } from '@/lib/crypto';
 import { POST } from './login';
 
@@ -27,14 +27,35 @@ function createMockKV(): MockKV {
   };
 }
 
+// Store original process.env
+const originalEnv = process.env;
+
+function setTestEnv(env: Record<string, string | null | undefined>) {
+  // Clear and set test env vars
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith('SITE_') || key.startsWith('ADMIN_') || key.startsWith('SESSION_')) {
+      delete process.env[key];
+    }
+  }
+  for (const [key, value] of Object.entries(env)) {
+    if (value !== null && value !== undefined) {
+      process.env[key] = value;
+    }
+  }
+}
+
+function resetTestEnv() {
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith('SITE_') || key.startsWith('ADMIN_') || key.startsWith('SESSION_')) {
+      delete process.env[key];
+    }
+  }
+}
+
 function createMockLocals(overrides = {}) {
   return {
     runtime: {
       env: {
-        SESSION_SECRET: 'test-session-secret-for-testing-only',
-        SITE_PASSWORD_HASH: null as string | null,
-        ADMIN_PASSWORD_HASH: null as string | null,
-        KV: createMockKV(),
         ...overrides,
       },
     },
@@ -75,6 +96,10 @@ describe('POST /api/auth/login - Happy Path', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    resetTestEnv();
+  });
+
   it('should_login_successfully_with_correct_user_password', async () => {
     // Arrange
     const password = 'test-password-123';
@@ -85,8 +110,12 @@ describe('POST /api/auth/login - Happy Path', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -116,9 +145,13 @@ describe('POST /api/auth/login - Happy Path', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: userHash,
       ADMIN_PASSWORD_HASH: adminHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -145,8 +178,12 @@ describe('POST /api/auth/login - Happy Path', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -191,8 +228,12 @@ describe('POST /api/auth/login - Happy Path', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -217,8 +258,12 @@ describe('POST /api/auth/login - Happy Path', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -254,8 +299,12 @@ describe('POST /api/auth/login - Authentication Failures', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -282,8 +331,12 @@ describe('POST /api/auth/login - Authentication Failures', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -310,8 +363,12 @@ describe('POST /api/auth/login - Authentication Failures', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -337,8 +394,12 @@ describe('POST /api/auth/login - Authentication Failures', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -373,8 +434,12 @@ describe('POST /api/auth/login - Rate Limiting', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -399,8 +464,12 @@ describe('POST /api/auth/login - Rate Limiting', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -436,8 +505,12 @@ describe('POST /api/auth/login - Legacy SHA-256 Format', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: legacyHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -464,8 +537,12 @@ describe('POST /api/auth/login - Legacy SHA-256 Format', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: legacyHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -498,9 +575,13 @@ describe('POST /api/auth/login - Admin Password', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: userHash,
-      ADMIN_PASSWORD_HASH: null, // No admin password set
+      ADMIN_PASSWORD_HASH: null,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -527,9 +608,13 @@ describe('POST /api/auth/login - Admin Password', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: userHash,
       ADMIN_PASSWORD_HASH: adminHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -562,8 +647,12 @@ describe('POST /api/auth/login - Input Validation', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -587,8 +676,12 @@ describe('POST /api/auth/login - Input Validation', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -616,8 +709,12 @@ describe('POST /api/auth/login - Input Validation', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -648,9 +745,13 @@ describe('POST /api/auth/login - KV Unavailable', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
-      KV: null, // KV not bound
+    });
+
+    const locals = createMockLocals({
+      KV: null,
     });
 
     const request = createMockRequest({ password });
@@ -672,8 +773,12 @@ describe('POST /api/auth/login - KV Unavailable', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -700,9 +805,13 @@ describe('POST /api/auth/login - Error Handling', () => {
     // Arrange
     const mockCookies = createMockCookies();
 
-    // Use undefined to trigger getStoredPasswordHash to throw
+    // Set SESSION_SECRET but NOT SITE_PASSWORD_HASH to trigger error
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
+      // SITE_PASSWORD_HASH intentionally NOT set
+    });
+
     const locals = createMockLocals({
-      SITE_PASSWORD_HASH: undefined as any, // This will cause getStoredPasswordHash to throw
       KV: createMockKV(),
     });
 
@@ -726,8 +835,12 @@ describe('POST /api/auth/login - Error Handling', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: await hashPasswordPbkdf2('password'),
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -760,8 +873,12 @@ describe('POST /api/auth/login - Special Characters', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -785,8 +902,12 @@ describe('POST /api/auth/login - Special Characters', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 
@@ -810,8 +931,12 @@ describe('POST /api/auth/login - Special Characters', () => {
 
     const mockCookies = createMockCookies();
 
-    const locals = createMockLocals({
+    setTestEnv({
+      SESSION_SECRET: 'test-session-secret-for-testing-only',
       SITE_PASSWORD_HASH: passwordHash,
+    });
+
+    const locals = createMockLocals({
       KV: mockKV,
     });
 

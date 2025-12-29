@@ -1,0 +1,57 @@
+# Claude Code 工作规则
+
+## 执行权限
+
+**基本原则：只在重大事项时征求同意，其他情况直接执行。**
+
+### 需要征求同意的重大事项
+- 可能破坏现有功能的重大架构变更
+- 删除重要数据或核心代码
+- 部署到生产环境（如果是高风险变更）
+- 需要外部服务配置/付费等
+- 涉及安全风险的修改
+
+### 直接执行的情况
+- 常规开发、功能添加
+- Bug 修复
+- 代码优化、重构
+- 测试运行
+- 文档更新
+- 低风险的部署操作
+
+## 项目信息
+
+- **项目**: my-tools
+- **部署**: Vercel (https://my-tools-bim.pages.dev)
+- **技术栈**: Astro + Tailwind CSS + Vercel Edge Runtime
+- **存储**: Vercel KV + Vercel Postgres
+
+### 前端
+- **框架**: Astro 5
+- **样式**: Tailwind CSS
+- **图表**: Lightweight Charts, Recharts
+- **语言**: TypeScript
+
+### 后端
+- **运行时**: Astro SSR (Vercel Edge Runtime)
+- **认证**: Cookie Session + PBKDF2 密码哈希
+
+### 数据存储
+| 服务 | 用途 |
+|------|------|
+| Vercel KV | 缓存、会话、标的池 |
+| Vercel Postgres | 持久化数据存储 |
+
+### 开发工具
+- **测试**: vitest 4.0.16
+- **构建**: astro build
+- **部署**: vercel --prod
+
+## 已上线模块
+
+| 模块 | 路由 | 状态 |
+|------|------|------|
+| 股票组合回测 | `/tools/stocks` | stable |
+| 新闻聚合 | `/tools/news` | stable |
+| 社会热点扫描 | `/tools/trends` | stable |
+| 关注重点 | `/tools/rednote-agent` | beta |

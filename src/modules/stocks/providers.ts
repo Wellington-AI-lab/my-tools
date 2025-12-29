@@ -1,5 +1,6 @@
 import { kvGetJson, kvPutJson } from '@/lib/kv-json';
 import type { PricePoint } from '@/modules/stocks/types';
+import type { KVStorage } from '@/lib/storage/kv';
 
 type ProviderName = 'yahoo' | 'finnhub' | 'fmp' | 'polygon';
 
@@ -164,7 +165,7 @@ async function fetchFromProvider(
 }
 
 export async function fetchDailySeriesWithCache(opts: {
-  kv: KVNamespace | null;
+  kv: KVStorage | null;
   env: ProviderEnv;
   symbol: string;
   start: string;

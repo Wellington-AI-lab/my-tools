@@ -1,0 +1,842 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+---
+
+<AppLayout title="情报看板">
+  <div class="intel-content">
+    <!-- Header -->
+    <div class="intel-header-card">
+      <div class="intel-header-main">
+        <h1 class="intel-title">情报看板</h1>
+        <span class="intel-subtitle">Intelligence Dashboard</span>
+      </div>
+      <div class="intel-header-meta">
+        <span id="intelStats">加载中...</span>
+        <button id="intelRefresh" class="intel-refresh-btn">刷新</button>
+      </div>
+    </div>
+
+    <!-- Daily Briefing -->
+    <div class="intel-briefing" id="intelBriefing">
+      <div class="intel-briefing-header">
+        <h2 class="intel-briefing-title">TL;DR ─ 每日简报</h2>
+        <span class="intel-briefing-meta" id="briefingMeta"></span>
+      </div>
+      <div class="intel-briefing-content" id="briefingContent">
+        <div class="intel-loading">生成中...</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="intel-filters">
+      <div class="intel-filter-row">
+        <div class="intel-filter-label">
+          <span>信号筛选</span>
+          <span class="intel-filter-count" id="filterCount">-</span>
+        </div>
+        <div class="intel-filter-controls">
+          <input
+            type="range"
+            id="signalSlider"
+            min="0"
+            max="10"
+            step="1"
+            value="0"
+            class="intel-filter-slider"
+          />
+          <div class="intel-filter-presets">
+            <button class="intel-filter-preset active" data-value="0">全部</button>
+            <button class="intel-filter-preset" data-value="5">5+</button>
+            <button class="intel-filter-preset" data-value="7">7+</button>
+            <button class="intel-filter-preset" data-value="8">8+</button>
+            <button class="intel-filter-preset" data-value="9">9+</button>
+          </div>
+        </div>
+      </div>
+      <div class="intel-category-row" id="categoryFilter"></div>
+    </div>
+
+    <!-- Articles -->
+    <div class="intel-articles" id="articlesList">
+      <div class="intel-loading">加载中...</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="intel-footer">
+      <span id="footerStats">-</span>
+      <span id="lastUpdate">-</span>
+    </div>
+  </div>
+
+  <style is:global>
+    /* Intelligence Dashboard Styles */
+    :root {
+      --intel-bg-primary: #0a0a0a;
+      --intel-bg-secondary: #111111;
+      --intel-bg-tertiary: #1a1a1a;
+      --intel-border: #222222;
+      --intel-border-hover: #2a2a2a;
+      --intel-text-primary: #e5e5e5;
+      --intel-text-secondary: #888888;
+      --intel-text-tertiary: #444444;
+      --intel-accent-blue: #3b82f6;
+      --intel-accent-green: #22c55e;
+      --intel-accent-amber: #f59e0b;
+    }
+
+    .intel-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Header Card */
+    .intel-header-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: var(--intel-bg-secondary);
+      border: 1px solid var(--intel-border);
+      border-radius: 8px;
+    }
+
+    .intel-header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .intel-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--intel-text-primary);
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .intel-subtitle {
+      font-size: 11px;
+      color: var(--intel-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .intel-header-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .intel-refresh-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+      background: var(--intel-bg-tertiary);
+      border: 1px solid var(--intel-border);
+      border-radius: 4px;
+      color: var(--intel-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .intel-refresh-btn:hover {
+      background: var(--intel-border-hover);
+      color: var(--intel-text-primary);
+    }
+
+    /* Briefing Card */
+    .intel-briefing {
+      padding: 16px 20px;
+      background: var(--intel-bg-secondary);
+      border: 1px solid var(--intel-border);
+      border-radius: 8px;
+    }
+
+    .intel-briefing-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .intel-briefing-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--intel-text-secondary);
+      margin: 0;
+    }
+
+    .intel-briefing-meta {
+      font-size: 10px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      color: var(--intel-text-tertiary);
+    }
+
+    .intel-briefing-content {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--intel-text-primary);
+    }
+
+    .intel-briefing-content p {
+      margin: 3px 0;
+    }
+
+    .intel-briefing-item {
+      display: flex;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .intel-briefing-score {
+      flex-shrink: 0;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .intel-briefing-score.high { color: var(--intel-accent-green); }
+    .intel-briefing-score.medium { color: var(--intel-accent-blue); }
+    .intel-briefing-score.low { color: var(--intel-accent-amber); }
+
+    /* Filters */
+    .intel-filters {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--intel-bg-secondary);
+      border: 1px solid var(--intel-border);
+      border-radius: 8px;
+    }
+
+    .intel-filter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .intel-filter-label {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--intel-text-secondary);
+      white-space: nowrap;
+    }
+
+    .intel-filter-count {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      color: var(--intel-text-tertiary);
+    }
+
+    .intel-filter-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .intel-filter-slider {
+      flex: 1;
+      height: 3px;
+      background: var(--intel-bg-tertiary);
+      border-radius: 2px;
+      appearance: none;
+      outline: none;
+    }
+
+    .intel-filter-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--intel-text-primary);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .intel-filter-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: var(--intel-text-primary);
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+    }
+
+    .intel-filter-presets {
+      display: flex;
+      gap: 4px;
+    }
+
+    .intel-filter-preset {
+      padding: 3px 8px;
+      font-size: 10px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      background: transparent;
+      border: 1px solid var(--intel-border);
+      border-radius: 3px;
+      color: var(--intel-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .intel-filter-preset:hover {
+      border-color: var(--intel-text-tertiary);
+      color: var(--intel-text-primary);
+    }
+
+    .intel-filter-preset.active {
+      background: var(--intel-bg-tertiary);
+      border-color: var(--intel-text-secondary);
+      color: var(--intel-text-primary);
+    }
+
+    .intel-category-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .intel-category-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      background: transparent;
+      border: 1px solid var(--intel-border);
+      border-radius: 4px;
+      color: var(--intel-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .intel-category-pill:hover:not(.empty) {
+      border-color: var(--intel-text-tertiary);
+      color: var(--intel-text-primary);
+    }
+
+    .intel-category-pill.active:not(.empty) {
+      background: var(--intel-bg-tertiary);
+      border-color: var(--intel-accent-blue);
+      color: var(--intel-text-primary);
+    }
+
+    .intel-category-pill.empty {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .intel-category-count {
+      font-size: 9px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      color: var(--intel-text-tertiary);
+    }
+
+    .intel-category-pill.active .intel-category-count {
+      color: var(--intel-accent-blue);
+    }
+
+    /* Articles List */
+    .intel-articles {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .intel-loading,
+    .intel-error,
+    .intel-empty {
+      padding: 40px;
+      text-align: center;
+      color: var(--intel-text-secondary);
+      font-size: 13px;
+    }
+
+    /* Article Row */
+    .intel-article {
+      display: flex;
+      gap: 12px;
+      padding: 10px 14px;
+      background: transparent;
+      border-left: 3px solid transparent;
+      border-bottom: 1px solid var(--intel-border);
+      text-decoration: none;
+      transition: background 0.1s;
+    }
+
+    .intel-article:hover {
+      background: var(--intel-bg-secondary);
+    }
+
+    .intel-article:hover .intel-article-details {
+      display: block;
+      opacity: 1;
+    }
+
+    /* Signal-based border colors */
+    .intel-article[data-signal="9"] { border-left-color: rgba(34, 197, 94, 0.6); }
+    .intel-article[data-signal="8"] { border-left-color: rgba(59, 130, 246, 0.6); }
+    .intel-article[data-signal="7"] { border-left-color: rgba(59, 130, 246, 0.5); }
+    .intel-article[data-signal="6"] { border-left-color: rgba(245, 158, 11, 0.5); }
+    .intel-article[data-signal="5"] { border-left-color: rgba(245, 158, 11, 0.4); }
+    .intel-article[data-signal="4"] { border-left-color: rgba(107, 114, 128, 0.3); }
+    .intel-article[data-signal="3"] { border-left-color: rgba(107, 114, 128, 0.2); }
+    .intel-article[data-signal="0"] { border-left-color: rgba(107, 114, 128, 0.15); }
+
+    .intel-article-score {
+      flex-shrink: 0;
+      width: 36px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: left;
+      line-height: 1.8;
+    }
+
+    .intel-article-score.high { color: var(--intel-accent-green); }
+    .intel-article-score.medium { color: var(--intel-accent-blue); }
+    .intel-article-score.low { color: var(--intel-accent-amber); }
+    .intel-article-score.none { color: var(--intel-text-tertiary); }
+
+    .intel-article-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .intel-article-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .intel-article-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--intel-text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin: 0;
+    }
+
+    .intel-article-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--intel-text-tertiary);
+    }
+
+    .intel-meta-category {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .intel-meta-category.ai { color: #a855f7; }
+    .intel-meta-category.engineering { color: #3b82f6; }
+    .intel-meta-category.business { color: #22c55e; }
+    .intel-meta-category.product { color: #f97316; }
+    .intel-meta-category.science { color: #06b6d4; }
+    .intel-meta-category.opinion { color: #eab308; }
+    .intel-meta-category.noise { color: #6b7280; }
+
+    .intel-meta-source {
+      color: var(--intel-text-tertiary);
+    }
+
+    .intel-meta-time {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      color: var(--intel-text-tertiary);
+    }
+
+    /* Expandable Details */
+    .intel-article-details {
+      display: none;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--intel-border);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .intel-article-bottom-line {
+      font-size: 12px;
+      color: var(--intel-text-secondary);
+      display: flex;
+      gap: 6px;
+      line-height: 1.5;
+    }
+
+    .intel-bottom-line-icon {
+      color: var(--intel-accent-blue);
+      flex-shrink: 0;
+    }
+
+    .intel-article-insights {
+      margin: 8px 0 0 0;
+      padding-left: 14px;
+      list-style: none;
+    }
+
+    .intel-article-insights li {
+      font-size: 11px;
+      color: var(--intel-text-tertiary);
+      line-height: 1.4;
+      margin: 3px 0;
+      position: relative;
+    }
+
+    .intel-article-insights li::before {
+      content: '•';
+      position: absolute;
+      left: -10px;
+      color: var(--intel-accent-blue);
+    }
+
+    /* Footer */
+    .intel-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      font-size: 10px;
+      color: var(--intel-text-tertiary);
+      background: var(--intel-bg-secondary);
+      border-radius: 6px;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .intel-header-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .intel-filter-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .intel-filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+
+  <script>
+    // ============================================================================
+    // Intelligence Dashboard - Vanilla JS Implementation
+    // ============================================================================
+
+    const API_BASE = '/api/news';
+
+    // State
+    let allArticles = [];
+    let filteredArticles = [];
+    let minSignal = 0;
+    let categoryFilter = 'all';
+    let lastUpdate = null;
+
+    // Category config
+    const CATEGORY_CONFIG = {
+      all: { label: '全部', color: '' },
+      ai: { label: 'AI', color: '#a855f7' },
+      engineering: { label: '工程', color: '#3b82f6' },
+      business: { label: '商业', color: '#22c55e' },
+      product: { label: '产品', color: '#f97316' },
+      science: { label: '科学', color: '#06b6d4' },
+      opinion: { label: '观点', color: '#eab308' },
+      noise: { label: '噪音', color: '#6b7280' },
+    };
+
+    // DOM Elements
+    const els = {
+      stats: document.getElementById('intelStats'),
+      refresh: document.getElementById('intelRefresh'),
+      briefing: document.getElementById('intelBriefing'),
+      briefingMeta: document.getElementById('briefingMeta'),
+      briefingContent: document.getElementById('briefingContent'),
+      signalSlider: document.getElementById('signalSlider'),
+      filterCount: document.getElementById('filterCount'),
+      categoryFilter: document.getElementById('categoryFilter'),
+      articlesList: document.getElementById('articlesList'),
+      footerStats: document.getElementById('footerStats'),
+      lastUpdate: document.getElementById('lastUpdate'),
+    };
+
+    // Helpers
+    function isEnriched(article) {
+      return article.ai_enriched === true;
+    }
+
+    function getSignalScore(article) {
+      return isEnriched(article) ? article.ai_signal_score : 0;
+    }
+
+    function getCategory(article) {
+      return isEnriched(article) ? article.ai_category : 'noise';
+    }
+
+    function formatTimeAgo(timestamp) {
+      const now = Date.now() / 1000;
+      const diff = now - timestamp;
+      const minutes = Math.floor(diff / 60);
+      const hours = Math.floor(diff / 3600);
+      const days = Math.floor(diff / 86400);
+
+      if (minutes < 60) return `${minutes}m`;
+      if (hours < 24) return `${hours}h`;
+      if (days < 7) return `${days}d`;
+      return new Date(timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function getScoreClass(score) {
+      if (score >= 9) return 'high';
+      if (score >= 7) return 'medium';
+      if (score >= 5) return 'low';
+      return 'none';
+    }
+
+    // Render category filter pills
+    function renderCategoryFilter() {
+      const counts = {};
+      counts.all = allArticles.filter(isEnriched).length;
+
+      for (const article of allArticles.filter(isEnriched)) {
+        const cat = article.ai_category;
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
+
+      const categories = ['all', 'ai', 'engineering', 'business', 'product', 'science', 'opinion'];
+
+      els.categoryFilter.innerHTML = categories.map(cat => {
+        const count = counts[cat] || 0;
+        const isActive = categoryFilter === cat;
+        const isEmpty = count === 0 && cat !== 'all';
+        return `
+          <button
+            class="intel-category-pill ${isActive ? 'active' : ''} ${isEmpty ? 'empty' : ''}"
+            data-category="${cat}"
+            ${isEmpty ? 'disabled' : ''}
+          >
+            <span>${CATEGORY_CONFIG[cat].label}</span>
+            ${count > 0 ? `<span class="intel-category-count">${count}</span>` : ''}
+          </button>
+        `;
+      }).join('');
+
+      // Add click handlers
+      els.categoryFilter.querySelectorAll('.intel-category-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.classList.contains('empty')) return;
+          categoryFilter = btn.dataset.category;
+          applyFilters();
+          renderCategoryFilter();
+        });
+      });
+    }
+
+    // Apply filters
+    function applyFilters() {
+      filteredArticles = allArticles.filter(isEnriched);
+
+      // Signal filter
+      if (minSignal > 0) {
+        filteredArticles = filteredArticles.filter(a => a.ai_signal_score >= minSignal);
+      }
+
+      // Category filter
+      if (categoryFilter !== 'all') {
+        filteredArticles = filteredArticles.filter(a => a.ai_category === categoryFilter);
+      }
+
+      // Sort by signal score (descending)
+      filteredArticles.sort((a, b) => b.ai_signal_score - a.ai_signal_score);
+
+      // Update UI
+      renderArticles();
+      updateFooter();
+    }
+
+    // Render articles
+    function renderArticles() {
+      const enrichedCount = allArticles.filter(isEnriched).length;
+
+      if (filteredArticles.length === 0) {
+        if (enrichedCount === 0) {
+          els.articlesList.innerHTML = '<div class="intel-empty">暂无AI分析数据，请等待后台处理完成</div>';
+        } else {
+          els.articlesList.innerHTML = '<div class="intel-empty">暂无符合条件的文章</div>';
+        }
+        els.filterCount.textContent = `0/${enrichedCount}`;
+        return;
+      }
+
+      els.filterCount.textContent = `${filteredArticles.length}/${enrichedCount}`;
+
+      els.articlesList.innerHTML = filteredArticles.map((article, index) => {
+        const score = article.ai_signal_score;
+        const scoreClass = getScoreClass(score);
+        const category = article.ai_category;
+        const timeAgo = formatTimeAgo(article.published_at);
+
+        let detailsHtml = '';
+        if (article.ai_bottom_line) {
+          detailsHtml = `
+            <div class="intel-article-details">
+              <div class="intel-article-bottom-line">
+                <span class="intel-bottom-line-icon">→</span>
+                ${escapeHtml(article.ai_bottom_line)}
+              </div>
+            `;
+          if (article.ai_key_insights && article.ai_key_insights.length > 0) {
+            detailsHtml += `
+              <ul class="intel-article-insights">
+                ${article.ai_key_insights.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+              </ul>
+            `;
+          }
+          detailsHtml += '</div>';
+        }
+
+        return `
+          <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer"
+             class="intel-article" data-signal="${Math.floor(score)}">
+            <div class="intel-article-score ${scoreClass}">${score.toFixed(1)}</div>
+            <div class="intel-article-main">
+              <div class="intel-article-header">
+                <h3 class="intel-article-title">${escapeHtml(article.title)}</h3>
+                <div class="intel-article-meta">
+                  <span class="intel-meta-category ${category}">${CATEGORY_CONFIG[category]?.label || '??'}</span>
+                  <span class="intel-meta-source">${escapeHtml(article.source)}</span>
+                  <span class="intel-meta-time">${timeAgo}</span>
+                </div>
+              </div>
+              ${detailsHtml}
+            </div>
+          </a>
+        `;
+      }).join('');
+    }
+
+    // Render daily briefing
+    function renderBriefing() {
+      const enriched = allArticles.filter(isEnriched);
+      const topSignals = enriched
+        .sort((a, b) => b.ai_signal_score - a.ai_signal_score)
+        .slice(0, 5);
+
+      if (topSignals.length === 0) {
+        els.briefingMeta.textContent = '暂无数据';
+        els.briefingContent.innerHTML = '<p class="intel-loading">等待AI分析完成...</p>';
+        return;
+      }
+
+      els.briefingMeta.textContent = `${topSignals.length} 条高信号`;
+
+      els.briefingContent.innerHTML = topSignals.map(article => {
+        const scoreClass = getScoreClass(article.ai_signal_score);
+        return `
+          <div class="intel-briefing-item">
+            <span class="intel-briefing-score ${scoreClass}">${article.ai_signal_score.toFixed(1)}</span>
+            <span>${escapeHtml(article.ai_bottom_line)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Update footer
+    function updateFooter() {
+      const enrichedCount = allArticles.filter(isEnriched).length;
+      els.footerStats.textContent = `显示 ${filteredArticles.length} / ${enrichedCount} 条已分析`;
+
+      if (lastUpdate) {
+        els.lastUpdate.textContent = `更新于 ${lastUpdate.toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })}`;
+      }
+    }
+
+    // Fetch data
+    async function fetchData() {
+      els.refresh.disabled = true;
+      els.refresh.textContent = '刷新中...';
+
+      try {
+        const params = new URLSearchParams();
+        params.set('summarize', 'cached');
+        params.set('limit', '100');
+
+        const response = await fetch(`${API_BASE}/feed?${params}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!data.success) throw new Error('Failed to fetch');
+
+        allArticles = data.data || [];
+        lastUpdate = new Date();
+
+        // Update stats
+        const enrichedCount = allArticles.filter(isEnriched).length;
+        els.stats.textContent = `${allArticles.length} 篇 · ${enrichedCount} 已分析`;
+
+        // Render
+        renderBriefing();
+        renderCategoryFilter();
+        applyFilters();
+
+      } catch (error) {
+        console.error('Failed to fetch:', error);
+        els.articlesList.innerHTML = `<div class="intel-error">加载失败: ${error.message}</div>`;
+        els.stats.textContent = '加载失败';
+      } finally {
+        els.refresh.disabled = false;
+        els.refresh.textContent = '刷新';
+      }
+    }
+
+    // Signal slider handlers
+    els.signalSlider.addEventListener('input', (e) => {
+      minSignal = parseInt(e.target.value);
+      // Update preset buttons
+      document.querySelectorAll('.intel-filter-preset').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.value) === minSignal);
+      });
+      applyFilters();
+    });
+
+    // Preset button handlers
+    document.querySelectorAll('.intel-filter-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        minSignal = parseInt(btn.dataset.value);
+        els.signalSlider.value = minSignal;
+        document.querySelectorAll('.intel-filter-preset').forEach(b => {
+          b.classList.toggle('active', b === btn);
+        });
+        applyFilters();
+      });
+    });
+
+    // Refresh button
+    els.refresh.addEventListener('click', fetchData);
+
+    // Initial fetch
+    fetchData();
+  </script>
+</AppLayout>

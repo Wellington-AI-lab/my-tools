@@ -1,40 +1,11 @@
 /**
- * KV Storage Abstraction Layer
- *
- * Supports both Cloudflare KV and Vercel KV
+ * KV Storage for Vercel
  */
 
 export interface KVStorage {
   get(key: string, options?: { type: 'text' | 'json' | 'arrayBuffer' }): Promise<string | null | object>;
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
   delete(key: string): Promise<void>;
-  list?(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<{ keys: Array<{ name: string }>; list_complete: boolean; cursor?: string }>;
-}
-
-/**
- * Cloudflare KV adapter
- */
-export class CloudflareKV implements KVStorage {
-  constructor(private kv: KVNamespace) {}
-
-  async get(key: string, options?: { type?: 'text' | 'json' | 'arrayBuffer' }): Promise<string | null | object> {
-    if (options?.type === 'json') {
-      return this.kv.get(key, { type: 'json' as any });
-    }
-    return this.kv.get(key);
-  }
-
-  async put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> {
-    await this.kv.put(key, value, options);
-  }
-
-  async delete(key: string): Promise<void> {
-    await this.kv.delete(key);
-  }
-
-  list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<{ keys: Array<{ name: string }>; list_complete: boolean; cursor?: string }> {
-    return this.kv.list(options);
-  }
 }
 
 /**
@@ -114,14 +85,14 @@ export class VercelKV implements KVStorage {
 }
 
 /**
- * Detect and create appropriate KV storage
+ * Create KV storage for Vercel
+ * Supports both Vercel KV environment variables and test mocks (locals.runtime.env.KV)
  */
 export function createKVStorage(locals: App.Locals): KVStorage {
-  const env = locals.runtime?.env;
-
-  // Cloudflare environment
-  if (env?.KV) {
-    return new CloudflareKV(env.KV as KVNamespace);
+  // Check for test mock KV in locals.runtime.env.KV first (for testing)
+  const runtimeKV = locals.runtime?.env?.KV as KVStorage | undefined;
+  if (runtimeKV && typeof runtimeKV.get === 'function') {
+    return runtimeKV;
   }
 
   // Vercel environment (check for env vars)
@@ -134,7 +105,7 @@ export function createKVStorage(locals: App.Locals): KVStorage {
     return new VercelKV();
   }
 
-  throw new Error('No KV storage configured. Please configure Cloudflare KV or Vercel KV.');
+  throw new Error('No KV storage configured. Please configure Vercel KV (KV_URL/KV_REST_API_READ_WRITE_TOKEN) or Redis URL (REDIS_URL).');
 }
 
 export function createKVStorageOrNull(locals: App.Locals): KVStorage | null {

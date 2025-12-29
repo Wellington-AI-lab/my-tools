@@ -14,6 +14,7 @@ import {
   type UpdateSourceResult,
 } from './fetcher';
 import type { IntelligenceSource, SourceFetchResult } from './types';
+import type { Database } from '@/lib/storage/db';
 
 // ============================================================================
 // Mock Helpers
@@ -66,7 +67,7 @@ function createMockSource(overrides: Partial<IntelligenceSource> = {}): Intellig
   };
 }
 
-function createMockD1(): D1Database {
+function createMockD1(): Database {
   const mockData = new Map<number, { reliability_score: number }>();
 
   const prepare = vi.fn((sql: string) => {
@@ -114,7 +115,7 @@ function createMockD1(): D1Database {
     prepare,
     batch: vi.fn(),
     exec: vi.fn(),
-  } as unknown as D1Database;
+  } as unknown as Database;
 }
 
 // ============================================================================
@@ -583,7 +584,7 @@ describe('calculateNewReliability', () => {
 // updateSourceStatuses Tests
 // ============================================================================
 describe('updateSourceStatuses', () => {
-  let db: D1Database;
+  let db: Database;
   let prepareSpy: any;
 
   beforeEach(() => {

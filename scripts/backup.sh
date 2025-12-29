@@ -43,7 +43,6 @@ cp "$PROJECT_ROOT/tsconfig.json" "$TEMP_BACKUP/"
 cp "$PROJECT_ROOT/tailwind.config.js" "$TEMP_BACKUP/"
 cp "$PROJECT_ROOT/postcss.config.js" "$TEMP_BACKUP/"
 cp "$PROJECT_ROOT/astro.config.mjs" "$TEMP_BACKUP/"
-cp "$PROJECT_ROOT/wrangler.toml" "$TEMP_BACKUP/"
 cp "$PROJECT_ROOT/vitest.config.ts" "$TEMP_BACKUP/"
 cp "$PROJECT_ROOT/env.d.ts" "$TEMP_BACKUP/"
 
@@ -92,7 +91,6 @@ npm 版本: $(npm --version)
 - dist/ (构建产物，可通过 npm run build 生成)
 - coverage/ (测试覆盖率报告)
 - .astro/ (Astro 缓存)
-- .wrangler/ (Wrangler 缓存)
 - .git/ (Git 历史，如需完整历史请单独备份)
 
 恢复步骤:
@@ -104,8 +102,8 @@ npm 版本: $(npm --version)
 
 重要提示:
 - 备份不包含敏感信息（如 .env 文件）
-- 备份不包含 Cloudflare KV 数据（需单独备份）
-- 备份不包含用户数据（存储在 Cloudflare KV 中）
+- 备份不包含 Vercel KV 数据（需单独备份）
+- 备份不包含 Postgres 数据库数据（需单独备份）
 EOF
 
 # 创建压缩包

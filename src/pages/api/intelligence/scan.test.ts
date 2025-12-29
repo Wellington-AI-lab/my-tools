@@ -14,7 +14,15 @@ import type { IntelligenceArticle } from '@/modules/intelligence/types';
 // ============================================================================
 
 vi.mock('@/lib/env', () => ({
-  requireIntelligenceDB: vi.fn((locals) => locals.runtime?.env?.INTELLIGENCE_DB),
+  requireIntelligenceDB: vi.fn((locals) => {
+    // Vercel: create database from env vars
+    const postgresUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    if (postgresUrl) {
+      // In tests, return mock database from runtime env
+      return (locals as any).runtime?.env?.POSTGRES_URL ? locals.runtime.env.mockDb : null;
+    }
+    return null;
+  }),
   getEnv: vi.fn((locals) => locals.runtime?.env),
 }));
 
@@ -45,19 +53,19 @@ const mockedUpdateSourceStatuses = updateSourceStatuses as unknown as ReturnType
 // Mock Helpers
 // ============================================================================
 
-function createMockD1(): D1Database {
+function createMockD1(): Database {
   return {
     prepare: vi.fn(),
     batch: vi.fn(),
-    exec: vi.fn(),
-  } as unknown as D1Database;
+  } as unknown as Database;
 }
 
-function createMockLocals(d1?: D1Database | null, envOverrides = {}): App.Locals {
+function createMockLocals(db?: Database | null, envOverrides = {}): App.Locals {
   return {
     runtime: {
       env: {
-        INTELLIGENCE_DB: d1 ?? createMockD1(),
+        POSTGRES_URL: 'postgresql://mock',
+        mockDb: db ?? createMockD1(),
         RSSHUB_BASE_URL: undefined,
         ...envOverrides,
       },
@@ -150,7 +158,7 @@ describe('GET /api/intelligence/scan', () => {
     vi.clearAllMocks();
     vi.useFakeTimers().setSystemTime(new Date('2024-01-01T12:00:00Z'));
 
-    mockedRequireIntelligenceDB.mockImplementation((locals) => locals.runtime?.env?.INTELLIGENCE_DB);
+    mockedRequireIntelligenceDB.mockImplementation((locals) => (locals as any).runtime?.env?.mockDb);
     mockedGetEnv.mockImplementation((locals) => locals.runtime?.env);
   });
 

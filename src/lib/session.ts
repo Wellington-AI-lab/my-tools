@@ -3,7 +3,7 @@
  *
  * Format: base64url(json) + "." + base64url(hmac_sha256(json))
  *
- * Uses WebCrypto (`crypto.subtle`) available in Cloudflare Workers.
+ * Uses WebCrypto (`crypto.subtle`) available in Vercel Edge Runtime.
  */
 
 export type SessionPayload = {

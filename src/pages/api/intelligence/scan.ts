@@ -69,7 +69,7 @@ export async function GET({ locals, url }: {
   url: URL;
 }) {
   const db = requireIntelligenceDB(locals);
-  const env = getEnv(locals) as CloudflareEnv;
+  const env = getEnv(locals) as VercelEnv;
   const scanId = generateScanId();
   const startTime = Date.now();
 

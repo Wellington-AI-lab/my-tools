@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node', // Use 'node' for now; consider 'cloudflare:test' with @cloudflare/vitest-pool-workers
+    environment: 'node',
     include: ['src/**/*.test.ts'],
     coverage: {
       provider: 'v8',

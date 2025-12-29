@@ -1,5 +1,6 @@
 import { normalizeAndValidateSymbol } from '@/lib/validation';
 import { kvGetJson, kvPutJson } from '@/lib/kv-json';
+import type { KVStorage } from '@/lib/storage/kv';
 
 export type WatchlistItem = {
   symbol: string;
@@ -31,7 +32,7 @@ const KEY_WATCHLIST = 'profile:v1:watchlist';
 const KEY_TAG_RULES = 'profile:v1:tagRules';
 const KEY_PREFERENCES = 'profile:v1:preferences';
 
-export async function getWatchlist(kv: KVNamespace): Promise<WatchlistItem[]> {
+export async function getWatchlist(kv: KVStorage): Promise<WatchlistItem[]> {
   const items = await kvGetJson<WatchlistItem[]>(kv, KEY_WATCHLIST, []);
   // basic normalization + de-dupe
   const seen = new Set<string>();
@@ -51,24 +52,24 @@ export async function getWatchlist(kv: KVNamespace): Promise<WatchlistItem[]> {
   return cleaned;
 }
 
-export async function putWatchlist(kv: KVNamespace, items: WatchlistItem[]): Promise<void> {
+export async function putWatchlist(kv: KVStorage, items: WatchlistItem[]): Promise<void> {
   await kvPutJson(kv, KEY_WATCHLIST, items);
 }
 
-export async function getTagRules(kv: KVNamespace): Promise<TagRule[]> {
+export async function getTagRules(kv: KVStorage): Promise<TagRule[]> {
   const rules = await kvGetJson<TagRule[]>(kv, KEY_TAG_RULES, []);
   return Array.isArray(rules) ? rules : [];
 }
 
-export async function putTagRules(kv: KVNamespace, rules: TagRule[]): Promise<void> {
+export async function putTagRules(kv: KVStorage, rules: TagRule[]): Promise<void> {
   await kvPutJson(kv, KEY_TAG_RULES, rules);
 }
 
-export async function getPreferences(kv: KVNamespace): Promise<Preferences> {
+export async function getPreferences(kv: KVStorage): Promise<Preferences> {
   return await kvGetJson<Preferences>(kv, KEY_PREFERENCES, { defaultBacktestYears: 10 });
 }
 
-export async function putPreferences(kv: KVNamespace, prefs: Preferences): Promise<void> {
+export async function putPreferences(kv: KVStorage, prefs: Preferences): Promise<void> {
   await kvPutJson(kv, KEY_PREFERENCES, prefs);
 }
 

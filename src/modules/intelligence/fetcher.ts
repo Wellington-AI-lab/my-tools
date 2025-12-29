@@ -4,6 +4,7 @@
  * 支持 DIRECT 和 RSSHUB 两种策略，实现重试和可靠性评分机制
  */
 
+import type { Database } from '@/lib/storage/db';
 import type {
   IntelligenceSource,
   SourceFetchResult,
@@ -330,10 +331,10 @@ export interface UpdateSourceResult {
 }
 
 /**
- * 批量更新源状态到 D1
+ * 批量更新源状态到数据库
  */
 export async function updateSourceStatuses(
-  db: D1Database,
+  db: Database,
   fetchResults: Array<SourceFetchResult & { success?: boolean }>
 ): Promise<UpdateSourceResult[]> {
   const results: UpdateSourceResult[] = [];

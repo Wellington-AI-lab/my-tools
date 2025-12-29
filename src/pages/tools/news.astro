@@ -15,14 +15,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
       <div id="metaInfo" class="titan-meta-info">
         <span class="titan-number" id="totalCount">-</span> 篇文章 · 数据持续更新中
         <span class="titan-divider">·</span>
-        <a href="https://news-api.zhusen-wang.workers.dev/rss" target="_blank" rel="noopener" class="titan-rss-link">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 11a9 9 0 0 1 9 9"></path>
-            <path d="M4 4a16 16 0 0 1 16 16"></path>
-            <circle cx="5" cy="19" r="1"></circle>
-          </svg>
-          RSS订阅
-        </a>
+        <span class="titan-refresh-hint">5 分钟自动刷新</span>
       </div>
     </div>
 
@@ -214,6 +207,14 @@ import AppLayout from '@/layouts/AppLayout.astro';
       font-size: var(--titan-text-sm);
     }
 
+    /* 信号评分指示器 */
+    .titan-score {
+      margin-left: 8px;
+      color: #f59e0b;
+      font-size: var(--titan-text-xs);
+      opacity: 0.8;
+    }
+
     /* 加载状态 */
     .titan-loading {
       padding: 32px;
@@ -254,8 +255,14 @@ import AppLayout from '@/layouts/AppLayout.astro';
   </style>
 
   <script>
-    const API_BASE = 'https://news-api.zhusen-wang.workers.dev';
+    // 使用内部 Refinery API
+    const API_BASE = '/api/news';
     const PAGE_SIZE = 20;
+
+    // SWR 风格缓存配置
+    const CACHE_TTL_MS = 5 * 60 * 1000;  // 5 分钟
+    let cacheTimestamp = 0;
+    let cacheData: any = null;
 
     // 状态
     let currentPage = 1;
@@ -293,11 +300,11 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     // 格式化时间
     function formatTime(timestamp: number): string {
-      const now = Date.now();
-      const diff = now - timestamp * 1000;
-      const minutes = Math.floor(diff / 60000);
-      const hours = Math.floor(diff / 3600000);
-      const days = Math.floor(diff / 86400000);
+      const now = Date.now() / 1000;
+      const diff = now - timestamp;
+      const minutes = Math.floor(diff / 60);
+      const hours = Math.floor(diff / 3600);
+      const days = Math.floor(diff / 86400);
 
       if (minutes < 1) return '刚刚';
       if (minutes < 60) return `${minutes}分钟前`;
@@ -351,6 +358,39 @@ import AppLayout from '@/layouts/AppLayout.astro';
       });
     }
 
+    // SWR 风格数据获取
+    async function fetchWithCache(params: { page: number; source?: string; refresh?: boolean }) {
+      const cacheKey = `${params.page}-${params.source || 'all'}`;
+      const now = Date.now();
+
+      // 检查缓存
+      if (!params.refresh && cacheData && cacheTimestamp && (now - cacheTimestamp < CACHE_TTL_MS)) {
+        console.log('[News] Using cached data');
+        return cacheData;
+      }
+
+      const url = new URL(`${API_BASE}/feed`);
+      url.searchParams.set('page', String(params.page));
+      url.searchParams.set('limit', String(PAGE_SIZE));
+      if (params.source && params.source !== 'all') {
+        url.searchParams.set('source', params.source);
+      }
+      if (params.refresh) {
+        url.searchParams.set('refresh', 'true');
+      }
+
+      const resp = await fetch(url.toString());
+      const data = await resp.json();
+
+      if (data.success) {
+        // 更新缓存
+        cacheData = data;
+        cacheTimestamp = now;
+      }
+
+      return data;
+    }
+
     // 加载新闻
     async function loadNews(append = false) {
       if (isLoading) return;
@@ -359,12 +399,10 @@ import AppLayout from '@/layouts/AppLayout.astro';
       updateLoadMoreUI();
 
       try {
-        const url = new URL(`${API_BASE}/latest`);
-        url.searchParams.set('page', String(currentPage));
-        url.searchParams.set('limit', String(PAGE_SIZE));
-
-        const resp = await fetch(url.toString());
-        const data = await resp.json();
+        const data = await fetchWithCache({
+          page: currentPage,
+          source: currentSource !== 'all' ? currentSource : undefined,
+        });
 
         if (data.success) {
           if (!append) {
@@ -393,8 +431,8 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       let displayArticles = allArticles;
 
-      // 前端筛选
-      if (currentSource !== 'all') {
+      // 前端筛选（如果需要按来源筛选且未在后端筛选）
+      if (currentSource !== 'all' && displayArticles.some(a => a.source !== currentSource)) {
         displayArticles = allArticles.filter(a => a.source === currentSource);
       }
 
@@ -406,8 +444,13 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
       const html = displayArticles.map(article => {
         const sourceClass = getSourceClass(article.source);
-        const timeStr = formatTime(article.created_at);
+        const timeStr = formatTime(article.published_at);  // 使用 published_at
         const summary = article.summary ? escapeHtml(article.summary) : '';
+
+        // 显示信号评分指示器
+        const scoreIndicator = article.signal_score
+          ? `<span class="titan-score" title="信号评分: ${article.signal_score}">★</span>`
+          : '';
 
         return `
           <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" class="titan-news-item">
@@ -418,6 +461,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
             ${summary ? `<p class="titan-news-summary">${summary}</p>` : ''}
             <div class="titan-news-meta">
               <span class="titan-news-time">${timeStr}</span>
+              ${scoreIndicator}
               <span class="titan-news-link">→</span>
             </div>
           </a>
@@ -442,21 +486,18 @@ import AppLayout from '@/layouts/AppLayout.astro';
 
     // 选择来源（用于统计卡片点击筛选）
     function selectSource(source: string) {
+      if (currentSource === source) return;
+
       currentSource = source;
+      currentPage = 1;
+      hasMore = true;
+      allArticles = [];
 
-      // 重新渲染列表（前端筛选）
-      renderNews();
+      // 强制刷新缓存
+      cacheTimestamp = 0;
 
-      // 如果是切换到新来源且数据不足，加载更多
-      if (source !== 'all') {
-        const filtered = allArticles.filter(a => a.source === source);
-        if (filtered.length < PAGE_SIZE && hasMore) {
-          loadNews(true);
-        }
-      }
-
-      // 更新加载更多按钮
-      updateLoadMoreUI();
+      // 重新加载数据
+      loadNews(false);
     }
 
     // 加载更多按钮

@@ -5,134 +5,71 @@
  * 测试框架：vitest
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getEnv, getKV, getIntelligenceDB, requireIntelligenceDB, isProduction, requireKV } from './env';
 
 // ============================================================================
 // Mock Helpers
 // ============================================================================
 
-interface MockRuntime {
-  env?: {
-    KV?: KVNamespace;
-    INTELLIGENCE_DB?: D1Database;
-    NODE_ENV?: string;
-    [key: string]: any;
-  };
-}
-
-function createMockLocals(runtime?: MockRuntime | null): App.Locals {
+function createMockLocals(runtime?: any): App.Locals {
   return {
     runtime: runtime ?? undefined,
   } as App.Locals;
 }
 
-function createMockKV(): KVNamespace {
-  return {
-    get: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    list: vi.fn(),
-  } as unknown as KVNamespace;
+// ============================================================================
+// Process.env Mocking
+// ============================================================================
+
+const originalEnv = process.env;
+
+function mockEnv(env: Partial<NodeJS.ProcessEnv>) {
+  process.env = { ...originalEnv, ...env } as any;
 }
 
-function createMockD1(): D1Database {
-  return {
-    prepare: vi.fn(),
-    batch: vi.fn(),
-    exec: vi.fn(),
-  } as unknown as D1Database;
+function resetEnv() {
+  process.env = originalEnv;
 }
 
 // ============================================================================
 // getEnv Tests
 // ============================================================================
 describe('getEnv', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    resetEnv();
   });
 
   describe('Happy Path', () => {
-    it('should_return_env_when_runtime_is_available', () => {
+    it('should_return_env_with_all_variables', () => {
       // Arrange
-      const mockKV = createMockKV();
-      const mockD1 = createMockD1();
-      const locals = createMockLocals({
-        env: {
-          KV: mockKV,
-          INTELLIGENCE_DB: mockD1,
-          NODE_ENV: 'production',
-        },
+      mockEnv({
+        SESSION_SECRET: 'test-secret',
+        POSTGRES_URL: 'postgres://test',
+        KV_URL: 'https://kv.test.com',
       });
 
       // Act
-      const env = getEnv(locals);
+      const env = getEnv({} as App.Locals);
 
       // Assert
       expect(env).toBeDefined();
-      expect(env.KV).toBe(mockKV);
-      expect(env.INTELLIGENCE_DB).toBe(mockD1);
-      expect(env.NODE_ENV).toBe('production');
+      expect(env.SESSION_SECRET).toBe('test-secret');
+      expect(env.POSTGRES_URL).toBe('postgres://test');
+      expect(env.KV_URL).toBe('https://kv.test.com');
     });
 
-    it('should_return_env_with_empty_bindings', () => {
+    it('should_return_empty_env_when_no_vars_set', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: {},
-      });
+      mockEnv({});
 
       // Act
-      const env = getEnv(locals);
+      const env = getEnv({} as App.Locals);
 
       // Assert
       expect(env).toBeDefined();
-      expect(env).toEqual({});
-    });
-  });
-
-  describe('Error Cases', () => {
-    it('should_throw_error_when_runtime_is_missing', () => {
-      // Arrange
-      const locals = createMockLocals(null);
-
-      // Act & Assert
-      expect(() => getEnv(locals)).toThrow(
-        'Cloudflare runtime not available. Use `wrangler pages dev` for local development.'
-      );
-    });
-
-    it('should_throw_error_when_runtime_is_undefined', () => {
-      // Arrange
-      const locals = {} as App.Locals;
-
-      // Act & Assert
-      expect(() => getEnv(locals)).toThrow(
-        'Cloudflare runtime not available. Use `wrangler pages dev` for local development.'
-      );
-    });
-
-    it('should_throw_error_when_runtime_env_is_null', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: null as any,
-      });
-
-      // Act & Assert
-      expect(() => getEnv(locals)).toThrow(
-        'Cloudflare runtime not available. Use `wrangler pages dev` for local development.'
-      );
-    });
-
-    it('should_throw_error_when_runtime_env_is_undefined', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: undefined,
-      });
-
-      // Act & Assert
-      expect(() => getEnv(locals)).toThrow(
-        'Cloudflare runtime not available. Use `wrangler pages dev` for local development.'
-      );
+      // getEnv always returns all known env keys, even if undefined
+      expect(Object.keys(env).length).toBeGreaterThan(0);
     });
   });
 });
@@ -141,61 +78,48 @@ describe('getEnv', () => {
 // getKV Tests
 // ============================================================================
 describe('getKV', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    resetEnv();
   });
 
   describe('Happy Path', () => {
-    it('should_return_kv_when_bound', () => {
+    it('should_return_kv_when_vercel_kv_env_vars_are_set', () => {
       // Arrange
-      const mockKV = createMockKV();
-      const locals = createMockLocals({
-        env: { KV: mockKV },
+      mockEnv({
+        KV_URL: 'https://kv.test.com',
+        KV_REST_API_READ_WRITE_TOKEN: 'test-token',
       });
 
       // Act
-      const kv = getKV(locals);
+      const kv = getKV({} as App.Locals);
 
       // Assert
-      expect(kv).toBe(mockKV);
+      expect(kv).toBeDefined();
+      expect(kv).not.toBeNull();
+    });
+
+    it('should_return_kv_when_redis_url_is_set', () => {
+      // Arrange
+      mockEnv({
+        REDIS_URL: 'redis://localhost:6379',
+      });
+
+      // Act
+      const kv = getKV({} as App.Locals);
+
+      // Assert
+      expect(kv).toBeDefined();
+      expect(kv).not.toBeNull();
     });
   });
 
-  describe('KV Not Bound', () => {
-    it('should_return_null_when_kv_is_not_bound', () => {
+  describe('KV Not Configured', () => {
+    it('should_return_null_when_no_kv_env_vars_are_set', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: {},
-      });
+      mockEnv({});
 
       // Act
-      const kv = getKV(locals);
-
-      // Assert
-      expect(kv).toBeNull();
-    });
-
-    it('should_return_null_when_kv_is_undefined', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { KV: undefined },
-      });
-
-      // Act
-      const kv = getKV(locals);
-
-      // Assert
-      expect(kv).toBeNull();
-    });
-
-    it('should_return_null_when_kv_is_null', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { KV: null },
-      });
-
-      // Act
-      const kv = getKV(locals);
+      const kv = getKV({} as App.Locals);
 
       // Assert
       expect(kv).toBeNull();
@@ -207,61 +131,47 @@ describe('getKV', () => {
 // getIntelligenceDB Tests
 // ============================================================================
 describe('getIntelligenceDB', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    resetEnv();
   });
 
   describe('Happy Path', () => {
-    it('should_return_d1_when_bound', () => {
+    it('should_return_db_when_postgres_url_is_set', () => {
       // Arrange
-      const mockD1 = createMockD1();
-      const locals = createMockLocals({
-        env: { INTELLIGENCE_DB: mockD1 },
+      mockEnv({
+        POSTGRES_URL: 'postgres://test:user@localhost/test',
       });
 
       // Act
-      const db = getIntelligenceDB(locals);
+      const db = getIntelligenceDB({} as App.Locals);
 
       // Assert
-      expect(db).toBe(mockD1);
+      expect(db).toBeDefined();
+      expect(db).not.toBeNull();
+    });
+
+    it('should_return_db_when_database_url_is_set', () => {
+      // Arrange
+      mockEnv({
+        DATABASE_URL: 'postgres://test:user@localhost/test',
+      });
+
+      // Act
+      const db = getIntelligenceDB({} as App.Locals);
+
+      // Assert
+      expect(db).toBeDefined();
+      expect(db).not.toBeNull();
     });
   });
 
-  describe('D1 Not Bound', () => {
-    it('should_return_null_when_d1_is_not_bound', () => {
+  describe('DB Not Configured', () => {
+    it('should_return_null_when_no_db_env_vars_are_set', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: {},
-      });
+      mockEnv({});
 
       // Act
-      const db = getIntelligenceDB(locals);
-
-      // Assert
-      expect(db).toBeNull();
-    });
-
-    it('should_return_null_when_d1_is_undefined', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { INTELLIGENCE_DB: undefined },
-      });
-
-      // Act
-      const db = getIntelligenceDB(locals);
-
-      // Assert
-      expect(db).toBeNull();
-    });
-
-    it('should_return_null_when_d1_is_null', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { INTELLIGENCE_DB: null },
-      });
-
-      // Act
-      const db = getIntelligenceDB(locals);
+      const db = getIntelligenceDB({} as App.Locals);
 
       // Assert
       expect(db).toBeNull();
@@ -273,60 +183,33 @@ describe('getIntelligenceDB', () => {
 // requireIntelligenceDB Tests
 // ============================================================================
 describe('requireIntelligenceDB', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    resetEnv();
   });
 
   describe('Happy Path', () => {
-    it('should_return_d1_when_bound', () => {
+    it('should_return_db_when_postgres_url_is_set', () => {
       // Arrange
-      const mockD1 = createMockD1();
-      const locals = createMockLocals({
-        env: { INTELLIGENCE_DB: mockD1 },
+      mockEnv({
+        POSTGRES_URL: 'postgres://test:user@localhost/test',
       });
 
       // Act
-      const db = requireIntelligenceDB(locals);
+      const db = requireIntelligenceDB({} as App.Locals);
 
       // Assert
-      expect(db).toBe(mockD1);
+      expect(db).toBeDefined();
     });
   });
 
   describe('Error Cases', () => {
-    it('should_throw_error_when_d1_is_not_bound', () => {
+    it('should_throw_error_when_no_db_env_vars_are_set', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: {},
-      });
+      mockEnv({});
 
       // Act & Assert
-      expect(() => requireIntelligenceDB(locals)).toThrow(
-        'Intelligence D1 binding is missing. Please bind D1 as `INTELLIGENCE_DB` in Cloudflare Pages (Settings → Functions → D1 database bindings).'
-      );
-    });
-
-    it('should_throw_error_when_d1_is_null', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { INTELLIGENCE_DB: null },
-      });
-
-      // Act & Assert
-      expect(() => requireIntelligenceDB(locals)).toThrow(
-        'Intelligence D1 binding is missing. Please bind D1 as `INTELLIGENCE_DB` in Cloudflare Pages (Settings → Functions → D1 database bindings).'
-      );
-    });
-
-    it('should_throw_error_when_d1_is_undefined', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { INTELLIGENCE_DB: undefined },
-      });
-
-      // Act & Assert
-      expect(() => requireIntelligenceDB(locals)).toThrow(
-        'Intelligence D1 binding is missing. Please bind D1 as `INTELLIGENCE_DB` in Cloudflare Pages (Settings → Functions → D1 database bindings).'
+      expect(() => requireIntelligenceDB({} as App.Locals)).toThrow(
+        'Database not configured. Please configure Vercel Postgres (POSTGRES_URL or DATABASE_URL).'
       );
     });
   });
@@ -336,19 +219,17 @@ describe('requireIntelligenceDB', () => {
 // isProduction Tests
 // ============================================================================
 describe('isProduction', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    resetEnv();
   });
 
   describe('Happy Path', () => {
     it('should_return_true_when_node_env_is_production', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: { NODE_ENV: 'production' },
-      });
+      mockEnv({ NODE_ENV: 'production' });
 
       // Act
-      const result = isProduction(locals);
+      const result = isProduction({} as App.Locals);
 
       // Assert
       expect(result).toBe(true);
@@ -356,12 +237,10 @@ describe('isProduction', () => {
 
     it('should_return_false_when_node_env_is_development', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: { NODE_ENV: 'development' },
-      });
+      mockEnv({ NODE_ENV: 'development' });
 
       // Act
-      const result = isProduction(locals);
+      const result = isProduction({} as App.Locals);
 
       // Assert
       expect(result).toBe(false);
@@ -369,12 +248,10 @@ describe('isProduction', () => {
 
     it('should_return_false_when_node_env_is_test', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: { NODE_ENV: 'test' },
-      });
+      mockEnv({ NODE_ENV: 'test' });
 
       // Act
-      const result = isProduction(locals);
+      const result = isProduction({} as App.Locals);
 
       // Assert
       expect(result).toBe(false);
@@ -384,25 +261,10 @@ describe('isProduction', () => {
   describe('Edge Cases', () => {
     it('should_return_false_when_node_env_is_undefined', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: {},
-      });
+      mockEnv({});
 
       // Act
-      const result = isProduction(locals);
-
-      // Assert
-      expect(result).toBe(false);
-    });
-
-    it('should_return_false_when_node_env_is_null', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { NODE_ENV: null as any },
-      });
-
-      // Act
-      const result = isProduction(locals);
+      const result = isProduction({} as App.Locals);
 
       // Assert
       expect(result).toBe(false);
@@ -410,12 +272,10 @@ describe('isProduction', () => {
 
     it('should_be_case_sensitive', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: { NODE_ENV: 'Production' },
-      });
+      mockEnv({ NODE_ENV: 'Production' });
 
       // Act
-      const result = isProduction(locals);
+      const result = isProduction({} as App.Locals);
 
       // Assert
       expect(result).toBe(false);
@@ -427,60 +287,47 @@ describe('isProduction', () => {
 // requireKV Tests
 // ============================================================================
 describe('requireKV', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    resetEnv();
   });
 
   describe('Happy Path', () => {
-    it('should_return_kv_when_bound', () => {
+    it('should_return_kv_when_vercel_kv_env_vars_are_set', () => {
       // Arrange
-      const mockKV = createMockKV();
-      const locals = createMockLocals({
-        env: { KV: mockKV },
+      mockEnv({
+        KV_URL: 'https://kv.test.com',
+        KV_REST_API_READ_WRITE_TOKEN: 'test-token',
       });
 
       // Act
-      const kv = requireKV(locals);
+      const kv = requireKV({} as App.Locals);
 
       // Assert
-      expect(kv).toBe(mockKV);
+      expect(kv).toBeDefined();
+    });
+
+    it('should_return_kv_when_redis_url_is_set', () => {
+      // Arrange
+      mockEnv({
+        REDIS_URL: 'redis://localhost:6379',
+      });
+
+      // Act
+      const kv = requireKV({} as App.Locals);
+
+      // Assert
+      expect(kv).toBeDefined();
     });
   });
 
   describe('Error Cases', () => {
-    it('should_throw_error_when_kv_is_not_bound', () => {
+    it('should_throw_error_when_no_kv_env_vars_are_set', () => {
       // Arrange
-      const locals = createMockLocals({
-        env: {},
-      });
+      mockEnv({});
 
       // Act & Assert
-      expect(() => requireKV(locals)).toThrow(
-        'KV binding is missing. Please bind KV as `KV` in Cloudflare Pages (Settings → Functions → KV namespace bindings).'
-      );
-    });
-
-    it('should_throw_error_when_kv_is_null', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { KV: null },
-      });
-
-      // Act & Assert
-      expect(() => requireKV(locals)).toThrow(
-        'KV binding is missing. Please bind KV as `KV` in Cloudflare Pages (Settings → Functions → KV namespace bindings).'
-      );
-    });
-
-    it('should_throw_error_when_kv_is_undefined', () => {
-      // Arrange
-      const locals = createMockLocals({
-        env: { KV: undefined },
-      });
-
-      // Act & Assert
-      expect(() => requireKV(locals)).toThrow(
-        'KV binding is missing. Please bind KV as `KV` in Cloudflare Pages (Settings → Functions → KV namespace bindings).'
+      expect(() => requireKV({} as App.Locals)).toThrow(
+        'KV storage not configured. Please configure Vercel KV (KV_URL/KV_REST_API_READ_WRITE_TOKEN or REDIS_URL).'
       );
     });
   });

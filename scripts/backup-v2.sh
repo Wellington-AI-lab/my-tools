@@ -33,7 +33,6 @@ echo "正在收集文件..."
 
 # 使用 rsync 复制项目文件，排除不必要的目录
 rsync -av --exclude='node_modules' \
-          --exclude='.wrangler' \
           --exclude='.astro' \
           --exclude='dist' \
           --exclude='.git' \
@@ -68,7 +67,6 @@ npm 版本: $(npm --version)
 排除内容:
 - node_modules/ (可通过 npm install 恢复)
 - dist/ (构建产物，可通过 npm run build 生成)
-- .wrangler/ (Wrangler 缓存)
 - .astro/ (Astro 缓存)
 - .git/ (Git 历史，如需完整历史请单独备份)
 - .env, .env.local, .dev.vars (敏感信息)
@@ -78,12 +76,12 @@ npm 版本: $(npm --version)
 2. 进入项目目录
 3. 运行: npm install
 4. 运行: npm run build (如需要)
-5. 配置环境变量（参考 DEPLOYMENT.md）
+5. 配置环境变量（参考 README.md）
 
 重要提示:
 - 备份不包含敏感信息（如 .env 文件）
-- 备份不包含 Cloudflare KV 数据（需单独备份）
-- 备份不包含用户数据（存储在 Cloudflare KV 中）
+- 备份不包含 Vercel KV 数据（需单独备份）
+- 备份不包含 Postgres 数据库数据（需单独备份）
 EOF
 
 # 创建压缩包

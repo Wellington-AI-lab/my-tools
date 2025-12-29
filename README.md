@@ -1,6 +1,6 @@
 # my-tools
 
-一个**模块化工具平台**，支持 **Vercel** 和 **Cloudflare Pages** 双平台部署。
+一个**模块化工具平台**，部署于 **Vercel**。
 
 每个工具模块彼此独立，通过 `/api/*` 与 **KV 数据库** 共享核心数据（如标的池、标签、用户配置等）。
 
@@ -37,17 +37,16 @@
 - **语言**: TypeScript
 
 ### 后端
-- **运行时**: Astro SSR (支持 Vercel Edge / Cloudflare Workers)
+- **运行时**: Astro SSR (Vercel Edge)
 - **认证**: Cookie Session + PBKDF2 密码哈希
 
 ### 数据存储
-| 平台 | KV 存储 | 数据库 |
-|------|---------|--------|
-| Vercel | Vercel KV (Redis) | Vercel Postgres |
-| Cloudflare | Cloudflare KV | Cloudflare D1 |
+| KV 存储 | 数据库 |
+|---------|--------|
+| Vercel KV (Redis) | Vercel Postgres |
 
 ### 外部服务
-- **行情数据**: Finnhub（主）, FMP, Polygon（备）
+- **行情数据**: Finnhub（主）, FMP, Polygon, Yahoo Finance（备）
 - **AI/LLM**: OpenAI 兼容接口
 
 ## 本地开发
@@ -77,29 +76,17 @@ npm run dev
 - `OPENAI_API_KEY` - OpenAI API 密钥
 - `OPENAI_BASE_URL` - API 基础 URL（可选）
 
-### Vercel 部署
+### 环境变量配置
 在 Vercel 项目设置中配置环境变量，或通过 CLI：
 ```bash
 vercel env add SESSION_SECRET
 ```
 
-### Cloudflare 部署
-在 `wrangler.toml` 中配置或通过 Workers dashboard 设置
-
 ## 部署
-
-### Vercel 部署（推荐）
 
 ```bash
 npm run build
 vercel --prod
-```
-
-### Cloudflare Pages 部署
-
-```bash
-npm run build
-npx wrangler pages deploy dist --project-name=my-tools
 ```
 
 ## 测试
@@ -112,7 +99,6 @@ npm run test:coverage  # 覆盖率报告
 
 ## 开发笔记
 
-- 项目设计为**平台无关**，通过抽象层 (`src/lib/storage/`) 实现多平台支持
 - 每个模块独立实现，便于维护和扩展
 - 采用**测试驱动**开发方式，核心 API 均有测试覆盖
 

@@ -1,8 +1,8 @@
 ---
 import '@/styles/global.css';
-import { safeRedirectPath } from '@/lib/redirect';
 
-const redirect = safeRedirectPath(Astro.url.searchParams.get('redirect'));
+const redirect = Astro.url.searchParams.get('redirect') || '/';
+const error = Astro.url.searchParams.get('error');
 ---
 
 <!doctype html>
@@ -13,132 +13,108 @@ const redirect = safeRedirectPath(Astro.url.searchParams.get('redirect'));
     <title>登录 · My Tools</title>
   </head>
   <body>
-    <div class="titan-login-page">
-      <div class="titan-login-card">
-        <h1 class="titan-login-heading">登录</h1>
-        <p class="titan-login-subtitle">
-          请输入站点密码。
-        </p>
+    <div class="login-page">
+      <div class="login-card">
+        <h1>登录</h1>
+        <p>请输入密码访问此网站</p>
 
-        <form id="loginForm" class="titan-login-form">
-          <input type="hidden" name="redirect" value={redirect} />
-
-          <div class="titan-login-field">
-            <label class="titan-label" for="password">密码</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              class="titan-input"
-              autocomplete="current-password"
-              required
-            />
+        {error && (
+          <div class="error-message">
+            {error === 'invalid_password' && '密码错误'}
+            {error === 'missing_password' && '请输入密码'}
+            {error === 'config' && '系统配置错误'}
+            {error === 'invalid' && '登录已过期，请重新登录'}
           </div>
+        )}
 
-          <div id="errorBox" class="titan-error hidden"></div>
-
-          <button type="submit" class="titan-btn titan-btn-primary">
-            登录
-          </button>
+        <form action="/api/auth/login" method="POST">
+          <input type="hidden" name="redirect" value={redirect} />
+          <input
+            type="password"
+            name="password"
+            placeholder="密码"
+            required
+            autofocus
+          />
+          <button type="submit">登录</button>
         </form>
+
+        <p class="debug-info">
+          Redirect: {redirect}<br/>
+          Error: {error || 'none'}
+        </p>
       </div>
     </div>
 
     <style>
-      /* Titan Login Page Styles */
-      .titan-login-page {
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f5;
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 16px;
-        background: #FAFAFA;
+        padding: 20px;
       }
-
-      .titan-login-card {
+      .login-card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         width: 100%;
-        max-width: 400px;
-        background: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 24px;
-        padding: 32px;
+        max-width: 320px;
       }
-
-      .titan-login-heading {
-        font-size: 1.5rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        color: #1F2937;
+      .login-card h1 {
+        font-size: 24px;
+        margin-bottom: 8px;
       }
-
-      .titan-login-subtitle {
-        margin-top: 8px;
+      .login-card > p {
+        color: #666;
+        font-size: 14px;
         margin-bottom: 24px;
-        font-size: 0.875rem;
-        color: #6B7280;
       }
-
-      .titan-login-form {
+      .error-message {
+        background: #fee;
+        color: #c33;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      form {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
       }
-
-      .titan-login-field {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .titan-error {
+      input[type="password"] {
         padding: 12px;
-        font-size: 0.875rem;
-        color: #DC2626;
-        background: #FEE2E2;
-        border-radius: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
       }
-
-      .titan-error.hidden {
-        display: none;
+      input[type="password"]:focus {
+        outline: none;
+        border-color: #333;
+      }
+      button {
+        padding: 12px;
+        background: #333;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #555;
+      }
+      .debug-info {
+        margin-top: 20px;
+        font-size: 11px;
+        color: #999;
+        line-height: 1.5;
       }
     </style>
-
-    <script>
-      const form = document.getElementById('loginForm') as HTMLFormElement | null;
-      const errorBox = document.getElementById('errorBox') as HTMLElement | null;
-      const password = document.getElementById('password') as HTMLInputElement | null;
-
-      function showError(msg: string) {
-        if (!errorBox) return;
-        errorBox.textContent = msg || '登录失败';
-        errorBox.classList.remove('hidden');
-      }
-
-      if (form) {
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          if (errorBox) errorBox.classList.add('hidden');
-          const redirectInput = form.querySelector('input[name="redirect"]') as HTMLInputElement | null;
-          const redirect = redirectInput?.value || '/';
-          const pwd = password?.value || '';
-
-          try {
-            const resp = await fetch('/api/auth/login', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ password: pwd }),
-              credentials: 'include',
-            });
-            const data = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              showError(data?.error || `HTTP ${resp.status}`);
-              return;
-            }
-            window.location.href = redirect;
-          } catch (err) {
-            showError('网络错误');
-          }
-        });
-      }
-    </script>
   </body>
 </html>

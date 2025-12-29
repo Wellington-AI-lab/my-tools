@@ -1,9 +1,10 @@
 /**
- * Intelligence Source Repository - D1 数据访问层
+ * Intelligence Source Repository - 数据访问层
  *
  * 提供 intelligence_sources 表的 CRUD 操作
  */
 
+import type { Database } from '@/lib/storage/db';
 import type {
   IntelligenceSource,
   CreateSourceInput,
@@ -14,7 +15,7 @@ import type {
 /**
  * 获取所有数据源
  */
-export async function getAllSources(db: D1Database): Promise<IntelligenceSource[]> {
+export async function getAllSources(db: Database): Promise<IntelligenceSource[]> {
   const result = await db
     .prepare('SELECT * FROM intelligence_sources ORDER BY weight DESC, id')
     .all<IntelligenceSource>();
@@ -25,7 +26,7 @@ export async function getAllSources(db: D1Database): Promise<IntelligenceSource[
 /**
  * 获取活跃的数据源
  */
-export async function getActiveSources(db: D1Database): Promise<IntelligenceSource[]> {
+export async function getActiveSources(db: Database): Promise<IntelligenceSource[]> {
   const result = await db
     .prepare(`
       SELECT * FROM intelligence_sources
@@ -41,7 +42,7 @@ export async function getActiveSources(db: D1Database): Promise<IntelligenceSour
  * 根据 ID 获取单个数据源
  */
 export async function getSourceById(
-  db: D1Database,
+  db: Database,
   id: number
 ): Promise<IntelligenceSource | null> {
   const result = await db
@@ -56,7 +57,7 @@ export async function getSourceById(
  * 根据 category 获取数据源
  */
 export async function getSourcesByCategory(
-  db: D1Database,
+  db: Database,
   category: string
 ): Promise<IntelligenceSource[]> {
   const result = await db
@@ -71,7 +72,7 @@ export async function getSourcesByCategory(
  * 根据 strategy 获取数据源
  */
 export async function getSourcesByStrategy(
-  db: D1Database,
+  db: Database,
   strategy: 'DIRECT' | 'RSSHUB'
 ): Promise<IntelligenceSource[]> {
   const result = await db
@@ -86,7 +87,7 @@ export async function getSourcesByStrategy(
  * 创建新数据源
  */
 export async function createSource(
-  db: D1Database,
+  db: Database,
   input: CreateSourceInput
 ): Promise<IntelligenceSource> {
   const now = new Date().toISOString();
@@ -125,7 +126,7 @@ export async function createSource(
  * 更新数据源
  */
 export async function updateSource(
-  db: D1Database,
+  db: Database,
   id: number,
   input: UpdateSourceInput
 ): Promise<IntelligenceSource | null> {
@@ -189,7 +190,7 @@ export async function updateSource(
 /**
  * 删除数据源
  */
-export async function deleteSource(db: D1Database, id: number): Promise<boolean> {
+export async function deleteSource(db: Database, id: number): Promise<boolean> {
   const result = await db
     .prepare('DELETE FROM intelligence_sources WHERE id = ?')
     .bind(id)
@@ -202,7 +203,7 @@ export async function deleteSource(db: D1Database, id: number): Promise<boolean>
  * 更新最后抓取时间和可靠性评分
  */
 export async function updateSourceScrapeStatus(
-  db: D1Database,
+  db: Database,
   sourceId: number,
   success: boolean
 ): Promise<void> {
@@ -227,7 +228,7 @@ export async function updateSourceScrapeStatus(
 /**
  * 获取统计信息
  */
-export async function getSourceStats(db: D1Database): Promise<{
+export async function getSourceStats(db: Database): Promise<{
   total: number;
   active: number;
   byStrategy: Record<string, number>;

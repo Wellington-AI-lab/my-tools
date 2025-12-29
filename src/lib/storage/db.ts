@@ -1,7 +1,5 @@
 /**
- * Database Abstraction Layer
- *
- * Supports both Cloudflare D1 and Vercel Postgres
+ * Database for Vercel Postgres
  */
 
 export interface Database {
@@ -17,89 +15,29 @@ export interface Statement {
 }
 
 /**
- * Cloudflare D1 adapter
- */
-export class D1Database implements Database {
-  constructor(private db: import('@cloudflare/workers-types').D1Database) {}
-
-  prepare(query: string): Statement {
-    const stmt = this.db.prepare(query);
-    return new D1Statement(stmt);
-  }
-
-  batch<T>(statements: Statement[]): Promise<{ results: T[]; success: boolean }[]> {
-    const d1Statements = statements.map(s => (s as D1Statement).statement);
-    return this.db.batch(d1Statements);
-  }
-}
-
-class D1Statement implements Statement {
-  private boundValues: (string | number | boolean | null)[] = [];
-
-  constructor(public statement: import('@cloudflare/workers-types').D1PreparedStatement) {}
-
-  bind(...values: (string | number | boolean | null)[]): Statement {
-    this.boundValues = values;
-    this.statement = this.statement.bind(...values);
-    return this;
-  }
-
-  async first<T>(): Promise<T | null> {
-    return this.statement.first<T>();
-  }
-
-  async all<T>(): Promise<{ results: T[] }> {
-    return this.statement.all<T>();
-  }
-
-  async run(): Promise<{ success: boolean; meta: { last_row_id?: number; changes?: number } }> {
-    const result = await this.statement.run();
-    return {
-      success: result.success,
-      meta: {
-        last_row_id: result.meta.last_row_id,
-        changes: result.meta.changes,
-      },
-    };
-  }
-}
-
-/**
- * Vercel Postgres adapter (works with Prisma Postgres via pg package)
+ * Vercel Postgres adapter (using @vercel/postgres for Edge Runtime support)
  */
 export class VercelPostgres implements Database {
-  private client: any;
-  private connected = false;
-  private clientPromise: Promise<any> | null = null;
+  private sql: any;
+  private connectionString?: string;
 
-  constructor() {
-    // Defer initialization to async init()
-  }
-
-  private async init() {
-    if (this.connected) return;
-
-    if (!this.clientPromise) {
-      // Use pg for Prisma Postgres compatibility
-      this.clientPromise = (async () => {
-        const pg = await import('pg');
-        const { Client } = pg;
-
-        const client = new Client({
-          connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-        });
-
-        await client.connect();
-        this.connected = true;
-        return client;
-      })();
+  constructor(connectionString?: string) {
+    // Store connection string if provided
+    if (connectionString) {
+      this.connectionString = connectionString;
     }
-
-    this.client = await this.clientPromise;
   }
 
-  private async ensureConnected() {
-    await this.init();
+  private async getSql() {
+    if (!this.sql) {
+      try {
+        const postgres = await import('@vercel/postgres');
+        this.sql = postgres.sql;
+      } catch (err) {
+        throw new Error(`Failed to import @vercel/postgres: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    return this.sql;
   }
 
   prepare(query: string): Statement {
@@ -107,7 +45,6 @@ export class VercelPostgres implements Database {
   }
 
   async batch<T>(statements: Statement[]): Promise<{ results: T[]; success: boolean }[]> {
-    await this.ensureConnected();
     const results: { results: T[]; success: boolean }[] = [];
     for (const stmt of statements) {
       try {
@@ -120,26 +57,21 @@ export class VercelPostgres implements Database {
     return results;
   }
 
-  async query(sql: string, params: (string | number | boolean | null)[]) {
-    await this.ensureConnected();
-    return this.client.query(sql, params);
+  async query(sqlQuery: string, params: (string | number | boolean | null)[]) {
+    const sql = await this.getSql();
+
+    // Convert ? placeholders to $1, $2, etc.
+    let index = 1;
+    const convertedQuery = sqlQuery.replace(/\?/g, () => `$${index++}`);
+
+    return sql.query(convertedQuery, params);
   }
 }
 
 class PostgresStatement implements Statement {
   private params: (string | number | boolean | null)[] = [];
-  private paramIndex = 1;
-  private convertedQuery: string;
 
-  constructor(private query: string, private db: VercelPostgres) {
-    // Convert ? placeholders to $1, $2, etc. for Postgres
-    this.convertedQuery = this.convertPlaceholders(query);
-  }
-
-  private convertPlaceholders(query: string): string {
-    let index = 1;
-    return query.replace(/\?/g, () => `$${index++}`);
-  }
+  constructor(private query: string, private db: VercelPostgres) {}
 
   bind(...values: (string | number | boolean | null)[]): Statement {
     this.params = values;
@@ -148,23 +80,23 @@ class PostgresStatement implements Statement {
 
   async first<T>(): Promise<T | null> {
     // Handle LIMIT 1 for single row
-    const limitedQuery = this.convertedQuery.toLowerCase().includes('limit')
-      ? this.convertedQuery
-      : `${this.convertedQuery} LIMIT 1`;
+    const limitedQuery = this.query.toLowerCase().includes('limit')
+      ? this.query
+      : `${this.query} LIMIT 1`;
 
     const result = await this.db.query(limitedQuery, this.params);
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
   async all<T>(): Promise<{ results: T[] }> {
-    const result = await this.db.query(this.convertedQuery, this.params);
+    const result = await this.db.query(this.query, this.params);
     return { results: result.rows };
   }
 
   async run(): Promise<{ success: boolean; meta: { last_row_id?: number; changes?: number } }> {
     // For INSERT, return the last row id
-    if (this.convertedQuery.trim().toUpperCase().startsWith('INSERT')) {
-      const result = await this.db.query(`${this.convertedQuery} RETURNING id`, this.params);
+    if (this.query.trim().toUpperCase().startsWith('INSERT')) {
+      const result = await this.db.query(`${this.query} RETURNING id`, this.params);
       return {
         success: true,
         meta: {
@@ -175,7 +107,7 @@ class PostgresStatement implements Statement {
     }
 
     // For UPDATE/DELETE
-    const result = await this.db.query(this.convertedQuery, this.params);
+    const result = await this.db.query(this.query, this.params);
     return {
       success: true,
       meta: {
@@ -186,22 +118,28 @@ class PostgresStatement implements Statement {
 }
 
 /**
- * Detect and create appropriate database
+ * Get environment value from process.env (Vercel)
+ */
+function getEnvValue(locals: App.Locals, key: string): string | undefined {
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+
+  return undefined;
+}
+
+/**
+ * Create Vercel Postgres database
  */
 export function createDatabase(locals: App.Locals): Database {
-  const env = locals.runtime?.env;
+  const postgresUrl = getEnvValue(locals, 'POSTGRES_URL');
+  const databaseUrl = getEnvValue(locals, 'DATABASE_URL');
 
-  // Cloudflare D1 environment
-  if (env?.INTELLIGENCE_DB) {
-    return new D1Database(env.INTELLIGENCE_DB as import('@cloudflare/workers-types').D1Database);
+  if (postgresUrl || databaseUrl) {
+    return new VercelPostgres(postgresUrl || databaseUrl);
   }
 
-  // Vercel Postgres environment (check for env vars)
-  if (process.env.POSTGRES_URL || process.env.DATABASE_URL) {
-    return new VercelPostgres();
-  }
-
-  throw new Error('No database configured. Please configure Cloudflare D1 or Vercel Postgres.');
+  throw new Error('No database configured. Please configure Vercel Postgres (POSTGRES_URL or DATABASE_URL).');
 }
 
 export function createDatabaseOrNull(locals: App.Locals): Database | null {

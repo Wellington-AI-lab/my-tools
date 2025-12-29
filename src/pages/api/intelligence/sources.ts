@@ -9,7 +9,7 @@
  * DELETE - 删除数据源（通过 ID）
  */
 
-import { requireIntelligenceDB } from '@/lib/env';
+import { requireIntelligenceDB, type Database } from '@/lib/env';
 import {
   getAllSources,
   getSourceById,
@@ -36,7 +36,7 @@ interface ErrorResponse {
  * GET - 获取数据源列表或单个数据源
  */
 async function handleGet(
-  db: D1Database,
+  db: Database,
   url: URL
 ): Promise<Response> {
   const id = url.searchParams.get('id');
@@ -87,7 +87,7 @@ async function handleGet(
  * POST - 创建新数据源
  */
 async function handlePost(
-  db: D1Database,
+  db: Database,
   body: any
 ): Promise<Response> {
   // 验证必填字段
@@ -143,7 +143,7 @@ async function handlePost(
  * PATCH - 更新数据源
  */
 async function handlePatch(
-  db: D1Database,
+  db: Database,
   body: any
 ): Promise<Response> {
   const id = body.id;
@@ -207,7 +207,7 @@ async function handlePatch(
  * DELETE - 删除数据源
  */
 async function handleDelete(
-  db: D1Database,
+  db: Database,
   url: URL
 ): Promise<Response> {
   const id = url.searchParams.get('id');
@@ -247,32 +247,60 @@ export async function GET({ locals, url }: {
   locals: App.Locals;
   url: URL;
 }) {
-  const db = requireIntelligenceDB(locals);
-  return handleGet(db, url);
+  try {
+    const db = requireIntelligenceDB(locals);
+    return handleGet(db, url);
+  } catch (err: any) {
+    return Response.json({
+      success: false,
+      error: err?.message || 'Database not available',
+    } as ErrorResponse, { status: 500 });
+  }
 }
 
 export async function POST({ locals, request }: {
   locals: App.Locals;
   request: Request;
 }) {
-  const db = requireIntelligenceDB(locals);
-  const body = await request.json().catch(() => ({}));
-  return handlePost(db, body);
+  try {
+    const db = requireIntelligenceDB(locals);
+    const body = await request.json().catch(() => ({}));
+    return handlePost(db, body);
+  } catch (err: any) {
+    return Response.json({
+      success: false,
+      error: err?.message || 'Database not available',
+    } as ErrorResponse, { status: 500 });
+  }
 }
 
 export async function PATCH({ locals, request }: {
   locals: App.Locals;
   request: Request;
 }) {
-  const db = requireIntelligenceDB(locals);
-  const body = await request.json().catch(() => ({}));
-  return handlePatch(db, body);
+  try {
+    const db = requireIntelligenceDB(locals);
+    const body = await request.json().catch(() => ({}));
+    return handlePatch(db, body);
+  } catch (err: any) {
+    return Response.json({
+      success: false,
+      error: err?.message || 'Database not available',
+    } as ErrorResponse, { status: 500 });
+  }
 }
 
 export async function DELETE({ locals, url }: {
   locals: App.Locals;
   url: URL;
 }) {
-  const db = requireIntelligenceDB(locals);
-  return handleDelete(db, url);
+  try {
+    const db = requireIntelligenceDB(locals);
+    return handleDelete(db, url);
+  } catch (err: any) {
+    return Response.json({
+      success: false,
+      error: err?.message || 'Database not available',
+    } as ErrorResponse, { status: 500 });
+  }
 }

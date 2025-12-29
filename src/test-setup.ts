@@ -1,10 +1,9 @@
 /**
- * Test Setup - Common Mock Helpers for Cloudflare Workers/Pages Testing
+ * Test Setup - Common Mock Helpers for Vercel Edge Runtime Testing
  *
  * This module provides reusable mock factories for:
- * - KV Namespace
- * - D1 Database
- * - R2 Object Store
+ * - KV Storage
+ * - Database
  * - Astro Locals
  * - Request objects
  *
@@ -13,16 +12,16 @@
  */
 
 import { vi } from 'vitest';
+import type { KVStorage } from '@/lib/storage/kv';
 
 // ============================================================================
-// KV Namespace Mock
+// KV Storage Mock
 // ============================================================================
 
 export interface MockKV {
-  get: ReturnType<typeof vi.fn<ReturnType<KVNamespace['get']>>>;
-  put: ReturnType<typeof vi.fn<ReturnType<KVNamespace['put']>>>;
-  delete: ReturnType<typeof vi.fn<ReturnType<KVNamespace['delete']>>>;
-  list: ReturnType<typeof vi.fn<ReturnType<KVNamespace['list']>>>;
+  get: ReturnType<typeof vi.fn<ReturnType<KVStorage['get']>>>;
+  put: ReturnType<typeof vi.fn<ReturnType<KVStorage['put']>>>;
+  delete: ReturnType<typeof vi.fn<ReturnType<KVStorage['delete']>>>;
 }
 
 export function createMockKV(): MockKV {
@@ -30,7 +29,6 @@ export function createMockKV(): MockKV {
     get: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
-    list: vi.fn(),
   };
 }
 
@@ -47,7 +45,7 @@ export function createInMemoryKV(): MockKV & { _store: Map<string, string> } {
       return store.get(key) ?? null;
     }),
 
-    put: vi.fn(async (key: string, value: string, options?: KVNamespacePutOptions) => {
+    put: vi.fn(async (key: string, value: string, options?: { expirationTtl?: number }) => {
       store.set(key, value);
       if (options?.expirationTtl) {
         // In a real implementation, would handle TTL
@@ -163,25 +161,29 @@ export function createMockR2(): MockR2 {
 }
 
 // ============================================================================
-// Astro Locals Mock
+// Astro Locals Mock (Vercel)
 // ============================================================================
 
 export interface MockLocalsOptions {
   kv?: MockKV | null;
-  d1?: MockD1 | null;
-  r2?: MockR2 | null;
+  db?: MockD1 | null;
   env?: Record<string, any>;
 }
 
 export function createMockLocals(options: MockLocalsOptions = {}): App.Locals {
-  const { kv = null, d1 = null, r2 = null, env = {} } = options;
+  const { kv = null, db = null, env = {} } = options;
 
   return {
     runtime: {
       env: {
-        KV: kv,
-        INTELLIGENCE_DB: d1,
-        R2: r2,
+        // Vercel KV
+        KV_URL: 'https://mock-vercel-kv.com',
+        KV_REST_API_READ_WRITE_TOKEN: 'mock-token',
+        // Vercel Postgres
+        POSTGRES_URL: 'postgresql://mock:password@localhost:5432/test',
+        DATABASE_URL: 'postgresql://mock:password@localhost:5432/test',
+        // Mock database (for tests that need direct DB access)
+        mockDb: db,
         NODE_ENV: 'test',
         SESSION_SECRET: 'test-session-secret',
         SITE_PASSWORD_HASH: 'test-user-hash',
@@ -210,10 +212,6 @@ export function createMockRequest(options: {
     method,
     headers: new Headers(headers),
     url,
-    cf: {
-      colo: 'LAX',
-      country: 'US',
-    } as any,
   } as Partial<Request>;
 }
 
@@ -310,8 +308,10 @@ export const MOCK_ENV = {
   LLM_MODEL: 'test-model',
   APIFY_TOKEN: 'test-apify-token',
   CRON_SECRET: 'test-cron-secret',
-  CLOUDFLARE_ACCOUNT_ID: 'test-account-id',
-  CLOUDFLARE_API_TOKEN: 'test-cf-token',
+  KV_URL: 'https://test-kv.example.com',
+  KV_REST_API_READ_WRITE_TOKEN: 'test-kv-token',
+  POSTGRES_URL: 'postgresql://test:user@localhost/test',
+  REDIS_URL: 'redis://localhost',
 };
 
 export const MOCK_INTELLIGENCE_SOURCES = [

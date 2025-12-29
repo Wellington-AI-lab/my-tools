@@ -10,27 +10,27 @@ type KVNamespace = {
   delete(key: string): Promise<void>;
 };
 
-// D1 Database types (simplified for edge runtime)
-type D1PreparedStatement = {
-  bind(...params: unknown[]): D1PreparedStatement;
-  raw(): Promise<D1Result<unknown>>;
-  all<T = unknown>(): Promise<D1Result<T>>;
+// Postgres Database types (simplified for edge runtime)
+type PreparedStatement = {
+  bind(...params: unknown[]): PreparedStatement;
+  raw(): Promise<QueryResult<unknown>>;
+  all<T = unknown>(): Promise<QueryResult<T>>;
   first<T = unknown>(): Promise<T | null>;
-  run(): Promise<D1Result<unknown>>;
+  run(): Promise<QueryResult<unknown>>;
 };
 
-type D1Result<T> = {
+type QueryResult<T> = {
   results?: T[];
   meta?: { changes?: number; duration?: number; last_row_id?: number };
 };
 
-type D1Database = {
-  prepare(sql: string): D1PreparedStatement;
-  batch(statements: D1PreparedStatement[]): Promise<D1Result<unknown>[]>;
-  exec(sql: string): Promise<D1Result<unknown>>;
+type Database = {
+  prepare(sql: string): PreparedStatement;
+  batch(statements: PreparedStatement[]): Promise<QueryResult<unknown>[]>;
+  exec(sql: string): Promise<QueryResult<unknown>>;
 };
 
-type CloudflareEnv = {
+type VercelEnv = {
   // Auth
   SESSION_SECRET?: string;
   SITE_PASSWORD_HASH?: string;
@@ -42,17 +42,13 @@ type CloudflareEnv = {
   FMP_API_KEY?: string;
   POLYGON_API_KEY?: string;
 
-  // RedNote DeepAgent - OpenAI compatible LLM
-  LLM_BASE_URL?: string; // e.g. "https://api.openai.com"
+  // LLM
+  LLM_BASE_URL?: string;
   LLM_API_KEY?: string;
-  LLM_MODEL?: string; // e.g. "gpt-4o-mini" / "deepseek-chat" / "claude-3-5-sonnet"
+  LLM_MODEL?: string;
 
-  // RedNote DeepAgent - Apify (optional)
+  // Apify (optional)
   APIFY_TOKEN?: string;
-
-  // Cloudflare AI
-  CLOUDFLARE_ACCOUNT_ID?: string;
-  CLOUDFLARE_API_TOKEN?: string;
 
   // Third-party AI
   ANTHROPIC_API_KEY?: string;
@@ -65,15 +61,20 @@ type CloudflareEnv = {
   NODE_ENV?: string;
   API_BASE_URL?: string;
 
+  // Cron
+  CRON_SECRET?: string;
+
   // Storage
-  KV?: KVNamespace;
-  TRENDS_DB?: D1Database;
-  INTELLIGENCE_DB?: D1Database;
+  KV_URL?: string;
+  KV_REST_API_READ_WRITE_TOKEN?: string;
+  POSTGRES_URL?: string;
+  DATABASE_URL?: string;
+  REDIS_URL?: string;
 };
 
 declare namespace App {
   interface Locals {
-    runtime?: { env: CloudflareEnv };
+    runtime?: { env: VercelEnv };
     user?: { role: 'user' | 'admin' };
   }
 }

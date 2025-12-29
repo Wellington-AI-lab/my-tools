@@ -5,7 +5,9 @@ import tailwind from '@astrojs/tailwind';
 export default defineConfig({
   output: 'server',
   adapter: vercel({
-    // Vercel Edge Runtime configuration
+    // Use Node.js runtime for database compatibility
+    // Edge Runtime doesn't fully support @vercel/postgres
+    edgeMiddleware: false,
     webAnalytics: {
       enabled: true,
     },

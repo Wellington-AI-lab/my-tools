@@ -1,36 +1,47 @@
 {
-  "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
-    "types": ["astro/client"],
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": ["./src/*"],
       "@/modules/*": ["./src/modules/*"]
     }
   },
   "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
     "src/pages/**/*",
-    "src/layouts/**/*",
     "src/components/**/*",
     "src/config/**/*",
     "src/styles/**/*",
     "src/lib/**/*",
     "src/modules/**/*",
-    "astro.config.*",
-    "env.d.ts"
+    "src/app/**"
   ],
   "exclude": [
     "node_modules",
     "cron-worker",
-    ".next",
-    ".open-next",
-    "src/app/**",
+    ".astro",
+    "dist",
     "src/modules/stock-backtest/**",
-    "src/modules/auth/**",
-    "src/lib/db.ts",
-    "src/lib/cache.ts",
-    "src/lib/chart-config.ts",
-    "src/lib/auth-check.ts",
-    "src/lib/brute-force-protection.ts",
-    "src/lib/errors.ts"
+    "src/modules/auth/**"
   ]
 }
