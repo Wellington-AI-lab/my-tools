@@ -1,0 +1,14 @@
+---
+import { MODULES } from '@/config/modules';
+import ModuleCard from '@/components/ModuleCard.astro';
+---
+<!DOCTYPE html>
+<html>
+<head><title>Card Test</title></head>
+<body>
+  <h1>Card Test</h1>
+  <div class="grid">
+    {MODULES.slice(0, 2).map((m) => <ModuleCard module={m} />)}
+  </div>
+</body>
+</html>

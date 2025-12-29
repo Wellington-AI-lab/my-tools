@@ -1,0 +1,13 @@
+---
+import { MODULES } from '@/config/modules';
+import ModuleCard from '@/components/ModuleCard.astro';
+const count = MODULES.length;
+---
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+  <h1>Modules: {count}</h1>
+  {MODULES.map((m) => <div>{m.name}</div>)}
+</body>
+</html>

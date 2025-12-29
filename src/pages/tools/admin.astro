@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 
 // 检查管理员权限
-const isAdmin = locals.user?.role === 'admin';
+const isAdmin = (locals as any)?.user?.role === 'admin';
 if (!isAdmin) {
   return Astro.redirect('/login');
 }

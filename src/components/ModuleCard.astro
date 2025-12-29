@@ -2,7 +2,15 @@
 import type { ModuleDef } from '@/config/modules';
 
 const { module } = Astro.props as { module: ModuleDef };
-const isAdmin = locals.user?.role === 'admin';
+
+// Safe access to user role - handle undefined locals in Vercel Edge Runtime
+let isAdmin = false;
+try {
+  isAdmin = (locals as any)?.user?.role === 'admin';
+} catch {
+  // locals might not be defined in some edge cases
+  isAdmin = false;
+}
 
 // 如果是管理员专用模块但用户不是管理员，不渲染
 if (module.adminOnly && !isAdmin) {

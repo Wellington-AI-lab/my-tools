@@ -111,8 +111,9 @@ function parseRssXml(xml: string): RssItem[] {
  * 将 RSS Item 转换为 IntelligenceArticle
  */
 function rssItemToArticle(item: RssItem, sourceId: number): IntelligenceArticle {
-  // 生成唯一 ID（使用 URL 的 hash）
-  const id = Buffer.from(item.link).toString('base64').slice(0, 16);
+  // 生成唯一 ID（使用 URL 的 base64）
+  // Edge Runtime compatible: use btoa instead of Buffer
+  const id = btoa(item.link).slice(0, 16);
 
   // 解析发布时间
   let publishedAt = Date.now();

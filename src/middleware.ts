@@ -18,6 +18,8 @@ const PUBLIC_PREFIXES = [
   '/api/auth/logout',
   '/api/debug', // Debug endpoint for troubleshooting
   '/tools/news', // News page is public (SEO + social sharing)
+  '/public-test', // Public test page
+  '/card-test', // Card test page
 ];
 
 // API 路径允许使用 X-Admin-Key 认证（用于 Cron/自动化）
