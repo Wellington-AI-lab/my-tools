@@ -12,6 +12,15 @@ const schema = z.object({
 
 export const POST: APIRoute = async (context) => {
   try {
+    // Validate content-type before parsing JSON
+    const contentType = context.request.headers.get('content-type');
+    if (contentType && !contentType.includes('application/json')) {
+      return new Response(JSON.stringify({ error: 'Invalid content type' }), {
+        status: 415,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
     const parsed = schema.safeParse(await context.request.json().catch(() => ({})));
     if (!parsed.success) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {

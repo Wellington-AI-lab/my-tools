@@ -8,11 +8,11 @@ pages_build_output_dir = "dist"
 binding = "KV"
 id = "52ccf57fcdf14a7e882adee054fd0a8b"
 
-# D1 database binding for trends historical data
+# D1 database binding for intelligence/news sources
 [[d1_databases]]
-binding = "TRENDS_DB"
-database_name = "trends-db"
-database_id = "51d6efae-0423-48b3-98be-a0d35034e589"
+binding = "INTELLIGENCE_DB"
+database_name = "intelligence-db"
+database_id = "b0e935b5-56f6-4c7c-8355-60b9ea9cdb83"
 
 # 注意：Secrets 通过命令行或 Dashboard 配置
 # 使用命令：npx wrangler pages secret put <NAME> --project-name=my-tools
@@ -23,3 +23,7 @@ database_id = "51d6efae-0423-48b3-98be-a0d35034e589"
 # - CLOUDFLARE_API_TOKEN: Workers AI API Token
 # - CRON_SECRET: 定时任务认证密钥
 # - GLM_API_KEY: Zhipu AI GLM-4.7 API Key
+# - RSSHUB_BASE_URL: 私有 RSSHub 实例地址 (可选，默认 https://rsshub.app)
+#
+# 设置 RSSHUB_BASE_URL 示例：
+# npx wrangler pages secret put RSSHUB_BASE_URL --project-name=my-tools

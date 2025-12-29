@@ -184,19 +184,29 @@ export async function fetchDailySeriesWithCache(opts: {
   for (const provider of providers) {
     tried.push(provider);
     const cacheKey = `cache:stocks:candles:v1:${provider}:${symbol}:${start}:${end}`;
+    let cacheHit = false;
     if (kv) {
-      const cached = await kvGetJson<PricePoint[]>(kv, cacheKey, []);
-      if (Array.isArray(cached) && cached.length > 0) {
-        return { points: cached, provider, cacheHit: true };
+      try {
+        const cached = await kvGetJson<PricePoint[]>(kv, cacheKey, []);
+        if (Array.isArray(cached) && cached.length > 0) {
+          return { points: cached, provider, cacheHit: true };
+        }
+      } catch {
+        // KV read failed, fall back to fetch
+        cacheHit = false;
       }
     }
 
     try {
       const points = await fetchFromProvider(provider, env, symbol, start, end);
       if (kv && points.length > 0) {
-        await kvPutJson(kv, cacheKey, points, cacheTtlSeconds);
+        try {
+          await kvPutJson(kv, cacheKey, points, cacheTtlSeconds);
+        } catch {
+          // KV write failed, ignore
+        }
       }
-      return { points, provider, cacheHit: false };
+      return { points, provider, cacheHit };
     } catch (e) {
       lastErr = e;
       continue;

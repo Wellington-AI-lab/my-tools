@@ -12,19 +12,25 @@ export function getKV(locals: App.Locals): KVNamespace | null {
   return env?.KV ?? null;
 }
 
-export function getD1(locals: App.Locals): D1Database | null {
-  const env = getEnv(locals) as { TRENDS_DB?: D1Database };
-  return env?.TRENDS_DB ?? null;
+/**
+ * 获取 Intelligence D1 数据库（新闻聚合数据源）
+ */
+export function getIntelligenceDB(locals: App.Locals): D1Database | null {
+  const env = getEnv(locals) as { INTELLIGENCE_DB?: D1Database };
+  return env?.INTELLIGENCE_DB ?? null;
 }
 
-export function requireD1(locals: App.Locals): D1Database {
-  const d1 = getD1(locals);
+/**
+ * 获取 Intelligence D1，如果未绑定则抛出错误
+ */
+export function requireIntelligenceDB(locals: App.Locals): D1Database {
+  const db = getIntelligenceDB(locals);
 
-  if (!d1) {
-    throw new Error('D1 binding is missing. Please bind D1 as `TRENDS_DB` in Cloudflare Pages (Settings → Functions → D1 database bindings).');
+  if (!db) {
+    throw new Error('Intelligence D1 binding is missing. Please bind D1 as `INTELLIGENCE_DB` in Cloudflare Pages (Settings → Functions → D1 database bindings).');
   }
 
-  return d1;
+  return db;
 }
 
 /**

@@ -2,6 +2,13 @@
 import type { ModuleDef } from '@/config/modules';
 
 const { module } = Astro.props as { module: ModuleDef };
+const isAdmin = locals.user?.role === 'admin';
+
+// 如果是管理员专用模块但用户不是管理员，不渲染
+if (module.adminOnly && !isAdmin) {
+  // 返回空注释或占位符
+  return '';
+}
 ---
 
 <a href={module.href} class="block glass-effect rounded-xl p-5 card-hover">

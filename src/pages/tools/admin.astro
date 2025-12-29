@@ -1,0 +1,754 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+
+// 检查管理员权限
+const isAdmin = locals.user?.role === 'admin';
+if (!isAdmin) {
+  return Astro.redirect('/login');
+}
+---
+
+<AppLayout title="数据源管理">
+  <div class="admin-content">
+    <!-- 标题卡片 -->
+    <div class="admin-header">
+      <h1 class="admin-heading">数据源管理</h1>
+      <p class="admin-subtitle">管理新闻聚合的 RSS/RSSHub 数据源</p>
+    </div>
+
+    <!-- 操作栏 -->
+    <div class="admin-actions">
+      <button id="addSourceBtn" class="btn btn-primary">
+        <span class="icon">+</span> 添加数据源
+      </button>
+      <button id="refreshBtn" class="btn btn-secondary">
+        <span class="icon">↻</span> 刷新
+      </button>
+      <a href="/api/intelligence/scan" target="_blank" class="btn btn-accent">
+        <span class="icon">⚡</span> 测试抓取
+      </a>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="admin-stats" id="statsPanel">
+      <div class="stat-item">
+        <div class="stat-value" id="totalCount">-</div>
+        <div class="stat-label">总数据源</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value stat-success" id="activeCount">-</div>
+        <div class="stat-label">活跃</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="directCount">-</div>
+        <div class="stat-label">DIRECT</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="rsshubCount">-</div>
+        <div class="stat-label">RSSHUB</div>
+      </div>
+    </div>
+
+    <!-- 数据源列表 -->
+    <div class="admin-card">
+      <div id="sourcesList" class="sources-list">
+        <div class="loading">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑/添加弹窗 -->
+  <div id="sourceModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">添加数据源</h2>
+        <button id="closeModal" class="modal-close">✕</button>
+      </div>
+      <form id="sourceForm" class="modal-body">
+        <input type="hidden" id="sourceId" name="id">
+
+        <div class="form-field">
+          <label class="form-label" for="sourceName">名称 *</label>
+          <input id="sourceName" name="name" type="text" class="form-input" required>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="sourceUrl">URL *</label>
+          <input id="sourceUrl" name="url" type="url" class="form-input" required>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="sourceStrategy">策略 *</label>
+          <select id="sourceStrategy" name="strategy" class="form-select" required>
+            <option value="DIRECT">DIRECT (直接抓取)</option>
+            <option value="RSSHUB">RSSHUB (通过 RSSHub)</option>
+          </select>
+        </div>
+
+        <div class="form-field" id="rsshubPathField" style="display: none;">
+          <label class="form-label" for="sourceRsshubPath">RSSHub 路径</label>
+          <input id="sourceRsshubPath" name="rsshub_path" type="text" class="form-input" placeholder="/twitter/user/elonmusk">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="sourceCategory">分类</label>
+          <input id="sourceCategory" name="category" type="text" class="form-input" placeholder="tech">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="sourceWeight">权重</label>
+          <input id="sourceWeight" name="weight" type="number" step="0.1" min="0" max="2" class="form-input" value="1.0">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="sourceLogicFilter">AI 过滤指令</label>
+          <textarea id="sourceLogicFilter" name="logic_filter" class="form-textarea" rows="2" placeholder="针对该源的特殊处理指令..."></textarea>
+        </div>
+
+        <div class="form-field">
+          <label class="form-checkbox">
+            <input id="sourceIsActive" name="is_active" type="checkbox" checked>
+            <span>启用此数据源</span>
+          </label>
+        </div>
+
+        <div class="form-error" id="formError"></div>
+
+        <div class="form-actions">
+          <button type="button" id="cancelBtn" class="btn btn-secondary">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style is:global>
+    .admin-content {
+      max-width: 80rem;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .admin-header {
+      text-align: center;
+    }
+
+    .admin-heading {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1F2937;
+    }
+
+    .admin-subtitle {
+      margin-top: 8px;
+      font-size: 0.875rem;
+      color: #6B7280;
+    }
+
+    .admin-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .admin-stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-item {
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1F2937;
+    }
+
+    .stat-value.stat-success {
+      color: #10B981;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: #1F2937;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #374151;
+    }
+
+    .btn-secondary {
+      background: #F3F4F6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #E5E7EB;
+    }
+
+    .btn-accent {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .btn-accent:hover {
+      background: #FDE68A;
+    }
+
+    .btn-danger {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+
+    .btn-danger:hover {
+      background: #FECACA;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+    }
+
+    .admin-card {
+      background: white;
+      border: 1px solid #E5E7EB;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .sources-list {
+      min-height: 200px;
+    }
+
+    .loading {
+      padding: 32px;
+      text-align: center;
+      color: #6B7280;
+    }
+
+    .source-item {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid #E5E7EB;
+      gap: 16px;
+    }
+
+    .source-item:last-child {
+      border-bottom: none;
+    }
+
+    .source-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .source-status.active {
+      background: #10B981;
+    }
+
+    .source-status.inactive {
+      background: #9CA3AF;
+    }
+
+    .source-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .source-name {
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .source-url {
+      font-size: 0.75rem;
+      color: #6B7280;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .source-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .source-badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .source-badge.direct {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .source-badge.rsshub {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+
+    .source-badge.category {
+      background: #F3F4F6;
+      color: #4B5563;
+    }
+
+    .source-score {
+      font-size: 0.75rem;
+      color: #6B7280;
+    }
+
+    .source-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 16px;
+      border-bottom: 1px solid #E5E7EB;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #1F2937;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9CA3AF;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      background: #F3F4F6;
+    }
+
+    .modal-body {
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .form-field {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 0.875rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: #3B82F6;
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .form-checkbox input {
+      width: 16px;
+      height: 16px;
+    }
+
+    .form-error {
+      padding: 10px;
+      font-size: 0.875rem;
+      color: #DC2626;
+      background: #FEE2E2;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .form-error.show {
+      display: block;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 24px;
+    }
+  </style>
+
+  <script>
+    const API_BASE = '/api/intelligence/sources';
+
+    // DOM 元素
+    const sourcesListEl = document.getElementById('sourcesList');
+    const statsPanelEl = document.getElementById('statsPanel');
+    const addSourceBtnEl = document.getElementById('addSourceBtn');
+    const refreshBtnEl = document.getElementById('refreshBtn');
+    const sourceModalEl = document.getElementById('sourceModal');
+    const modalTitleEl = document.getElementById('modalTitle');
+    const closeModalEl = document.getElementById('closeModal');
+    const cancelBtnEl = document.getElementById('cancelBtn');
+    const sourceFormEl = document.getElementById('sourceForm') as HTMLFormElement;
+    const formErrorEl = document.getElementById('formError');
+    const sourceStrategyEl = document.getElementById('sourceStrategy');
+    const rsshubPathFieldEl = document.getElementById('rsshubPathField');
+
+    // 加载数据源列表
+    async function loadSources() {
+      try {
+        const resp = await fetch(API_BASE);
+        const data = await resp.json();
+
+        if (data.success && Array.isArray(data.data)) {
+          renderSources(data.data);
+          updateStats(data.data);
+        }
+      } catch (e) {
+        console.error('Failed to load sources:', e);
+        if (sourcesListEl) {
+          sourcesListEl.innerHTML = '<div class="loading">加载失败</div>';
+        }
+      }
+    }
+
+    // 渲染数据源列表
+    function renderSources(sources: any[]) {
+      if (!sourcesListEl) return;
+
+      if (sources.length === 0) {
+        sourcesListEl.innerHTML = '<div class="loading">暂无数据源</div>';
+        return;
+      }
+
+      const html = sources.map(source => {
+        const isActive = source.is_active === 1;
+        const strategyClass = source.strategy === 'RSSHUB' ? 'rsshub' : 'direct';
+
+        return `
+          <div class="source-item">
+            <div class="source-status ${isActive ? 'active' : 'inactive'}"></div>
+            <div class="source-info">
+              <div class="source-name">${escapeHtml(source.name)}</div>
+              <div class="source-url">${escapeHtml(source.url)}</div>
+              <div class="source-meta">
+                <span class="source-badge ${strategyClass}">${source.strategy}</span>
+                ${source.category ? `<span class="source-badge category">${escapeHtml(source.category)}</span>` : ''}
+                <span class="source-score">评分: ${source.reliability_score?.toFixed(2) || '1.00'}</span>
+                ${source.last_scraped_at ? `<span class="source-score">抓取: ${new Date(source.last_scraped_at).toLocaleString('zh-CN')}</span>` : ''}
+              </div>
+            </div>
+            <div class="source-actions">
+              <button class="btn btn-sm btn-secondary" onclick="editSource(${source.id})">编辑</button>
+              <button class="btn btn-sm ${isActive ? 'btn-secondary' : 'btn-primary'}" onclick="toggleActive(${source.id}, ${isActive})">
+                ${isActive ? '停用' : '启用'}
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="deleteSource(${source.id})">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      sourcesListEl.innerHTML = html;
+    }
+
+    // 更新统计信息
+    function updateStats(sources: any[]) {
+      const total = sources.length;
+      const active = sources.filter(s => s.is_active === 1).length;
+      const direct = sources.filter(s => s.strategy === 'DIRECT').length;
+      const rsshub = sources.filter(s => s.strategy === 'RSSHUB').length;
+
+      const totalCountEl = document.getElementById('totalCount');
+      const activeCountEl = document.getElementById('activeCount');
+      const directCountEl = document.getElementById('directCount');
+      const rsshubCountEl = document.getElementById('rsshubCount');
+
+      if (totalCountEl) totalCountEl.textContent = String(total);
+      if (activeCountEl) activeCountEl.textContent = String(active);
+      if (directCountEl) directCountEl.textContent = String(direct);
+      if (rsshubCountEl) rsshubCountEl.textContent = String(rsshub);
+    }
+
+    // 打开添加弹窗
+    function openAddModal() {
+      modalTitleEl!.textContent = '添加数据源';
+      sourceFormEl!.reset();
+      (document.getElementById('sourceId') as HTMLInputElement).value = '';
+      (document.getElementById('sourceIsActive') as HTMLInputElement).checked = true;
+      (document.getElementById('sourceWeight') as HTMLInputElement).value = '1.0';
+      hideError();
+      sourceModalEl!.classList.remove('hidden');
+    }
+
+    // 编辑数据源
+    async function editSource(id: number) {
+      try {
+        const resp = await fetch(`${API_BASE}?id=${id}`);
+        const data = await resp.json();
+
+        if (data.success && data.data) {
+          const source = data.data;
+          modalTitleEl!.textContent = '编辑数据源';
+          (document.getElementById('sourceId') as HTMLInputElement).value = String(source.id);
+          (document.getElementById('sourceName') as HTMLInputElement).value = source.name;
+          (document.getElementById('sourceUrl') as HTMLInputElement).value = source.url;
+          (document.getElementById('sourceStrategy') as HTMLSelectElement).value = source.strategy;
+          (document.getElementById('sourceRsshubPath') as HTMLInputElement).value = source.rsshub_path || '';
+          (document.getElementById('sourceCategory') as HTMLInputElement).value = source.category || '';
+          (document.getElementById('sourceWeight') as HTMLInputElement).value = String(source.weight || 1.0);
+          (document.getElementById('sourceLogicFilter') as HTMLTextAreaElement).value = source.logic_filter || '';
+          (document.getElementById('sourceIsActive') as HTMLInputElement).checked = source.is_active === 1;
+
+          updateRsshubField();
+          hideError();
+          sourceModalEl!.classList.remove('hidden');
+        }
+      } catch (e) {
+        console.error('Failed to load source:', e);
+      }
+    }
+
+    // 切换启用状态
+    async function toggleActive(id: number, currentActive: boolean) {
+      try {
+        const resp = await fetch(API_BASE, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            is_active: currentActive ? 0 : 1
+          })
+        });
+
+        const data = await resp.json();
+        if (data.success) {
+          loadSources();
+        } else {
+          alert('操作失败: ' + (data.error || '未知错误'));
+        }
+      } catch (e) {
+        console.error('Toggle active failed:', e);
+        alert('操作失败');
+      }
+    }
+
+    // 删除数据源
+    async function deleteSource(id: number) {
+      if (!confirm('确定要删除这个数据源吗？')) return;
+
+      try {
+        const resp = await fetch(`${API_BASE}?id=${id}`, {
+          method: 'DELETE'
+        });
+
+        const data = await resp.json();
+        if (data.success) {
+          loadSources();
+        } else {
+          alert('删除失败: ' + (data.error || '未知错误'));
+        }
+      } catch (e) {
+        console.error('Delete failed:', e);
+        alert('删除失败');
+      }
+    }
+
+    // 关闭弹窗
+    function closeModal() {
+      sourceModalEl!.classList.add('hidden');
+    }
+
+    // 显示错误
+    function showError(msg: string) {
+      formErrorEl!.textContent = msg;
+      formErrorEl!.classList.add('show');
+    }
+
+    // 隐藏错误
+    function hideError() {
+      formErrorEl!.classList.remove('show');
+    }
+
+    // 更新 RSSHub 字段显示
+    function updateRsshubField() {
+      const strategy = (sourceStrategyEl as HTMLSelectElement).value;
+      if (rsshubPathFieldEl) {
+        rsshubPathFieldEl.style.display = strategy === 'RSSHUB' ? 'block' : 'none';
+      }
+    }
+
+    // HTML 转义
+    function escapeHtml(str: string): string {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // 暴露全局函数
+    (window as any).editSource = editSource;
+    (window as any).toggleActive = toggleActive;
+    (window as any).deleteSource = deleteSource;
+
+    // 事件绑定
+    addSourceBtnEl!.addEventListener('click', openAddModal);
+    refreshBtnEl!.addEventListener('click', loadSources);
+    closeModalEl!.addEventListener('click', closeModal);
+    cancelBtnEl!.addEventListener('click', closeModal);
+    sourceStrategyEl!.addEventListener('change', updateRsshubField);
+
+    sourceFormEl!.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const formData = new FormData(sourceFormEl!);
+      const data: Record<string, any> = {};
+      formData.forEach((value, key) => {
+        if (key === 'is_active') {
+          data[key] = (document.getElementById(key) as HTMLInputElement).checked ? 1 : 0;
+        } else if (key === 'weight') {
+          data[key] = parseFloat(value as string);
+        } else if (key !== 'id') {
+          data[key] = value;
+        }
+      });
+
+      const id = (document.getElementById('sourceId') as HTMLInputElement).value;
+      if (id) {
+        data.id = parseInt(id);
+      }
+
+      // RSSHUB 策略需要 rsshub_path
+      if (data.strategy === 'RSSHUB' && !data.rsshub_path) {
+        showError('RSSHUB 策略需要填写 RSSHub 路径');
+        return;
+      }
+
+      try {
+        const resp = await fetch(API_BASE, {
+          method: id ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await resp.json();
+
+        if (result.success) {
+          closeModal();
+          loadSources();
+        } else {
+          showError(result.error || '保存失败');
+        }
+      } catch (e) {
+        console.error('Save failed:', e);
+        showError('保存失败');
+      }
+    });
+
+    // 初始化
+    loadSources();
+  </script>
+</AppLayout>

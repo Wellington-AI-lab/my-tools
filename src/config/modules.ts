@@ -1,4 +1,4 @@
-export type ModuleId = 'stocks' | 'telegram' | 'in-depth-analysis' | 'trends' | 'news';
+export type ModuleId = 'stocks' | 'telegram' | 'in-depth-analysis' | 'news' | 'admin';
 
 export type ModuleDef = {
   id: ModuleId;
@@ -6,6 +6,7 @@ export type ModuleDef = {
   description: string;
   href: string;
   status?: 'beta' | 'alpha' | 'stable';
+  adminOnly?: boolean;
 };
 
 export const MODULES: ModuleDef[] = [
@@ -24,13 +25,6 @@ export const MODULES: ModuleDef[] = [
     status: 'stable',
   },
   {
-    id: 'trends',
-    name: '基于AI对热搜进行标注的社会热点',
-    description: '扫描社会热点，用AI标注新闻',
-    href: '/tools/trends',
-    status: 'stable',
-  },
-  {
     id: 'in-depth-analysis',
     name: '深度分析',
     description: '根据趋势雷达扫描出的信息标签进行多源检索',
@@ -43,6 +37,14 @@ export const MODULES: ModuleDef[] = [
     description: '信号归档、标签化，并联动标的池（占位）',
     href: '/tools/telegram',
     status: 'beta',
+  },
+  {
+    id: 'admin',
+    name: '数据源管理',
+    description: '管理新闻聚合的 RSS/RSSHub 数据源',
+    href: '/tools/admin',
+    status: 'stable',
+    adminOnly: true,
   },
 ];
 

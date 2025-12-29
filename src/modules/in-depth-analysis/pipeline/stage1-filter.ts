@@ -138,7 +138,7 @@ export function stage1Filter(rawItems: RednoteRawItem[], cfg: Stage1Config): Sta
   const blacklist = Array.isArray(cfg.blacklistKeywords) ? cfg.blacklistKeywords : Array.from(DEFAULT_BLACKLIST);
   const maxAfter = clampInt(cfg.maxItemsAfterFilter, 1, 200);
 
-  const mapped: RednoteFeedCard[] = (rawItems || []).map((it) => {
+  const mapped: RednoteFeedCard[] = (Array.isArray(rawItems) ? rawItems : []).map((it) => {
     const likes = parseMetric(it.likes);
     const collects = parseMetric(it.collects);
     const comments = parseMetric(it.comments);

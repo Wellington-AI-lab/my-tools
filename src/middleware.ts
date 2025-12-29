@@ -2,17 +2,25 @@ import type { MiddlewareHandler } from 'astro';
 import { decodeSession } from '@/lib/session';
 import { getEnv } from '@/lib/env';
 
+// Type definitions for better type safety
+interface SEOContext {
+  request: Request;
+  locals: App.Locals;
+}
+
+interface NextFn {
+  (): Promise<Response>;
+}
+
 const PUBLIC_PREFIXES = [
   '/login',
   '/api/auth/login',
   '/api/auth/logout',
-  '/api/trends', // Allow public access to trends API (for frontend)
   '/tools/news', // News page is public (SEO + social sharing)
 ];
 
 // API 路径允许使用 X-Admin-Key 认证（用于 Cron/自动化）
 const API_KEY_AUTH_PATHS = [
-  '/api/trends/run',
   '/api/news/run',
 ];
 
@@ -61,7 +69,7 @@ function isCrawler(userAgent: string): boolean {
 /**
  * SEO 处理：为爬虫动态注入 OG Meta 标签
  */
-async function handleSEO(context: any, next: any) {
+async function handleSEO(context: SEOContext, next: NextFn) {
   const request = context.request;
   const url = new URL(request.url);
   const userAgent = request.headers.get('user-agent') || '';
@@ -79,8 +87,14 @@ async function handleSEO(context: any, next: any) {
 
   // 获取响应并注入 Meta 标签
   const response = await next();
-  const clonedResponse = response.clone();
-  const html = await clonedResponse.text();
+
+  // Early return for non-HTML responses (avoid unnecessary clone/parse)
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('text/html')) {
+    return response;
+  }
+
+  const html = await response.text();
 
   const ogImageUrl = `${SEO_API_BASE}/og?id=${articleId}`;
   const canonicalUrl = `${url.origin}${url.pathname}?id=${articleId}`;

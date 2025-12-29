@@ -5,9 +5,29 @@ type KVNamespace = {
   put(
     key: string,
     value: string,
-    options?: { expirationTtl?: number; metadata?: Record<string, unknown> }
+    options?: { expirationTtl?: number; expiration?: number; metadata?: Record<string, unknown> }
   ): Promise<void>;
   delete(key: string): Promise<void>;
+};
+
+// D1 Database types (simplified for edge runtime)
+type D1PreparedStatement = {
+  bind(...params: unknown[]): D1PreparedStatement;
+  raw(): Promise<D1Result<unknown>>;
+  all<T = unknown>(): Promise<D1Result<T>>;
+  first<T = unknown>(): Promise<T | null>;
+  run(): Promise<D1Result<unknown>>;
+};
+
+type D1Result<T> = {
+  results?: T[];
+  meta?: { changes?: number; duration?: number; last_row_id?: number };
+};
+
+type D1Database = {
+  prepare(sql: string): D1PreparedStatement;
+  batch(statements: D1PreparedStatement[]): Promise<D1Result<unknown>[]>;
+  exec(sql: string): Promise<D1Result<unknown>>;
 };
 
 type CloudflareEnv = {
@@ -15,6 +35,7 @@ type CloudflareEnv = {
   SESSION_SECRET?: string;
   SITE_PASSWORD_HASH?: string;
   ADMIN_PASSWORD_HASH?: string;
+  ADMIN_KEY?: string;
 
   // Data providers
   FINNHUB_API_KEY?: string;
@@ -29,8 +50,25 @@ type CloudflareEnv = {
   // RedNote DeepAgent - Apify (optional)
   APIFY_TOKEN?: string;
 
+  // Cloudflare AI
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+
+  // Third-party AI
+  ANTHROPIC_API_KEY?: string;
+  GLM_API_KEY?: string;
+
+  // Intelligence
+  RSSHUB_BASE_URL?: string;
+
+  // Environment
+  NODE_ENV?: string;
+  API_BASE_URL?: string;
+
   // Storage
   KV?: KVNamespace;
+  TRENDS_DB?: D1Database;
+  INTELLIGENCE_DB?: D1Database;
 };
 
 declare namespace App {
@@ -44,5 +82,3 @@ declare module '*?raw' {
   const content: string;
   export default content;
 }
-
-
