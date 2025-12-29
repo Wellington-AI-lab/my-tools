@@ -178,3 +178,8 @@ data.db-journal
 drizzle/
 .vercel
 .env*.local
+
+# Backups
+*-backup_*.tar.gz
+*.bak
+*.bak2
