@@ -857,6 +857,91 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--text-sub);
         }
+
+        /* ============================================
+           结构化数据样式
+           ============================================ */
+
+        /* 硬核指数徽章 */
+        .score-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .score-high {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+        }
+
+        .score-medium {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(78, 205, 196, 0.3);
+        }
+
+        .score-low {
+            background: var(--badge-default-bg);
+            color: var(--badge-default-text);
+        }
+
+        /* 标签容器 */
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        /* 标签 Pill */
+        .tag-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--badge-default-bg);
+            color: var(--badge-default-text);
+            transition: background-color 0.2s ease;
+        }
+
+        body.dark .tag-pill {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 关键点列表 */
+        .key-points-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px 0;
+        }
+
+        .key-point-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 0.875rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            transition: color 0.3s ease;
+        }
+
+        .key-point-item::before {
+            content: '➤';
+            flex-shrink: 0;
+            color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
@@ -1137,16 +1222,78 @@
             }
         }
 
+        // HTML 转义辅助函数
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         // 创建新闻卡片 HTML
         function createNewsCard(article) {
+            // 尝试解析结构化摘要
+            let structuredData = null;
+            let summaryText = article.summary || '暂无摘要';
+
+            try {
+                structuredData = JSON.parse(summaryText);
+            } catch (e) {
+                // 纯文本模式，保持原值
+            }
+
+            // 渲染不同内容
+            let contentHtml = '';
+
+            if (structuredData && typeof structuredData === 'object') {
+                // 结构化数据模式
+                const score = structuredData.score || 0;
+                const tags = structuredData.tags || [];
+                const keyPoints = structuredData.key_points || [];
+
+                // 硬核指数徽章
+                let scoreBadge = '';
+                if (score >= 8) {
+                    scoreBadge = `<span class="score-badge score-high">🔥 ${score}</span>`;
+                } else if (score >= 5) {
+                    scoreBadge = `<span class="score-badge score-medium">ℹ️ ${score}</span>`;
+                } else if (score > 0) {
+                    scoreBadge = `<span class="score-badge score-low">📉 ${score}</span>`;
+                }
+
+                // 标签
+                const tagsHtml = tags.map(tag =>
+                    `<span class="tag-pill">${escapeHtml(tag)}</span>`
+                ).join('');
+
+                // 关键点
+                const keyPointsHtml = keyPoints.length > 0
+                    ? `<ul class="key-points-list">
+                        ${keyPoints.map(point => `<li class="key-point-item">${escapeHtml(point)}</li>`).join('')}
+                       </ul>`
+                    : '';
+
+                contentHtml = `
+                    ${scoreBadge}
+                    <span class="source-badge ${getSourceBadgeClass(article.source)}">${article.source}</span>
+                    <h2 class="news-title">${escapeHtml(article.title)}</h2>
+                    ${tagsHtml ? `<div class="tags-container">${tagsHtml}</div>` : ''}
+                    ${keyPointsHtml}
+                `;
+            } else {
+                // 纯文本模式（兼容旧数据）
+                contentHtml = `
+                    <span class="source-badge ${getSourceBadgeClass(article.source)}">${article.source}</span>
+                    <h2 class="news-title">${escapeHtml(article.title)}</h2>
+                    <p class="news-summary">${escapeHtml(summaryText)}</p>
+                `;
+            }
+
             return `
                 <a href="${article.url}" target="_blank" rel="noopener" class="news-card"
                    data-source="${article.source}"
                    data-title="${(article.title || '').toLowerCase()}"
                    data-summary="${(article.summary || '').toLowerCase()}">
-                    <span class="source-badge ${getSourceBadgeClass(article.source)}">${article.source}</span>
-                    <h2 class="news-title">${article.title}</h2>
-                    <p class="news-summary">${article.summary || '暂无摘要'}</p>
+                    ${contentHtml}
                     <div class="news-footer">
                         <span class="news-time">${formatRelativeTime(article.created_at)}</span>
                         <svg class="external-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
