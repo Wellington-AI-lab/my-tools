@@ -224,7 +224,7 @@ describe('POST /api/news/summarize - Request Validation', () => {
     // Assert
     expect(response.status).toBe(400);
     expect(data.success).toBe(false);
-    expect(data.error).toContain('Invalid JSON body');
+    expect(data.error).toContain('Invalid JSON');
   });
 
   it('should_return_400_when_url_is_missing', async () => {
@@ -241,7 +241,7 @@ describe('POST /api/news/summarize - Request Validation', () => {
     // Assert
     expect(response.status).toBe(400);
     expect(data.success).toBe(false);
-    expect(data.error).toContain('Missing required fields: url, title');
+    expect(data.error).toContain('Invalid input');
   });
 
   it('should_return_400_when_title_is_missing', async () => {
@@ -258,7 +258,7 @@ describe('POST /api/news/summarize - Request Validation', () => {
     // Assert
     expect(response.status).toBe(400);
     expect(data.success).toBe(false);
-    expect(data.error).toContain('Missing required fields: url, title');
+    expect(data.error).toContain('Invalid input');
   });
 
   it('should_accept_request_with_url_and_title_only', async () => {

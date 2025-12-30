@@ -74,6 +74,12 @@ JSON ONLY (no markdown):
 // Types
 // ============================================================================
 
+// 输入长度限制
+const MAX_URL_LENGTH = 2048;
+const MAX_TITLE_LENGTH = 500;
+const MAX_SUMMARY_LENGTH = 5000;  // 限制 summary 长度，防止 token 浪费
+const MAX_SOURCE_LENGTH = 100;
+
 interface SummarizeRequest {
   url: string;
   title: string;
@@ -87,6 +93,35 @@ interface SummarizeResponse {
   cached?: boolean;
   timestamp?: string;
   error?: string;
+}
+
+/**
+ * 验证输入数据
+ */
+function validateInput(data: unknown): data is SummarizeRequest {
+  if (typeof data !== 'object' || data === null) return false;
+  const d = data as Record<string, unknown>;
+
+  const hasValidUrl =
+    typeof d.url === 'string' &&
+    d.url.length > 0 &&
+    d.url.length <= MAX_URL_LENGTH;
+
+  const hasValidTitle =
+    typeof d.title === 'string' &&
+    d.title.length > 0 &&
+    d.title.length <= MAX_TITLE_LENGTH;
+
+  // summary 和 source 是可选的
+  const hasValidSummary =
+    d.summary === undefined ||
+    (typeof d.summary === 'string' && d.summary.length <= MAX_SUMMARY_LENGTH);
+
+  const hasValidSource =
+    d.source === undefined ||
+    (typeof d.source === 'string' && d.source.length <= MAX_SOURCE_LENGTH);
+
+  return hasValidUrl && hasValidTitle && hasValidSummary && hasValidSource;
 }
 
 // ============================================================================
@@ -179,7 +214,7 @@ export async function POST({ locals, request }: {
   }
 
   // Parse request
-  let body: SummarizeRequest;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -190,15 +225,16 @@ export async function POST({ locals, request }: {
     } as SummarizeResponse, { status: 400 });
   }
 
-  const { url, title, summary, source } = body;
-
-  if (!url || !title) {
+  // Validate input with length limits
+  if (!validateInput(body)) {
     return Response.json({
       success: false,
-      error: 'Missing required fields: url, title',
+      error: `Invalid input. Limits: url(${MAX_URL_LENGTH}), title(${MAX_TITLE_LENGTH}), summary(${MAX_SUMMARY_LENGTH}), source(${MAX_SOURCE_LENGTH})`,
       timestamp: new Date().toISOString(),
     } as SummarizeResponse, { status: 400 });
   }
+
+  const { url, title, summary, source } = body;
 
   try {
     // FAST PATH: Check cache first
@@ -247,14 +283,29 @@ export async function POST({ locals, request }: {
 }
 
 /**
- * OPTIONS handler for CORS
+ * OPTIONS handler for CORS with origin whitelist
  */
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+export async function OPTIONS({ request }: { request: Request }) {
+  const origin = request.headers.get('origin');
+
+  // 允许的源列表 (环境变量配置)
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'https://my-tools-bim.pages.dev')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const isAllowed = origin && allowedOrigins.includes(origin);
+
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400', // 24 hours
+  };
+
+  if (isAllowed) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Vary'] = 'Origin';
+  }
+
+  return new Response(null, { status: 204, headers });
 }

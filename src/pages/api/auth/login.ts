@@ -45,7 +45,7 @@ export const POST: APIRoute = async (context) => {
   const maxAge = Math.floor((expiresAt.getTime() - Date.now()) / 1000);
 
   context.cookies.set('auth_session', sessionToken, {
-    httpOnly: false, // Allow JavaScript access for debugging
+    httpOnly: true,
     secure: true,
     sameSite: 'lax',
     path: '/',
@@ -53,7 +53,7 @@ export const POST: APIRoute = async (context) => {
   });
 
   context.cookies.set('auth_session_data', signed, {
-    httpOnly: false,
+    httpOnly: true,
     secure: true,
     sameSite: 'lax',
     path: '/',

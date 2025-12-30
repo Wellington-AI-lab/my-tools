@@ -14,6 +14,8 @@
  */
 
 import { requireKV } from '@/lib/env';
+import { decodeSession } from '@/lib/session';
+import { getSessionSecret } from '@/lib/auth';
 import {
   getTelemetryStats,
   getRecentEvents,
@@ -22,6 +24,7 @@ import {
 } from '@/modules/telemetry/wrapper';
 import type { TelemetryStats } from '@/modules/telemetry/wrapper';
 import type { KVStorage } from '@/lib/storage/kv';
+import type { AstroCookies, APIRoute } from 'astro';
 
 // ============================================================================
 // Types
@@ -82,27 +85,45 @@ interface ErrorResponse {
 // ============================================================================
 
 /**
- * 简单管理员检查 (生产环境应使用更安全的方式)
+ * 强化管理员认证检查
+ * 1. 优先检查 session 中的 role
+ * 2. CRON_SECRET 用于内部调用
+ * 3. 生产环境不允许绕过
  */
-function checkAdminAuth(request: Request): boolean {
-  // 方法 1: 检查环境变量中的管理员密钥
-  const adminSecret = request.headers.get('x-admin-secret');
-  if (adminSecret === process.env.ADMIN_SECRET) {
+async function checkAdminAuth(opts: {
+  cookies: AstroCookies;
+  request: Request;
+}): Promise<boolean> {
+  const { cookies, request } = opts;
+
+  // 方法 1: 检查 session (推荐)
+  const signed = cookies.get('auth_session_data')?.value;
+  if (signed) {
+    try {
+      const secret = getSessionSecret(process.env as Record<string, string | undefined>);
+      const payload = await decodeSession(signed, secret);
+      if (payload?.role === 'admin') {
+        return true;
+      }
+    } catch {
+      // Session 无效，继续检查其他方法
+    }
+  }
+
+  // 方法 2: CRON_SECRET 内部调用 (用于 cron jobs)
+  const cronSecret = request.headers.get('x-cron-secret');
+  if (cronSecret && cronSecret === process.env.CRON_SECRET) {
     return true;
   }
 
-  // 方法 2: 检查 Bearer token
-  const authHeader = request.headers.get('authorization');
-  if (authHeader === `Bearer ${process.env.ADMIN_SECRET}`) {
-    return true;
+  // 生产环境必须有有效认证
+  if (process.env.NODE_ENV === 'production') {
+    return false;
   }
 
-  // 方法 3: 本地开发环境
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-
-  return false;
+  // 开发环境：仅本地请求允许
+  const host = request.headers.get('host');
+  return host?.startsWith('localhost') === true;
 }
 
 // ============================================================================
@@ -161,12 +182,13 @@ function getPeriodLabel(period: string): string {
 // GET Handler
 // ============================================================================
 
-export async function GET({ locals, request }: {
+export async function GET({ locals, request, cookies }: {
   locals: App.Locals;
   request: Request;
+  cookies: AstroCookies;
 }) {
   // 1. 验证管理员权限
-  if (!checkAdminAuth(request)) {
+  if (!await checkAdminAuth({ cookies, request })) {
     return Response.json({
       success: false,
       error: 'Unauthorized: Valid admin credentials required',
@@ -256,14 +278,29 @@ export async function GET({ locals, request }: {
 }
 
 /**
- * OPTIONS handler for CORS
+ * OPTIONS handler for CORS with origin whitelist
  */
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Secret',
-    },
-  });
+export async function OPTIONS({ request }: { request: Request }) {
+  const origin = request.headers.get('origin');
+
+  // 允许的源列表 (环境变量配置)
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'https://my-tools-bim.pages.dev')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const isAllowed = origin && allowedOrigins.includes(origin);
+
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400', // 24 hours
+  };
+
+  if (isAllowed) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Vary'] = 'Origin';
+  }
+
+  return new Response(null, { status: 204, headers });
 }

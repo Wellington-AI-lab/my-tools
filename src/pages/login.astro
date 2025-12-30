@@ -39,10 +39,6 @@ const error = Astro.url.searchParams.get('error');
           <button type="submit">登录</button>
         </form>
 
-        <p class="debug-info">
-          Redirect: {redirect}<br/>
-          Error: {error || 'none'}
-        </p>
       </div>
     </div>
 
@@ -108,12 +104,6 @@ const error = Astro.url.searchParams.get('error');
       }
       button:hover {
         background: #555;
-      }
-      .debug-info {
-        margin-top: 20px;
-        font-size: 11px;
-        color: #999;
-        line-height: 1.5;
       }
     </style>
   </body>

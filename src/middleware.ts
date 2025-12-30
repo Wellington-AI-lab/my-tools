@@ -5,7 +5,6 @@ const PUBLIC_PATHS = [
   '/login',
   '/api/auth/login',
   '/api/auth/logout',
-  '/api/debug',
   '/tools/news', // 新闻页面公开
 ];
 
@@ -61,7 +60,10 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
     context.locals.user = { role: payload.role };
     return next();
   } catch (error) {
-    console.error('Middleware error:', error);
+    // 生产环境不输出详细错误到控制台，防止信息泄露
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Middleware error:', error);
+    }
     return context.redirect('/login?error=invalid');
   }
 };

@@ -100,8 +100,8 @@ const TELEMETRY_KEYS = {
 // ============================================================================
 
 const memoryBuffer: TelemetryEvent[] = [];
-const BUFFER_FLUSH_INTERVAL = 30000; // 30 秒
-const MAX_BUFFER_SIZE = 100;
+const BUFFER_FLUSH_INTERVAL = 120000; // 120 秒 (2分钟) - 优化 KV 写入频率
+const MAX_BUFFER_SIZE = 500;          // 增加缓冲区大小，减少 KV 写入次数
 
 let flushTimer: ReturnType<typeof setInterval> | null = null;
 

@@ -110,14 +110,19 @@ export async function verifyPasswordPbkdf2(password: string, stored: string): Pr
 
 // 恒定时间字符串比较，防止时序攻击
 function constantTimeCompare(a: string, b: string): boolean {
+  // 长度不同时，仍然执行一次完整循环以消耗相似时间
   if (a.length !== b.length) {
-    // 仍然执行比较以消耗相似时间
-    let diff = 1;
-    for (let i = 0; i < a.length; i++) {
-      diff |= a.charCodeAt(i) ^ a.charCodeAt(i);
+    let diff = 0;
+    const target = Math.max(a.length, b.length);
+    for (let i = 0; i < target; i++) {
+      const charA = i < a.length ? a.charCodeAt(i) : 0;
+      const charB = i < b.length ? b.charCodeAt(i) : 0;
+      diff |= charA ^ charB;
     }
     return false;
   }
+
+  // 长度相同，逐字节比较
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
