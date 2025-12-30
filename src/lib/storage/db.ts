@@ -20,6 +20,8 @@ export interface Statement {
 export class VercelPostgres implements Database {
   private sql: any;
   private connectionString?: string;
+  private usingVercelPostgres = true;
+  private pgClient: any = null;
 
   constructor(connectionString?: string) {
     // Store connection string if provided
@@ -31,10 +33,43 @@ export class VercelPostgres implements Database {
   private async getSql() {
     if (!this.sql) {
       try {
-        const postgres = await import('@vercel/postgres');
-        this.sql = postgres.sql;
+        // Check if using Prisma data proxy or other non-Vercel Postgres
+        const isPrismaProxy = this.connectionString?.includes('prisma.io');
+        const isNeonDirect = this.connectionString?.includes('.pooler.neon.tech');
+        const isVercelPooler = this.connectionString?.includes('pooler.vercel-storage.com');
+
+        if (isPrismaProxy || isNeonDirect) {
+          // Use pg package for Prisma/Neon direct connections
+          this.usingVercelPostgres = false;
+          const pg = await import('pg');
+          const { Client } = pg;
+          this.pgClient = new Client({ connectionString: this.connectionString });
+          await this.pgClient.connect();
+          this.sql = this.pgClient;
+        } else if (isVercelPooler) {
+          // Use @vercel/postgres sql for Vercel pooler
+          const postgres = await import('@vercel/postgres');
+          this.sql = postgres.sql;
+        } else {
+          // Try Vercel Postgres first, fall back to pg
+          try {
+            const postgres = await import('@vercel/postgres');
+            this.sql = postgres.sql;
+          } catch {
+            // Fall back to pg
+            const pg = await import('pg');
+            const { Client } = pg;
+            this.pgClient = new Client({ connectionString: this.connectionString });
+            await this.pgClient.connect();
+            this.sql = this.pgClient;
+            this.usingVercelPostgres = false;
+          }
+        }
       } catch (err) {
-        throw new Error(`Failed to import @vercel/postgres: ${err instanceof Error ? err.message : String(err)}`);
+        const errMsg = err && typeof err === 'object' && 'message' in err
+          ? (err as Error).message
+          : String(err);
+        throw new Error(`Failed to initialize database: ${errMsg}`);
       }
     }
     return this.sql;

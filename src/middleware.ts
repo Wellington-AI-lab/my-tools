@@ -7,6 +7,7 @@ const PUBLIC_PATHS = [
   '/api/auth/logout',
   '/tools/news',           // 新闻页面公开
   '/api/news',             // 新闻 API 公开
+  '/api/intelligence',     // 情报 API 公开（数据库访问有独立的验证）
 ];
 
 function isPublicPath(pathname: string): boolean {
